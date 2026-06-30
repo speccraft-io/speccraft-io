@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars (gitignored) only if you need to override a default.
+# Every value already has a sensible default in variables.tf, so for the normal
+# deploy you can skip this file entirely and just run `terraform apply`.
+
+# --- common overrides (all optional) ----------------------------------------
+# aws_region    = "us-east-2"
+# root_domain   = "speccraft.io"   # site serves at the apex and at www.<root_domain>
+# amplify_branch = "main"
+# github_repository = "https://github.com/speccraft-io/speccraft-io"

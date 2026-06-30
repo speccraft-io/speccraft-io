@@ -1,0 +1,6 @@
+/* Splash hero sits too low by default — tighten the top spacing so the
+   "SpecCraft" headline starts near the top, and pull the first content
+   section up closer to the hero's call-to-action buttons. */
+.hero {
+	padding-block: 1.5rem 0;
+}

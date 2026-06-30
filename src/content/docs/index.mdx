@@ -1,0 +1,51 @@
+---
+title: SpecCraft
+description: Tooling to understand, verify, and test complex concurrent and durable-execution workflows — where the dangerous bugs live in interleavings no test suite ever samples.
+template: splash
+hero:
+  tagline: Understand, verify, and test complex concurrent and durable-execution workflows — where the dangerous bugs live in interleavings no test suite ever samples.
+  actions:
+    - text: What it does
+      link: '#what-it-does'
+      icon: down-caret
+      variant: primary
+    - text: GitHub
+      link: https://github.com/speccraft-io
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## The problem
+
+Durable-execution platforms like [Temporal](https://temporal.io/) made workflows-as-code the right default for anything that must survive crashes, retries, and long waits. But once a workflow grows many interleaving signals, timers, and handlers, it becomes genuinely hard to **reason about, test, and trust**.
+
+The dangerous bugs aren't the non-deterministic crashes the runtime already catches. They're **logical races**: domain invariants that quietly break under an ordering nobody ever exercised — and that no test suite samples.
+
+## What it does <a id="what-it-does" />
+
+SpecCraft is tooling to **understand, verify, and test** complex concurrent and durable-execution workflows — closing the gap between a tool that *comprehends* workflow logic and one that *checks* it.
+
+<CardGrid>
+	<Card title="Understand" icon="open-book">
+		Build an accurate model of what a workflow actually does — its states, handlers, and the orderings they admit — from the code you already wrote.
+	</Card>
+	<Card title="Verify" icon="approve-check">
+		Check domain invariants against every interleaving, not just the happy path your tests happen to hit. In the lineage of TLA+ and deterministic simulation.
+	</Card>
+	<Card title="Test" icon="random">
+		Exercise the orderings no hand-written test would think to sample, and surface the ones that break.
+	</Card>
+	<Card title="Built for durable execution" icon="rocket">
+		Targets Temporal first — workflows-as-code where state survives crashes, retries, and long waits.
+	</Card>
+</CardGrid>
+
+## Why now
+
+Durable execution is becoming the default substrate for backend systems, and the correctness gap grows with it. Existing tools force a choice: formal methods that *verify* but require you to re-model your system by hand, or test frameworks that run *real code* but only sample the orderings you anticipated. SpecCraft aims to do both — from the workflow code itself.
+
+---
+
+SpecCraft is built by [Oleksandr Zalizniak](https://zalizniak.com). Follow along on [GitHub](https://github.com/speccraft-io) or get in touch: [alex@zalizniak.com](mailto:alex@zalizniak.com).

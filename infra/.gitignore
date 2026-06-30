@@ -1,0 +1,9 @@
+# Local Terraform state/cache (real state is remote in S3 — see versions.tf).
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Local var overrides may contain secrets — keep them out of git.
+terraform.tfvars
+*.auto.tfvars
