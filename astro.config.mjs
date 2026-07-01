@@ -33,7 +33,7 @@ export default defineConfig({
 			pagination: false,
 			sidebar: [
 				{ label: 'Home', link: '/' },
-				{ label: 'Notes', items: [{ autogenerate: { directory: 'notes' } }] },
+				{ label: 'Tooling research', link: '/durable-workflow-correctness-tooling-research' },
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/speccraft-io' },
