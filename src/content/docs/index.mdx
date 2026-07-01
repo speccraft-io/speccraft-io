@@ -1,21 +1,16 @@
 ---
 title: SpecCraft
 description: Tooling to understand, verify, and test complex concurrent and durable-execution workflows — where the dangerous bugs live in interleavings no test suite ever samples.
-template: splash
-hero:
-  tagline: Understand, verify, and test complex concurrent and durable-execution workflows — where the dangerous bugs live in interleavings no test suite ever samples.
-  actions:
-    - text: What it does
-      link: '#what-it-does'
-      icon: down-caret
-      variant: primary
-    - text: GitHub
-      link: https://github.com/speccraft-io
-      icon: external
-      variant: minimal
+head:
+  # Homepage title === site title, so Starlight's "title | siteTitle" format
+  # duplicates it. Pin a single title for this page.
+  - tag: title
+    content: SpecCraft
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
+
+Understand, verify, and test complex concurrent and durable-execution workflows — where the dangerous bugs live in interleavings no test suite ever samples.
 
 ## The problem
 

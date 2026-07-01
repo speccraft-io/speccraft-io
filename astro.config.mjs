@@ -30,8 +30,11 @@ export default defineConfig({
 						"})(window,document,'script','dataLayer','GTM-N2BNSMZ6');",
 				},
 			],
-			// One-page site: hide the sidebar and the table-of-contents.
 			pagination: false,
+			sidebar: [
+				{ label: 'Home', link: '/' },
+				{ label: 'Notes', items: [{ autogenerate: { directory: 'notes' } }] },
+			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/speccraft-io' },
 			],
