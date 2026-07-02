@@ -13,7 +13,7 @@ Generic, well-known Temporal hazards the platform and its tooling already solve.
 
 - **Replay non-determinism.** Recorded histories fail to replay after a code change — one workflow had 7 of 10 quarantined, with no `patched()` gates and module-global mutable state. The most severe issue we actually observed, and entirely preventable with versioning + replay CI.
 - **Missing or weak timeouts and retries.** Activities with no explicit timeout or retry policy, so a slow or failing call wedges or fails the run.
-- **Unbounded history growth.** A long-lived workflow with no `continueAsNew`, accumulating state until it hits history limits.
+- **Unbounded history growth.** A long-lived workflow with no `continueAsNew`, accumulating state until it hits history limits — and well before that, the oversized history crashes the Web UI, runs up billable actions, and becomes impossible to load and investigate.
 - **Worker and queue capacity.** Throughput stalls under load with no backlog or schedule-to-start metrics to see it.
 - **Error delivery and observability gaps.** Failures that never surface to the client or a dashboard.
 
