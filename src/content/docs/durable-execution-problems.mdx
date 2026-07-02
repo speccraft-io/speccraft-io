@@ -7,7 +7,7 @@ Durable-execution engines like [Temporal](https://temporal.io/) already handle t
 
 But none of this is free. The promise is real, and it is expensive: workers to run and tune, the determinism constraints to respect, and a whole web of signals, timers, and handlers to get right — operating durable workflows is anything but trivial, and it can be genuinely painful. And increasingly this is the substrate for AI agentic systems, where the agent decides at runtime which handlers, branches, and signals fire — driving the very interleavings these bugs hide in.
 
-Once you have paid that cost, the bugs that remain live in your workflow's own logic. You always own the fix — the platform never applies one for you — but the bugs split into **two families** by where the answer comes from: the ones the platform already has a tool or pattern for, and the ones no generic tool can even find. And even after you have paid the full price, its behavior in production can still cost you sleep.
+You always own the fix — the platform never applies one for you — but the bugs split into **two families** by where the answer comes from: the ones the platform already has a tool or pattern for, and the ones no generic tool can even find. And even after you have paid the full price, its behavior in production can still cost you sleep.
 
 ## Family one — the platform already has an answer
 
