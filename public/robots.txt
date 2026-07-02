@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://speccraft.io/sitemap.xml
+Sitemap: https://speccraft.io/sitemap-index.xml
