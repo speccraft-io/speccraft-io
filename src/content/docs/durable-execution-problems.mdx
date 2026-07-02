@@ -1,54 +1,39 @@
 ---
 title: The problems
-description: The correctness problems durable-workflow developers actually hit, split into two families by who owns the fix — the generic hazards the platform already solves, and the workflow-logic races no generic tool can find.
+description: The correctness problems durable-workflow developers actually hit, drawn from two real Temporal workflows and split into two families — the generic hazards the platform already solves, and the workflow-logic bugs no generic tool can find.
 ---
 
-Durable-execution engines like [Temporal](https://temporal.io/) already handle the failures that pushed you toward them — crashes, retries, lost messages, non-deterministic replay. The bugs that remain live in your workflow's own logic, under orderings you never pictured.
+Durable-execution engines like [Temporal](https://temporal.io/) already handle the failures that pushed you toward them — crashes, retries, lost messages, non-deterministic replay. The bugs that remain live in your workflow's own logic.
 
-We studied two real, long-lived production workflows to map that space. Everything we found sorts into **two families**, split by a single question: **who owns the fix?**
+We studied two real, long-lived production workflows and catalogued the issues. They split into **two families**, by who owns the fix.
 
 ## Family one — the platform already has an answer
 
-Generic, well-known Temporal hazards that the platform and its tooling already solve. A finding here is a config or CI gap, not a design flaw — the fix is to turn the tooling on and configure it correctly.
+Generic, well-known Temporal hazards the platform and its tooling already solve. A finding here is a config or CI gap, not a design flaw.
 
-- **Non-determinism and replay drift** — replay-determinism tests against recorded histories, the workflow sandbox, determinism lint.
-- **Versioning and safe deploys** — `patched()` / `deprecatePatch()` and worker versioning, so in-flight workflows survive code changes.
-- **Timeouts, retries, and fallbacks** — start-to-close and heartbeat timeouts, bounded retry policies, provider fallback.
-- **Worker and task-queue capacity** — worker tuning, backlog and schedule-to-start latency metrics.
-- **Runtime observability** — SDK metrics, the Web UI, tracing.
+- **Replay non-determinism.** Recorded histories fail to replay after a code change — one workflow had 7 of 10 quarantined, with no `patched()` gates and module-global mutable state. The most severe issue we actually observed, and entirely preventable with versioning + replay CI.
+- **Missing or weak timeouts and retries.** Activities with no explicit timeout or retry policy, so a slow or failing call wedges or fails the run.
+- **Unbounded history growth.** A long-lived workflow with no `continueAsNew`, accumulating state until it hits history limits.
+- **Worker and queue capacity.** Throughput stalls under load with no backlog or schedule-to-start metrics to see it.
+- **Error delivery and observability gaps.** Failures that never surface to the client or a dashboard.
 
-The cautionary tale from our case studies is that these are cheap and generic, but *not optional* for long-lived workflows: the single most severe failure we actually observed — 7 of 10 recorded histories failing to replay — sat entirely here, and versioning plus replay CI would have prevented it. One caveat, though: monitoring **detects the symptoms** of a family-two bug — a stuck workflow shows as "running, no progress" — but it never fixes the logic. Don't mistake a dashboard for a solution.
+One caveat: monitoring **detects the symptoms** of a family-two bug — a stuck run shows as "running, no progress" — but never fixes the logic. A dashboard is not a solution.
 
-## Family two — the flaws no generic tool can find
+## Family two — the bugs no generic tool can find
 
-These live in the workflow's own model: its interleavings, its invariants, its hand-rolled coordination. Generic tooling can't catch them, because catching them means reasoning about *this* workflow.
+These live in the workflow's own model — its interleavings, invariants, and hand-rolled coordination. Generic tooling can't catch them, because catching them means reasoning about *this* workflow.
 
-The root is the interleaving surface. Temporal runs every signal and update handler on one coroutine that interleaves at every `await`; validator-free updates are admitted immediately. So logical concurrency is (handlers × await points), the only atomic regions are the `await`-free runs between them, and most "impossible" races are just two handlers parked at awaits in an order nobody pictured. The failures cluster into four shapes.
-
-### The workflow ends at the wrong moment
-
-A workflow completes, or fires a terminal action, while work is still in flight — and durable execution makes this sharper than it sounds. Temporal *rejects* an update that resolves after the run has exited, and a write dispatched from a detached promise has no workflow left to observe it. One workflow we studied carried a signature bug for six months: the run completed before an in-flight update did, and the client never received the result. Guarding with `allHandlersFinished()` is the obvious fix and still isn't enough — it waits for handler functions but not for the fire-and-forget promises they spawned. The near relatives are premature transition — an export or a submit fires while a prerequisite job is still mid-flight, so it runs on half-built state — and its mirror image, the **initialization race**, where a signal lands before setup finishes and mutates state that isn't there yet.
-
-### The workflow silently stops advancing
-
-The run blocks forever on a `condition`, an activity, or a coordinator that never resolves. This is the failure durable execution hides best: to Temporal the workflow looks perfectly healthy — it is simply waiting — so no timeout or retry ever fires. We found unbounded `condition` waits, a slot grant that never came back after a cancel, and a lost-wakeup race where a signal reset the "has work" flag a beat before the check that would have consumed it. The discipline that prevents this — every await must resolve on the cancel and failure paths, not just the happy one — is invisible to any tool that only reads the happy path.
-
-### Two handlers race on shared state
-
-Handlers read-then-write shared state across `await` points, which is where check-then-act, TOCTOU, and last-writer-wins live. The sharpest case is when the source of truth is an external store the workflow doesn't mirror: a delete-when-empty guard consulted the *pending* items in memory but not the *in-flight* ones, so it could delete a document while an upload was still committing to the store — flagged in review as the single most likely invariant to break, and never once caught in a recorded run. The same family covers overlapping jobs where the one over the smaller input finishes first and wins, and a config toggle that races a process which already captured the old value — the one race we could prove actually happened in a production history.
-
-The hardest version of this is **two-store drift**: the workflow's state and a *second* stateful entity — an external store, or a peer or child workflow — fall out of sync under interleaving. It is the frontier of the whole problem, because correctness now depends on something the workflow doesn't own and can't see the commit order of. The delete-when-empty race above is a two-store bug; so is any decision made from an in-memory picture the store has already moved past.
-
-### Hand-rolled coordination has its own bugs
-
-With no concurrency library to lean on, teams build their own rate limiters, mutexes, and schedulers inside the workflow — and each carries its own algorithm bugs. A "run exactly once" budget was incremented *before* its callback and never refunded on cancel, so a single cancellation turned "once" into "never" and the guarded action stopped running altogether. Elsewhere a coordinator dropped a request when the grantee had already finished, and a back-off whose minimum wait computed to zero collapsed into a busy-loop. These are textbook rate-limiter and scheduler correctness problems, wearing the disguise of ordinary workflow code.
-
-### Why the same bug keeps coming back
-
-In both workflows, no single component owned the invariant. "Complete exactly once" held only because ~30 handlers each repeated the same guard-then-set discipline; liveness held only if every signal reset was followed by a re-check. A behavior-preserving refactor — reorder two lines, add an `await` — silently breaks it. That is why every new feature reintroduced the same class of bug: correctness here is **emergent, not structural**. It is also why **invalid state combinations** creep in — independent flags like `submitted`, `deleted`, and `converted` drift into a pairing the design never intended and no branch handles, because no single component makes the illegal states unrepresentable. This is precisely what a model checker can catch and a linter cannot.
-
-## The boundary
-
-One class sits outside both families: the quality of what an activity actually produces — a bad AI output, an unhandled input edge case. That is business correctness, not concurrency; input validation and property tests own it, and it is out of scope here.
-
-The picture the two families draw is sharp. Family-one discipline stops the failures you'll hit right after your next deploy. But the highest-value bugs we found — the delete-during-upload race, the write that outlives the run — have **never appeared in a recorded run**. Only family-two analysis finds the races still waiting to happen.
+- **Completion before in-flight work finishes.** The run completed before an update resolved — a signature bug that lived for six months, where the client never received the result. `allHandlersFinished()` guards handlers but not the fire-and-forget promises they spawned.
+- **Detached write outlives the run.** A fire-and-forget write lands after the workflow has already exited, with no workflow left to observe it.
+- **Rejected floating promise.** An unawaited fire-and-forget promise rejects mid-run and takes the whole workflow task down, because nothing local caught it.
+- **Terminal op before preconditions settle.** A submit or export fires while a prerequisite job is still mid-flight, so it runs on half-built state.
+- **Initialization race.** A signal lands before setup finishes and mutates state that isn't there yet.
+- **Never-resolving await.** The run blocks forever on a `condition`, activity, or coordinator that never resolves — e.g. a slot grant that never returns after a cancel. Temporal sees a healthy workflow; it is simply waiting.
+- **Lost wakeup.** A signal resets the "has work" flag a beat before the check that would have consumed it, so the work is never picked up.
+- **Delete-when-empty against an external store.** A guard reads the *pending* items in memory but not the *in-flight* ones, so it deletes a document while an upload is still committing to the store. Flagged as the single most likely invariant to break — and never once caught in a recorded run.
+- **Stale read of a detached writer's value.** Check-then-act on a ref that a background process writes with no coordination, so the read misses or supersedes a write it needed.
+- **Overlapping jobs, last-writer-wins.** Two regenerations race; the one over the smaller input finishes first and its result wins.
+- **Config toggle races a captured value.** A flag flip doesn't reach a process that already captured the old value — the one race we could prove actually happened in a production history.
+- **One-shot budget burned by a cancel.** A "run exactly once" counter is incremented *before* its callback and never refunded on cancel, so "once" quietly becomes "never."
+- **Home-grown coordinator bugs.** A scheduler that drops a request when the grantee already finished; a back-off whose minimum wait computes to zero and busy-loops; a mutex built as an unbounded promise chain.
+- **Two-store drift.** The workflow's state and a *second* stateful entity — an external store, or a peer or child workflow — fall out of sync under interleaving. The hardest class, because correctness now depends on something the workflow doesn't own and can't see the commit order of.
