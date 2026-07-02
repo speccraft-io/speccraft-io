@@ -33,7 +33,8 @@ export default defineConfig({
 			pagination: false,
 			sidebar: [
 				{ label: 'Home', link: '/' },
-				{ label: 'Tooling research', link: '/durable-workflow-correctness-tooling-research' },
+				{ label: 'Existing ecosystem', link: '/durable-workflow-correctness-tooling-research' },
+				{ label: 'Known methods', link: '/approaches-to-correctness' },
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/speccraft-io' },
