@@ -1,0 +1,41 @@
+---
+title: The problems
+description: The correctness problems durable-workflow developers actually hit, split into two families by who owns the fix — the generic hazards the platform already solves, and the workflow-logic races no generic tool can find.
+---
+
+Durable-execution engines like [Temporal](https://temporal.io/) already handle the failures that pushed you toward them — crashes, retries, lost messages, non-deterministic replay. The bugs that remain live in your workflow's own logic, under orderings you never pictured.
+
+We studied two real, long-lived production workflows to map that space. Everything we found sorts into **two families**, split by a single question: **who owns the fix?**
+
+## Family one — the platform already has an answer
+
+Generic, well-known Temporal hazards that the platform and its tooling already solve. A finding here is a config or CI gap, not a design flaw — the fix is to turn the tooling on and configure it correctly.
+
+- **Non-determinism and replay drift** — replay-determinism tests against recorded histories, the workflow sandbox, determinism lint.
+- **Versioning and safe deploys** — `patched()` / `deprecatePatch()` and worker versioning, so in-flight workflows survive code changes.
+- **Timeouts, retries, and fallbacks** — start-to-close and heartbeat timeouts, bounded retry policies, provider fallback.
+- **Worker and task-queue capacity** — worker tuning, backlog and schedule-to-start latency metrics.
+- **Runtime observability** — SDK metrics, the Web UI, tracing.
+
+The cautionary tale from our case studies is that these are cheap and generic, but *not optional* for long-lived workflows: the single most severe failure we actually observed — 7 of 10 recorded histories failing to replay — sat entirely here, and versioning plus replay CI would have prevented it. One caveat, though: monitoring **detects the symptoms** of a family-two bug — a stuck workflow shows as "running, no progress" — but it never fixes the logic. Don't mistake a dashboard for a solution.
+
+## Family two — the flaws no generic tool can find
+
+These live in the workflow's own model: its interleavings, its invariants, its hand-rolled coordination. Generic tooling can't catch them, because catching them means reasoning about *this* workflow.
+
+The root is the interleaving surface. Temporal runs every signal and update handler on one coroutine that interleaves at every `await`; validator-free updates are admitted immediately. So logical concurrency is (handlers × await points), the only atomic regions are the `await`-free runs between them, and most "impossible" races are just two handlers parked at awaits in an order nobody pictured. The failures cluster into four shapes.
+
+- **Lifecycle and completion.** The workflow finishes, or fires a terminal action, at the wrong moment relative to outstanding work — an update that resolves after the workflow already exited, a detached write that outlives the run, an export that starts before its prerequisite has settled.
+- **Liveness.** The workflow silently stops advancing — a `condition` that never resolves, a lost wakeup, a coordinator whose cancel path never wakes its waiters. Temporal sees a perfectly healthy workflow; it is simply stuck forever, and no retry or timeout rescues an in-app deadlock.
+- **Shared-state races.** Handlers read-then-write shared state across `await` points: classic check-then-act, TOCTOU, last-writer-wins. The dangerous case is when the source of truth is an external store the workflow doesn't mirror — so a guard deletes an aggregate that *looks* empty in memory while an insert is still committing to the store.
+- **Hand-rolled coordination.** Teams build their own rate limiters, mutexes, and schedulers inside the workflow, each with its own algorithm bugs — a one-shot budget burned by a cancellation so the action never runs again, a back-off that collapses into a busy-loop.
+
+### Why the same bug keeps coming back
+
+In both workflows, no single component owned the invariant. "Complete exactly once" held only because ~30 handlers each repeated the same guard-then-set discipline; liveness held only if every signal reset was followed by a re-check. A behavior-preserving refactor — reorder two lines, add an `await` — silently breaks it. That is why every new feature reintroduced the same class of bug: correctness here is **emergent, not structural**. It is precisely what a model checker can catch and a linter cannot.
+
+## The boundary
+
+One class sits outside both families: the quality of what an activity actually produces — a bad AI output, an unhandled input edge case. That is business correctness, not concurrency; input validation and property tests own it, and it is out of scope here.
+
+The picture the two families draw is sharp. Family-one discipline stops the failures you'll hit right after your next deploy. But the highest-value bugs we found — the delete-during-upload race, the write that outlives the run — have **never appeared in a recorded run**. Only family-two analysis finds the races still waiting to happen.

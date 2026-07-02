@@ -33,7 +33,7 @@ export default defineConfig({
 			pagination: false,
 			sidebar: [
 				{ label: 'Home', link: '/' },
-				{ label: 'The problems', link: '/problems' },
+				{ label: 'The problems', link: '/durable-execution-problems' },
 				{ label: 'Existing ecosystem', link: '/durable-workflow-correctness-tooling-research' },
 				{ label: 'Known methods', link: '/approaches-to-correctness' },
 			],
