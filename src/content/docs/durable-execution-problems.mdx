@@ -39,3 +39,20 @@ These live in the workflow's own model — its interleavings, invariants, and ha
 - **Config that's only wrong given the workflow's logic.** A retry policy that is fine in isolation but re-runs a non-idempotent activity and duplicates its side effect; a timeout tuned on its own that violates an ordering the workflow silently assumed. Whether a config is *safe* depends on this workflow's own semantics — which the platform can't check for you.
 - **Knowing what to observe requires knowing the workflow.** A generic dashboard shows latency and task backlog, never "this run is silently wedged" or "this invariant just broke" — those are defined only by the workflow's own logic. Instrumenting the signals that actually matter means first knowing where this workflow can go wrong, which is exactly the reasoning no generic tool does for you.
 - **Logic that drives runaway growth.** History rarely balloons on its own — a loop that never converges, a self-rescheduling timer, or a signal storm the workflow keeps answering pushes it there. `continueAsNew` only caps the symptom; the underlying loophole is a workflow-logic bug that surfaces at scale in production. Predicting it beforehand means proving this workflow's loops actually terminate — which is on the developer, not a generic check.
+
+## The shape underneath
+
+Step back and the whole catalog classifies on two axes. The first is **who owns the fix** — the two families above. The second orders family two, which otherwise looks like a dozen unrelated bugs: it is really **one root, four shapes, and one trap.**
+
+**The root — the interleaving surface.** Temporal runs every signal and update handler on one coroutine that interleaves at each `await`; the only atomic regions are the `await`-free runs between them. Logical concurrency is *handlers × await points*, and most of the bugs above are just two of them parked in an order nobody pictured. This is also why the fix can't be generic — the blast radius is defined by *this* workflow's handlers and state, which is the same reason picking a safe config or the right thing to monitor needs workflow-specific reasoning, not a platform default.
+
+The failures then sort into four shapes:
+
+- **Completion and lifecycle** — the run ends or transitions at the wrong moment: *completion before in-flight work*, *detached write outlives the run*, *rejected floating promise*, *terminal op before preconditions*, *initialization race*.
+- **Liveness** — the run silently stops advancing: *never-resolving await*, *lost wakeup*, *logic that drives runaway growth*.
+- **Shared-state races** — handlers read-then-write across an `await`, and the truth may live in a store the workflow doesn't mirror: *delete-when-empty*, *stale detached read*, *overlapping jobs*, *config toggle races a captured value*.
+- **Home-grown coordination** — bespoke rate limiters and schedulers carrying their own algorithm bugs: *one-shot budget burned by a cancel*, *coordinator, back-off, and mutex bugs*.
+
+**The trap — correctness is emergent, not structural.** In both workflows no single component owned the invariant. "Complete exactly once" held only because ~30 handlers each repeated the same guard-then-set discipline; liveness held only if every flag reset was followed by a re-check. A behavior-preserving refactor — reorder two lines, add an `await` — silently breaks it, which is why every new feature reintroduced the same class of bug. It is precisely what a model checker can catch and a linter cannot.
+
+**The boundary.** One class sits outside both families: the quality of what an activity actually produces — a bad AI output, an unhandled input edge case. That is business correctness, not concurrency; input validation and property tests own it, and it is out of scope here.
