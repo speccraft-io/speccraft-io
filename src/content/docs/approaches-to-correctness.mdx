@@ -7,20 +7,7 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 
 Correctness is an old problem with a deep toolbox. Long before durable execution existed, people built ways to say what "correct" means and to check that a system meets it — model checkers, type systems, proof assistants, simulation testers, whole design disciplines that make bugs impossible instead of merely rare.
 
-Durable-execution workflows don't get a new toolbox. They inherit this one. The value is in knowing which tools reach which problems — and where the gap still is. This page maps that landscape: the problems worth worrying about, the vocabulary to reason about them, and the families of approaches SpecCraft draws from.
-
-## The problems
-
-Durable-execution engines already handle the failures that scared you into using them — crashes, retries, lost messages, non-deterministic replay. What they don't handle is your workflow's own logic going wrong under an ordering you never pictured. That class:
-
-- **Logical races.** Domain invariants that quietly break under an interleaving nobody exercised — a signal that arrives one step earlier than assumed, two handlers that both read-then-write the same field. They live in the orderings no test suite samples, so they pass every test and fail in production.
-- **Slow or surprising activities.** An activity takes longer than expected, retries, or completes out of the order you had in mind — and the workflow lands in a state you never designed for. A timer fires mid-handler; a "brief" call outlives the decision that depended on it finishing first.
-- **Initialization races.** A signal arrives before setup finishes and mutates state that isn't there yet.
-- **Dangling handlers.** Fire-and-forget work and unwaited signal handlers outlive the run — the workflow completes while a handler is still mid-write.
-- **Invalid state combinations.** Independent flags — `submitted`, `deleted`, `converted` — drift into a combination the design never intended and no branch handles.
-- **Two-store drift.** The workflow's state and a *second* stateful entity — an external store, a peer or child workflow — fall out of sync under interleaving. The hardest class, because correctness now depends on something the workflow doesn't control.
-
-The first five are *intra-workflow*: they depend only on a single workflow's own bookkeeping, and they're largely tractable. The last is *cross-process*, and it's the unsolved core.
+Durable-execution workflows don't get a new toolbox. They inherit this one. The value is in knowing which tools reach which problems — and where the gap still is. This page maps that landscape: the vocabulary to reason about correctness and the families of approaches SpecCraft draws from. (For the problems these approaches target, see [The problems](/problems/).)
 
 ## The anatomy of a solution
 
