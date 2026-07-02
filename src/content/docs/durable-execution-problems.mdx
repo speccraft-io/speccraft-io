@@ -25,10 +25,21 @@ These live in the workflow's own model: its interleavings, its invariants, its h
 
 The root is the interleaving surface. Temporal runs every signal and update handler on one coroutine that interleaves at every `await`; validator-free updates are admitted immediately. So logical concurrency is (handlers × await points), the only atomic regions are the `await`-free runs between them, and most "impossible" races are just two handlers parked at awaits in an order nobody pictured. The failures cluster into four shapes.
 
-- **Lifecycle and completion.** The workflow finishes, or fires a terminal action, at the wrong moment relative to outstanding work — an update that resolves after the workflow already exited, a detached write that outlives the run, an export that starts before its prerequisite has settled.
-- **Liveness.** The workflow silently stops advancing — a `condition` that never resolves, a lost wakeup, a coordinator whose cancel path never wakes its waiters. Temporal sees a perfectly healthy workflow; it is simply stuck forever, and no retry or timeout rescues an in-app deadlock.
-- **Shared-state races.** Handlers read-then-write shared state across `await` points: classic check-then-act, TOCTOU, last-writer-wins. The dangerous case is when the source of truth is an external store the workflow doesn't mirror — so a guard deletes an aggregate that *looks* empty in memory while an insert is still committing to the store.
-- **Hand-rolled coordination.** Teams build their own rate limiters, mutexes, and schedulers inside the workflow, each with its own algorithm bugs — a one-shot budget burned by a cancellation so the action never runs again, a back-off that collapses into a busy-loop.
+### The workflow ends at the wrong moment
+
+A workflow completes, or fires a terminal action, while work is still in flight — and durable execution makes this sharper than it sounds. Temporal *rejects* an update that resolves after the run has exited, and a write dispatched from a detached promise has no workflow left to observe it. One workflow we studied carried a signature bug for six months: the run completed before an in-flight update did, and the client never received the result. Guarding with `allHandlersFinished()` is the obvious fix and still isn't enough — it waits for handler functions but not for the fire-and-forget promises they spawned. The near relative is premature transition: an export or a submit fires while a prerequisite job is still mid-flight, so it runs on half-built state.
+
+### The workflow silently stops advancing
+
+The run blocks forever on a `condition`, an activity, or a coordinator that never resolves. This is the failure durable execution hides best: to Temporal the workflow looks perfectly healthy — it is simply waiting — so no timeout or retry ever fires. We found unbounded `condition` waits, a slot grant that never came back after a cancel, and a lost-wakeup race where a signal reset the "has work" flag a beat before the check that would have consumed it. The discipline that prevents this — every await must resolve on the cancel and failure paths, not just the happy one — is invisible to any tool that only reads the happy path.
+
+### Two handlers race on shared state
+
+Handlers read-then-write shared state across `await` points, which is where check-then-act, TOCTOU, and last-writer-wins live. The sharpest case is when the source of truth is an external store the workflow doesn't mirror: a delete-when-empty guard consulted the *pending* items in memory but not the *in-flight* ones, so it could delete a document while an upload was still committing to the store — flagged in review as the single most likely invariant to break, and never once caught in a recorded run. The same family covers overlapping jobs where the one over the smaller input finishes first and wins, and a config toggle that races a process which already captured the old value — the one race we could prove actually happened in a production history.
+
+### Hand-rolled coordination has its own bugs
+
+With no concurrency library to lean on, teams build their own rate limiters, mutexes, and schedulers inside the workflow — and each carries its own algorithm bugs. A "run exactly once" budget was incremented *before* its callback and never refunded on cancel, so a single cancellation turned "once" into "never" and the guarded action stopped running altogether. Elsewhere a coordinator dropped a request when the grantee had already finished, and a back-off whose minimum wait computed to zero collapsed into a busy-loop. These are textbook rate-limiter and scheduler correctness problems, wearing the disguise of ordinary workflow code.
 
 ### Why the same bug keeps coming back
 
