@@ -12,7 +12,7 @@ We studied two real, long-lived production workflows and catalogued the issues. 
 Generic, well-known Temporal hazards the platform and its tooling already solve. A finding here is a config or CI gap, not a design flaw.
 
 - **Replay non-determinism.** Recorded histories fail to replay after a code change — one workflow had 7 of 10 quarantined, with no `patched()` gates and module-global mutable state. The most severe issue we actually observed, and entirely preventable with versioning + replay CI.
-- **Missing or weak timeouts and retries.** Activities with no explicit timeout or retry policy, so a slow or failing call wedges or fails the run.
+- **Missing or misconfigured timeouts and retries.** Activities with no explicit timeout or retry policy — or a plausible-but-wrong one: a timeout under the activity's real p99, retries that endlessly re-run a poison message, a heartbeat that never fires. The platform gives you the knobs but no way to tell your values are right for *this* workflow; catching a bad config before production is developer discipline and experience, not a Temporal feature.
 - **Unbounded history growth.** A long-lived workflow with no `continueAsNew`, accumulating state until it hits history limits — and well before that, the oversized history crashes the Web UI, runs up billable actions, and becomes impossible to load and investigate.
 - **Worker and queue capacity.** Throughput stalls under load with no backlog or schedule-to-start metrics to see it.
 - **Error delivery and observability gaps.** Failures that never surface to the client or a dashboard.
