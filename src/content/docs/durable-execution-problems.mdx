@@ -23,7 +23,7 @@ Generic, well-known Temporal hazards the platform and its tooling can solve — 
 
 ## Family two — the bugs no generic tool can find
 
-These live in the workflow's own logic — its interleavings and the coordination it hand-rolls — and they surface as violations of invariants only this workflow defines. Generic tooling can't catch them, because catching them means reasoning about *this* workflow.
+These live in the workflow's own logic — its interleavings and the coordination it hand-rolls — and they surface as violations of invariants only this workflow defines. Generic tooling can't catch them, because catching them means reasoning about *this* workflow. And here even an AI coding agent with the right skills goes only so far: the interleavings explode combinatorially, and that inherent complexity can't be reasoned away.
 
 - **Completion before in-flight work finishes.** A completion race can hide for months before anyone notices: the run finishes before an in-flight update resolves, and the caller silently never receives its result. `allHandlersFinished()` guards handlers but not the fire-and-forget promises they spawned.
 - **Detached write outlives the run.** A fire-and-forget write lands after the workflow has already exited, with no workflow left to observe it.
