@@ -1,17 +1,15 @@
 ---
 title: The problems
-description: The correctness problems durable-workflow developers actually hit, drawn from two real Temporal workflows and split into two families — the generic hazards the platform already solves, and the workflow-logic bugs no generic tool can find.
+description: The correctness problems durable-workflow developers actually hit, split into two families — the generic hazards the platform already solves, and the workflow-logic bugs no generic tool can find.
 ---
 
-Durable-execution engines like [Temporal](https://temporal.io/) already handle the failures that pushed you toward them — crashes, retries, lost messages, non-deterministic replay. The bugs that remain live in your workflow's own logic.
-
-We studied two real, long-lived production workflows and catalogued the issues. They split into **two families**, by who owns the fix.
+Durable-execution engines like [Temporal](https://temporal.io/) already handle the failures that pushed you toward them — crashes, retries, lost messages, non-deterministic replay. The bugs that remain live in your workflow's own logic, and they split into **two families**, by who owns the fix.
 
 ## Family one — the platform already has an answer
 
 Generic, well-known Temporal hazards the platform and its tooling already solve. A finding here is a config or CI gap, not a design flaw.
 
-- **Replay non-determinism.** Recorded histories fail to replay after a code change — one workflow had 7 of 10 quarantined, with no `patched()` gates and module-global mutable state. The most severe issue we actually observed, and entirely preventable with versioning + replay CI.
+- **Replay non-determinism.** Recorded histories fail to replay after a code change — an unversioned refactor or module-global mutable state can leave most of a long-running workflow's in-flight executions unable to resume. Among the most damaging failures in practice, and entirely preventable with `patched()` gates, worker versioning, and replay CI.
 - **Missing or misconfigured timeouts and retries.** Activities with no explicit timeout or retry policy — or a plausible-but-wrong one: a timeout under the activity's real p99, retries that endlessly re-run a poison message, a heartbeat that never fires. The platform gives you the knobs but no way to tell your values are right for *this* workflow; catching a bad config before production is developer discipline and experience, not a Temporal feature.
 - **Unbounded history growth.** A long-lived workflow with no `continueAsNew`, accumulating state until it hits history limits — and well before that, the oversized history crashes the Web UI, runs up billable actions, and becomes impossible to load and investigate.
 - **Worker and queue capacity.** Throughput stalls under load with no backlog or schedule-to-start metrics to see it.
@@ -23,17 +21,17 @@ One caveat: monitoring **detects the symptoms** of a family-two bug — a stuck 
 
 These live in the workflow's own model — its interleavings, invariants, and hand-rolled coordination. Generic tooling can't catch them, because catching them means reasoning about *this* workflow.
 
-- **Completion before in-flight work finishes.** The run completed before an update resolved — a signature bug that lived for six months, where the client never received the result. `allHandlersFinished()` guards handlers but not the fire-and-forget promises they spawned.
+- **Completion before in-flight work finishes.** A completion race can hide for months before anyone notices: the run finishes before an in-flight update resolves, and the caller silently never receives its result. `allHandlersFinished()` guards handlers but not the fire-and-forget promises they spawned.
 - **Detached write outlives the run.** A fire-and-forget write lands after the workflow has already exited, with no workflow left to observe it.
 - **Rejected floating promise.** An unawaited fire-and-forget promise rejects mid-run and takes the whole workflow task down, because nothing local caught it.
 - **Terminal op before preconditions settle.** A submit or export fires while a prerequisite job is still mid-flight, so it runs on half-built state.
 - **Initialization race.** A signal lands before setup finishes and mutates state that isn't there yet.
 - **Never-resolving await.** The run blocks forever on a `condition`, activity, or coordinator that never resolves — e.g. a slot grant that never returns after a cancel. Temporal sees a healthy workflow; it is simply waiting.
 - **Lost wakeup.** A signal resets the "has work" flag a beat before the check that would have consumed it, so the work is never picked up.
-- **Delete-when-empty against an external store.** A guard reads the *pending* items in memory but not the *in-flight* ones, so it deletes a document while an upload is still committing to the store. Flagged as the single most likely invariant to break — and never once caught in a recorded run.
+- **Delete-when-empty against an external store.** A guard reads the *pending* items in memory but not the *in-flight* ones, so it deletes a document while an upload is still committing to the store. One of the most likely invariants to break, and the kind testing never catches — no run happens to hit the exact ordering.
 - **Stale read of a detached writer's value.** Check-then-act on a ref that a background process writes with no coordination, so the read misses or supersedes a write it needed.
 - **Overlapping jobs, last-writer-wins.** Two regenerations race; the one over the smaller input finishes first and its result wins.
-- **Config toggle races a captured value.** A flag flip doesn't reach a process that already captured the old value — the one race we could prove actually happened in a production history.
+- **Config toggle races a captured value.** A flag flip doesn't reach a process that already captured the old value — a race that shows up under real production timing, not just in theory.
 - **One-shot budget burned by a cancel.** A "run exactly once" counter is incremented *before* its callback and never refunded on cancel, so "once" quietly becomes "never."
 - **Home-grown coordinator bugs.** A scheduler that drops a request when the grantee already finished; a back-off whose minimum wait computes to zero and busy-loops; a mutex built as an unbounded promise chain.
 - **Config that's only wrong given the workflow's logic.** A retry policy that is fine in isolation but re-runs a non-idempotent activity and duplicates its side effect; a timeout tuned on its own that violates an ordering the workflow silently assumed. Whether a config is *safe* depends on this workflow's own semantics — which the platform can't check for you.
@@ -53,6 +51,6 @@ The failures then sort into four shapes:
 - **Shared-state races** — handlers read-then-write across an `await`, and the truth may live in a store the workflow doesn't mirror: *delete-when-empty*, *stale detached read*, *overlapping jobs*, *config toggle races a captured value*.
 - **Home-grown coordination** — bespoke rate limiters and schedulers carrying their own algorithm bugs: *one-shot budget burned by a cancel*, *coordinator, back-off, and mutex bugs*.
 
-**The trap — correctness is emergent, not structural.** In both workflows no single component owned the invariant. "Complete exactly once" held only because ~30 handlers each repeated the same guard-then-set discipline; liveness held only if every flag reset was followed by a re-check. A behavior-preserving refactor — reorder two lines, add an `await` — silently breaks it, which is why every new feature reintroduced the same class of bug. It is precisely what a model checker can catch and a linter cannot.
+**The trap — correctness is emergent, not structural.** Often no single component owns the invariant. "Complete exactly once" holds only because every handler repeats the same guard-then-set discipline; liveness holds only if every flag reset is followed by a re-check. A behavior-preserving refactor — reorder two lines, add an `await` — silently breaks it, which is why the same class of bug returns with each new feature. It is precisely what a model checker can catch and a linter cannot.
 
 **The boundary.** One class sits outside both families: the quality of what an activity actually produces — a bad AI output, an unhandled input edge case. That is business correctness, not concurrency; input validation and property tests own it, and it is out of scope here.
