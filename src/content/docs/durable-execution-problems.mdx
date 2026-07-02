@@ -3,7 +3,7 @@ title: The problems
 description: The correctness problems durable-workflow developers actually hit, split into two families — the generic hazards the platform already solves, and the workflow-logic bugs no generic tool can find.
 ---
 
-Durable-execution engines like [Temporal](https://temporal.io/) already handle the failures that pushed you toward them — crashes, retries, lost messages, non-deterministic replay. The bugs that remain live in your workflow's own logic, and they split into **two families**, by who owns the fix.
+Durable-execution engines like [Temporal](https://temporal.io/) already handle the failures that pushed you toward them — crashes, retries, lost messages, non-deterministic replay. The bugs that remain live in your workflow's own logic. You always own the fix — the platform never applies one for you — but the bugs split into **two families** by where the answer comes from: the ones the platform already has a tool or pattern for, and the ones no generic tool can even find.
 
 ## Family one — the platform already has an answer
 
@@ -40,7 +40,7 @@ These live in the workflow's own model — its interleavings, invariants, and ha
 
 ## The shape underneath
 
-Step back and the whole catalog classifies on two axes. The first is **who owns the fix** — the two families above. The second orders family two, which otherwise looks like a dozen unrelated bugs: it is really **one root, four shapes, and one trap.**
+Step back and the whole catalog classifies on two axes. The first is **where the answer comes from** — the two families above: off-the-shelf platform tooling, or reasoning about this workflow. The second orders family two, which otherwise looks like a dozen unrelated bugs: it is really **one root, four shapes, and one trap.**
 
 **The root — the interleaving surface.** Temporal runs every signal and update handler on one coroutine that interleaves at each `await`; the only atomic regions are the `await`-free runs between them. Logical concurrency is *handlers × await points*, and most of the bugs above are just two of them parked in an order nobody pictured. This is also why the fix can't be generic — the blast radius is defined by *this* workflow's handlers and state, which is the same reason picking a safe config or the right thing to monitor needs workflow-specific reasoning, not a platform default.
 
