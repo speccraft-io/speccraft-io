@@ -3,7 +3,9 @@ title: The problems
 description: The correctness problems durable-workflow developers actually hit, split into two families — the generic hazards the platform already solves, and the workflow-logic bugs no generic tool can find.
 ---
 
-Durable-execution engines like [Temporal](https://temporal.io/) already handle the failures that pushed you toward them — crashes, retries, lost messages, non-deterministic replay. The bugs that remain live in your workflow's own logic. You always own the fix — the platform never applies one for you — but the bugs split into **two families** by where the answer comes from: the ones the platform already has a tool or pattern for, and the ones no generic tool can even find.
+Durable-execution engines like [Temporal](https://temporal.io/) already handle the failures that pushed you toward them — crashes, retries, lost messages, non-deterministic replay. They also do something most architectures only promise: they genuinely isolate your business logic from the outside world. Clean Architecture, hexagonal ports, and their kin lean on convention — a boundary nothing enforces, so I/O leaks across it the moment discipline slips — whereas Temporal makes the split structural: workflow code is kept deterministic, and every effect on the outside world has to go through an activity. The abstraction doesn't leak.
+
+That is also what sharpens the problem. Once the logic is truly isolated, the bugs that remain live in your workflow's own logic — nowhere else is left. You always own the fix — the platform never applies one for you — but the bugs split into **two families** by where the answer comes from: the ones the platform already has a tool or pattern for, and the ones no generic tool can even find.
 
 ## Family one — the platform already has an answer
 
