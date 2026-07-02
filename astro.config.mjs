@@ -13,6 +13,10 @@ export default defineConfig({
 			tagline: 'Understand, verify, and test complex concurrent and durable-execution workflows.',
 			logo: { src: './src/assets/speccraft-logo.png', alt: 'SpecCraft' },
 			customCss: ['./src/styles/custom.css'],
+			components: {
+				// Append Giscus comments below the content on doc pages.
+				Footer: './src/components/Footer.astro',
+			},
 			favicon: '/favicon.svg',
 			head: [
 				{ tag: 'link', attrs: { rel: 'icon', href: '/favicon.ico', sizes: '32x32' } },

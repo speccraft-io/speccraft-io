@@ -1,0 +1,11 @@
+---
+// Override of Starlight's Footer: renders the default footer, then appends the
+// comments section on content pages. Skipped on the home/landing page.
+import Default from '@astrojs/starlight/components/Footer.astro';
+import Comments from './Comments.astro';
+
+const isHome = Astro.url.pathname === '/';
+---
+
+<Default><slot /></Default>
+{!isHome && <Comments />}
