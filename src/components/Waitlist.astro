@@ -1,0 +1,52 @@
+---
+// Tally waitlist form (https://tally.so/r/685Vpe) embedded inline.
+// Tally's embed helper resizes the iframe to fit its content (dynamicHeight).
+---
+
+<div class="waitlist not-content">
+	<iframe
+		data-tally-src="https://tally.so/embed/685Vpe?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
+		loading="lazy"
+		width="100%"
+		height="180"
+		title="Join the SpecCraft waitlist"
+	></iframe>
+</div>
+
+<script>
+	// Load Tally's embed helper once, then hydrate the data-tally-src iframe.
+	const w = 'https://tally.so/widgets/embed.js';
+	const load = () => {
+		const Tally = (window as any).Tally;
+		if (typeof Tally !== 'undefined') {
+			Tally.loadEmbeds();
+			return;
+		}
+		document
+			.querySelectorAll<HTMLIFrameElement>('iframe[data-tally-src]:not([src])')
+			.forEach((iframe) => {
+				iframe.src = iframe.dataset.tallySrc!;
+			});
+	};
+
+	if (typeof (window as any).Tally !== 'undefined') {
+		load();
+	} else if (!document.querySelector(`script[src="${w}"]`)) {
+		const s = document.createElement('script');
+		s.src = w;
+		s.onload = load;
+		s.onerror = load;
+		document.body.appendChild(s);
+	}
+</script>
+
+<style>
+	.waitlist {
+		max-width: 32rem;
+		margin-block: 1.5rem;
+	}
+	.waitlist iframe {
+		border: 0;
+		width: 100%;
+	}
+</style>
