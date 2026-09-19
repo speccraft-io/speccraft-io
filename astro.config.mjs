@@ -40,6 +40,7 @@ export default defineConfig({
 				{ label: 'The problems', link: '/durable-execution-problems' },
 				{ label: 'Existing ecosystem', link: '/durable-workflow-correctness-tooling-research' },
 				{ label: 'Known methods', link: '/approaches-to-correctness' },
+				{ label: 'Case study: config document workflow', link: '/case-study-config-document-workflow' },
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/speccraft-io' },
