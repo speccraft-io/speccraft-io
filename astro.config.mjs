@@ -41,6 +41,7 @@ export default defineConfig({
 				{ label: 'Existing ecosystem', link: '/durable-workflow-correctness-tooling-research' },
 				{ label: 'Known methods', link: '/approaches-to-correctness' },
 				{ label: 'Case study: config document workflow', link: '/case-study-config-document-workflow' },
+				{ label: 'How SpecCraft compares', link: '/how-speccraft-compares' },
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/speccraft-io' },

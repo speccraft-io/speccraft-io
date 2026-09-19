@@ -16,3 +16,29 @@
 .sl-anchor-link {
 	display: none;
 }
+
+/* Image lightbox: click a diagram to open it at full size. The overlay is
+   built by a small inline script and appended directly to <body> (not left
+   nested in the article), so it isn't confined by Starlight's own layout
+   containers and can't end up rendered behind the page sidebar. */
+.lightbox-trigger img {
+	cursor: zoom-in;
+}
+.js-lightbox-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2rem;
+	background: rgba(0, 0, 0, 0.85);
+}
+.js-lightbox-overlay[hidden] {
+	display: none;
+}
+.js-lightbox-overlay img {
+	max-width: 100%;
+	max-height: 100%;
+	cursor: zoom-out;
+}
