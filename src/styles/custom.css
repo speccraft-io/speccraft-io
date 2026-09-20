@@ -18,8 +18,10 @@
 }
 
 /* External links (opened in a new tab by rehype-external-links, see astro.config.mjs)
-   get a small "leaves the site" icon after the link text. */
-.sl-markdown-content a[target='_blank']::after {
+   get a small "leaves the site" icon after the link text. Skip links that are just an
+   image (e.g. the trend sparklines) — the icon has no text to sit next to there and
+   wraps onto its own line, which looks broken rather than informative. */
+.sl-markdown-content a[target='_blank']:not(:has(> img:only-child))::after {
 	content: '';
 	display: inline-block;
 	width: 0.75em;
@@ -34,6 +36,13 @@
 	mask-size: contain;
 	-webkit-mask-repeat: no-repeat;
 	mask-repeat: no-repeat;
+}
+
+/* Table cells: vertically center content instead of Starlight's default top
+   alignment — most noticeable where a short trend sparkline sits beside a much
+   taller cell of wrapped text in the same row. */
+.sl-markdown-content td {
+	vertical-align: middle;
 }
 
 /* Image lightbox: click a diagram to open it at full size. The overlay is
