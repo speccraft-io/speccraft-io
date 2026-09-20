@@ -1,5 +1,5 @@
 ---
-title: "Case Study: A Config Document Workflow"
+title: "Config Document Workflow"
 description: How a small Temporal workflow became impossible to reason about, and how a two-page formal spec gave the control back.
 ---
 

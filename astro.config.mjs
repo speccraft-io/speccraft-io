@@ -1,10 +1,18 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import rehypeExternalLinks from 'rehype-external-links';
 
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://speccraft.io',
+	markdown: {
+		// External links (anything with a protocol, e.g. https://) open in a new tab;
+		// internal Starlight links stay relative (e.g. /how-speccraft-compares) so they're
+		// untouched. The visual "external link" icon is CSS, keyed off target="_blank"
+		// (see src/styles/custom.css).
+		rehypePlugins: [[rehypeExternalLinks, { target: '_blank', rel: ['noopener', 'noreferrer'] }]],
+	},
 	integrations: [
 		starlight({
 			title: 'SpecCraft',
@@ -40,8 +48,9 @@ export default defineConfig({
 				{ label: 'The problems', link: '/durable-execution-problems' },
 				{ label: 'Existing ecosystem', link: '/durable-workflow-correctness-tooling-research' },
 				{ label: 'Known methods', link: '/approaches-to-correctness' },
-				{ label: 'Case study: config document workflow', link: '/case-study-config-document-workflow' },
+				{ label: 'Config document workflow', link: '/case-study-config-document-workflow' },
 				{ label: 'How SpecCraft compares', link: '/how-speccraft-compares' },
+				{ label: 'Formal methods market', link: '/state-of-formal-methods-market' },
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/speccraft-io' },
