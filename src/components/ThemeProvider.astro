@@ -1,13 +1,12 @@
 ---
-// Override of Starlight's ThemeProvider: same as the default, except a visitor
-// who has never picked a theme starts on light instead of following the system.
-// Picking "Auto" later stores '' and follows the system as usual.
+// Override of Starlight's ThemeProvider: same as the default, except the theme
+// is light unless the visitor chose dark with the toggle (no system/auto mode).
 import { Icon } from '@astrojs/starlight/components';
 ---
 
 <script is:inline>
 	window.StarlightThemeProvider = (() => {
-		if (typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme') === null) {
+		if (typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme') !== 'dark') {
 			localStorage.setItem('starlight-theme', 'light');
 		}
 		const storedTheme =
