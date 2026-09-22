@@ -54,6 +54,7 @@ export default defineConfig({
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/speccraft-io' },
+				{ icon: 'npm', label: 'npm', href: 'https://www.npmjs.com/package/@speccraft-io/core' },
 			],
 			lastUpdated: true,
 		}),
