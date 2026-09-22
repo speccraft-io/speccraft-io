@@ -1,0 +1,69 @@
+---
+// Override of Starlight's ThemeSelect: a single sun/moon button that switches
+// between light and dark, instead of the Dark/Light/Auto dropdown.
+import { Icon } from '@astrojs/starlight/components';
+---
+
+<theme-toggle>
+	<button type="button" aria-label="Switch theme">
+		<Icon name="moon" class="theme-toggle-moon" size="1.15rem" />
+		<Icon name="sun" class="theme-toggle-sun" size="1.15rem" />
+	</button>
+</theme-toggle>
+
+<style is:global>
+	theme-toggle {
+		display: flex;
+	}
+	theme-toggle button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.4rem;
+		border: 0;
+		border-radius: 999px;
+		background: transparent;
+		color: var(--sl-color-gray-2);
+		cursor: pointer;
+		transition:
+			color 0.15s ease,
+			background-color 0.15s ease;
+	}
+	theme-toggle button:hover {
+		color: var(--sl-color-white);
+		background-color: var(--sl-color-gray-6);
+	}
+	[data-theme='light'] .theme-toggle-sun,
+	[data-theme='dark'] .theme-toggle-moon {
+		display: none;
+	}
+</style>
+
+<script>
+	class ThemeToggle extends HTMLElement {
+		constructor() {
+			super();
+			const button = this.querySelector('button');
+			if (!button) return;
+			const sync = () => {
+				const label =
+					document.documentElement.dataset.theme === 'dark'
+						? 'Switch to light theme'
+						: 'Switch to dark theme';
+				button.setAttribute('aria-label', label);
+				button.title = label;
+			};
+			sync();
+			button.addEventListener('click', () => {
+				const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+				document.documentElement.dataset.theme = next;
+				try {
+					localStorage.setItem('starlight-theme', next);
+				} catch {}
+				document.querySelectorAll('theme-toggle').forEach((toggle) => toggle.dispatchEvent(new Event('theme-sync')));
+			});
+			this.addEventListener('theme-sync', sync);
+		}
+	}
+	customElements.define('theme-toggle', ThemeToggle);
+</script>

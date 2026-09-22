@@ -24,6 +24,10 @@ export default defineConfig({
 			components: {
 				// Append Giscus comments below the content on doc pages.
 				Footer: './src/components/Footer.astro',
+				// Start first-time visitors on the light theme instead of the system one.
+				ThemeProvider: './src/components/ThemeProvider.astro',
+				// A single sun/moon toggle instead of the Dark/Light/Auto dropdown.
+				ThemeSelect: './src/components/ThemeSelect.astro',
 			},
 			favicon: '/favicon.svg',
 			head: [

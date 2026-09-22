@@ -1,0 +1,42 @@
+---
+// Override of Starlight's ThemeProvider: same as the default, except a visitor
+// who has never picked a theme starts on light instead of following the system.
+// Picking "Auto" later stores '' and follows the system as usual.
+import { Icon } from '@astrojs/starlight/components';
+---
+
+<script is:inline>
+	window.StarlightThemeProvider = (() => {
+		if (typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme') === null) {
+			localStorage.setItem('starlight-theme', 'light');
+		}
+		const storedTheme =
+			typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme');
+		const theme =
+			storedTheme ||
+			(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+		document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+		return {
+			updatePickers(theme = storedTheme || 'auto') {
+				document.querySelectorAll('starlight-theme-select').forEach((picker) => {
+					const select = picker.querySelector('select');
+					if (select) select.value = theme;
+					const tmpl = document.querySelector(`#theme-icons`);
+					const newIcon = tmpl && tmpl.content.querySelector('.' + theme);
+					if (newIcon) {
+						const oldIcon = picker.querySelector('svg.label-icon');
+						if (oldIcon) {
+							oldIcon.replaceChildren(...newIcon.cloneNode(true).childNodes);
+						}
+					}
+				});
+			},
+		};
+	})();
+</script>
+
+<template id="theme-icons">
+	<Icon name="sun" class="light" />
+	<Icon name="moon" class="dark" />
+	<Icon name="laptop" class="auto" />
+</template>
