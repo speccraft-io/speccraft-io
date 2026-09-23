@@ -12,6 +12,9 @@ adoption:
 [Midspiral](https://www.linkedin.com/company/midspiral/), currently a tech preview. It is the most serious
 "formal methods for TypeScript" project we know of.
 
+**How close to SpecCraft:** far, and complementary. It proves pure functions correct for every input; SpecCraft
+explores orders of events.
+
 ## Using LemmaScript
 
 We ran the example below with `lsc` 0.6.4 and Dafny 4.11.0. The code is LemmaScript's own

@@ -9,7 +9,10 @@ adoption:
 
 [stateproof](https://github.com/HexaField/stateproof) is the closest earlier attempt at what SpecCraft does: write a
 model in TypeScript and check every reachable state. It is a small project (one contributor, MIT licensed, last
-commit in March 2026), but it is the only other tool in TypeScript aiming at the same corner.
+commit in March 2026).
+
+**How close to SpecCraft:** close in aim, far in practice. It compiles a subset of TypeScript to TLA+, is not on npm,
+and its own README example fails.
 
 ## Using stateproof
 

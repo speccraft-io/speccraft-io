@@ -11,7 +11,10 @@ adoption:
 [Bombadil](https://github.com/antithesishq/bombadil) is property-based testing for web and terminal user
 interfaces, built by [Antithesis](https://antithesis.com) and open source since December 2025. Its specs are
 TypeScript modules, which makes it the best-known tool where TypeScript developers write temporal properties today.
-It is not a model checker, but it is the tool most likely to be compared with SpecCraft first.
+It is the tool most likely to be compared with SpecCraft first.
+
+**How close to SpecCraft:** far. It samples runs of a real UI against temporal properties; it does not explore every
+state of a spec.
 
 ## Using Bombadil
 

@@ -13,6 +13,9 @@ adoption:
 TLA+ and TLC, and the runtime code is generated from the same source. It is the most-used tool in this group, and the
 best answer so far to the translation problem that sinks [stateproof](/vs/stateproof).
 
+**How close to SpecCraft:** close in aim, different in form. Every state is checked, but the spec is a restricted
+DSL compiled to TLA+, not plain TypeScript.
+
 ## Using tla-precheck
 
 We ran the example below with tla-precheck 0.1.7, TLC 1.8.0 and Java 25. The machine is tla-precheck's own

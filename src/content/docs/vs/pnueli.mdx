@@ -13,8 +13,10 @@ import after from '../../../fixes/pnueli/after.ts.txt?raw';
 
 [pnueli](https://github.com/BOTIROFF-D/pnueli) is an explicit-state model checker written in TypeScript, published
 on npm as `@botiroff/pnueli` in August 2026. A spec is a plain TypeScript object, and the checker walks every
-reachable state. Of everything we have found, it is the closest to SpecCraft's own engine, and it is ahead of it on
-several features.
+reachable state.
+
+**How close to SpecCraft:** very close. Of everything we have found, it is the closest to SpecCraft's own engine and
+ahead of it on symmetry, partial-order reduction and liveness, but it checks the model only, not real code.
 
 ## Using pnueli
 

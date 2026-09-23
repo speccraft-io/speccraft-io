@@ -11,7 +11,10 @@ adoption:
 [Polygraph](https://github.com/cognitive-fab/polygraph) is a Claude Code plugin and standalone CLI by Cognitive Fab
 LLC, first published in July 2026. It finds bugs in stateful JavaScript and TypeScript code (workflows, reducers,
 protocol handlers, checkout flows) by exhaustively exploring every state reachable over a declared, finite set of
-actions and payloads. Of the tools we have found, it covers the most of SpecCraft's method end to end.
+actions and payloads.
+
+**How close to SpecCraft:** close. It covers the most of SpecCraft's method end to end, but an LLM derives the spec
+from existing code instead of you writing it first.
 
 ## Using Polygraph
 
