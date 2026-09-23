@@ -8,6 +8,7 @@ Small, self-contained case studies used on [speccraft.io](https://speccraft.io).
 - [effect-job-lease](effect-job-lease): A job worker whose lease renewal lands after a cancel and revives the lease. Checked with Effect.
 - [pnueli-distributed-lock](pnueli-distributed-lock): A distributed lock with lease expiry: two writers without fencing tokens. Checked with pnueli.
 - [stifinder-outbox](stifinder-outbox): A transactional outbox relay that loses or duplicates events after a crash or retry. Checked with stifinder.
+- [polygraph-coupon](polygraph-coupon): A cart reducer that keeps a minimum-spend coupon after an item is removed. Checked with Polygraph.
 - [effect-machine-checkout](effect-machine-checkout): A checkout statechart where a late payment reply marks a changed cart paid. Checked with effect-machine.
 
 Each one runs on its own:

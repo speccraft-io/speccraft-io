@@ -1,0 +1,20 @@
+{
+  "lang": "typescript",
+  "stateKeys": [
+    { "name": "items", "type": "number (0 to 3, each item costs 10.00)" },
+    { "name": "coupon", "type": "'SAVE5' | null" }
+  ],
+  "initState": { "items": 0, "coupon": null },
+  "actions": {
+    "ADD_ITEM": { "dataFields": {} },
+    "REMOVE_ITEM": { "dataFields": {} },
+    "APPLY_COUPON": { "dataFields": { "code": "string" } }
+  },
+  "terminalStates": [],
+  "specialRules": [
+    { "name": "cart-full", "note": "ADD_ITEM with 3 items leaves the cart unchanged.", "whenAction": "ADD_ITEM" },
+    { "name": "cart-empty", "note": "REMOVE_ITEM with 0 items leaves the cart unchanged.", "whenAction": "REMOVE_ITEM" },
+    { "name": "unknown-code", "note": "APPLY_COUPON with a code other than SAVE5 leaves the cart unchanged.", "whenAction": "APPLY_COUPON" },
+    { "name": "below-minimum", "note": "APPLY_COUPON under a 20.00 subtotal leaves the cart unchanged.", "whenAction": "APPLY_COUPON" }
+  ]
+}
