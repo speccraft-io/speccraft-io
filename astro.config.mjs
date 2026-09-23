@@ -74,7 +74,7 @@ export default defineConfig({
 						{ label: 'Hegel', link: '/vs/hegel' },
 						{ label: 'Effect', link: '/vs/effect' },
 						{ label: 'Fake timers', link: '/vs/fake-timers' },
-						{ label: 'Other TS tools', link: '/vs/other-ts-tools' },
+						{ label: 'Some more TS Tools', link: '/vs/other-ts-tools' },
 					],
 				},
 				{
