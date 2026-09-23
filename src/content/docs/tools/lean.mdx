@@ -118,9 +118,11 @@ Lean version works in cents, like the TS version. `#eval` runs the function duri
 
 ## Step 2: write the rule, and let the proof fail
 
-Now the rule, written as a `theorem`: for any price that is zero or more, the result is zero or more.
+Now the rule, written as a `theorem`: for any price that is zero or more, the result is zero or more. It goes in the
+same file, below the function:
 
 ```lean
+-- Discount/Pricing.lean (continued)
 theorem never_negative (price percent cap : Int)
     (hPrice : 0 ≤ price) :
     0 ≤ applyDiscount price percent cap := by
