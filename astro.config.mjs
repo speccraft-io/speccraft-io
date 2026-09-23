@@ -30,6 +30,8 @@ export default defineConfig({
 				ThemeProvider: './src/components/ThemeProvider.astro',
 				// A single sun/moon toggle instead of the Dark/Light/Auto dropdown.
 				ThemeSelect: './src/components/ThemeSelect.astro',
+				// Show a date on every page, falling back to the file's modified time before its first commit.
+				LastUpdated: './src/components/LastUpdated.astro',
 			},
 			favicon: '/favicon.svg',
 			head: [
@@ -55,7 +57,14 @@ export default defineConfig({
 				{ label: 'Existing ecosystem', link: '/durable-workflow-correctness-tooling-research' },
 				{ label: 'Known methods', link: '/approaches-to-correctness' },
 				{ label: 'Config document workflow', link: '/case-study-config-document-workflow' },
-				{ label: 'How SpecCraft compares', link: '/how-speccraft-compares' },
+				{
+					label: 'SpecCraft vs ...',
+					items: [
+						{ label: 'All tools', link: '/how-speccraft-compares' },
+						{ label: 'LemmaScript', link: '/vs/lemmascript' },
+						{ label: 'stateproof', link: '/vs/stateproof' },
+					],
+				},
 				{ label: 'Formal methods market', link: '/state-of-formal-methods-market' },
 			],
 			social: [

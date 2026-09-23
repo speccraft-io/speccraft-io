@@ -1,0 +1,29 @@
+---
+// Override of Starlight's LastUpdated: falls back to the file's modified time when the
+// page has no git commit yet, so every page shows a date, including new uncommitted ones.
+import { statSync } from 'node:fs';
+
+const { lang, lastUpdated, entry } = Astro.locals.starlightRoute;
+
+function fileModifiedAt(filePath: string | undefined): Date | undefined {
+	if (!filePath) return undefined;
+	try {
+		return statSync(filePath).mtime;
+	} catch {
+		return undefined;
+	}
+}
+
+const date = lastUpdated ?? fileModifiedAt(entry.filePath);
+---
+
+{
+	date && (
+		<p>
+			{Astro.locals.t('page.lastUpdated')}{' '}
+			<time datetime={date.toISOString()}>
+				{date.toLocaleDateString(lang, { dateStyle: 'medium', timeZone: 'UTC' })}
+			</time>
+		</p>
+	)
+}
