@@ -61,6 +61,8 @@ export default defineConfig({
 				{ icon: 'npm', label: 'npm', href: 'https://www.npmjs.com/package/@speccraft-io/core' },
 			],
 			lastUpdated: true,
+			// No right-hand "On this page" table of contents on any page.
+			tableOfContents: false,
 		}),
 	],
 });
