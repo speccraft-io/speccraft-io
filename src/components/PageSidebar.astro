@@ -5,7 +5,7 @@ import { similarTools } from '../tool-kinds';
 
 const { adoption, requires, useCases } = Astro.locals.starlightRoute.entry.data;
 const similar = adoption ? similarTools(Astro.url.pathname) : undefined;
-const toggleLabel = adoption ? 'Adoption, dependencies and similar tools' : useCases ? 'Best for and dependencies' : 'Dependencies';
+const toggleLabel = adoption ? 'Adoption, dependencies and similar tools' : useCases ? 'Applicable to and dependencies' : 'Dependencies';
 
 const shield = (path: string, label: string) =>
 	`https://img.shields.io/${path}?style=flat&label=${encodeURIComponent(label)}`;
@@ -55,7 +55,7 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 {
 	useCases && (
 		<div class="adoption similar">
-			<h2>Best for</h2>
+			<h2>Applicable to</h2>
 			<ul>
 				{useCases.map((item) => (
 					<li>{item}</li>
