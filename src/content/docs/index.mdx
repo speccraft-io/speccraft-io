@@ -1,6 +1,6 @@
 ---
 title: SpecCraft
-description: Tooling to understand, verify, and test complex concurrent and durable-execution workflows — where the dangerous bugs live in interleavings no test suite ever samples.
+description: Write specs in TypeScript, check every order of events exhaustively, then check your real code against the spec.
 head:
   # Homepage title === site title, so Starlight's "title | siteTitle" format
   # duplicates it. Pin a single title for this page.
@@ -13,43 +13,60 @@ import Waitlist from '../../components/Waitlist.astro';
 
 <img class="home-banner" src="/assets/speccraft-linkedin-banner.png" alt="Thinking tools. A faint graph of explored states, with one highlighted path ending in a violation." />
 
-Understand, verify, and test complex concurrent and durable-execution workflows — where the dangerous bugs live in interleavings no test suite ever samples.
+Write specs in TypeScript. Check every order in which things can happen. Then check your real code against the spec.
 
 ## The problem
 
-Durable-execution platforms like [Temporal](https://temporal.io/) made workflows-as-code the right default for anything that must survive crashes, retries, and long waits. But once a workflow grows many interleaving signals, timers, and handlers, it becomes genuinely hard to **reason about, test, and trust**.
+Some of the worst bugs are not in any one function. They are in the order of events: a retry that lands while the
+first attempt is still running, two workers reading the same row, an async reply that arrives after the user already
+changed something, a webhook delivered twice, a long-running workflow or an AI agent deciding at runtime which step
+comes next.
 
-The dangerous bugs aren't the non-deterministic crashes the runtime already catches. They're **logical races**: domain invariants that quietly break under an ordering nobody ever exercised — and that no test suite samples.
+Tests run the orders someone thought of. The bug is usually in an order nobody did. Tools that check every order exist,
+like TLA+ and Quint, but they ask you to learn a second language and model the system again, away from the code.
 
 ## What it does <a id="what-it-does" />
 
-SpecCraft is tooling to **understand, verify, and test** complex concurrent and durable-execution workflows — closing the gap between a tool that *comprehends* workflow logic and one that *checks* it.
-
 <CardGrid>
-	<Card title="Understand">
-		Build an accurate model of what a workflow actually does — its states, handlers, and the orderings they admit — from the code you already wrote.
+	<Card title="Specs in plain TypeScript">
+		State, actions with guards and effects, and "must never happen" rules, written as a TypeScript object. No new language, no Java.
 	</Card>
-	<Card title="Verify">
-		Check domain invariants against every interleaving, not just the happy path your tests happen to hit. In the lineage of TLA+ and deterministic simulation.
+	<Card title="Every reachable state">
+		The checker walks every state the spec can reach and reports the shortest sequence of steps that breaks a rule.
 	</Card>
-	<Card title="Test">
-		Exercise the orderings no hand-written test would think to sample, and surface the ones that break.
+	<Card title="Checks the real code">
+		`checkConformance` walks the spec against your real implementation, state by state, and reports where the two differ.
 	</Card>
-	<Card title="Built for durable execution">
-		Targets Temporal first — workflows-as-code where state survives crashes, retries, and long waits.
+	<Card title="Specs next to the code">
+		In development: specs written next to a real class, with async replies delivered in every order.
 	</Card>
 </CardGrid>
 
-## Why now
+## Where it fits
 
-Durable execution is becoming the default substrate for backend systems, and the correctness gap grows with it. AI accelerates the shift: agentic systems are long-running and non-deterministic, so they demand durable execution — and most agent frameworks now build on one, with the agent itself deciding at runtime which steps fire, driving the very interleavings where the dangerous bugs live. Existing tools force a choice: formal methods that *verify* but require you to re-model your system by hand, or test frameworks that run *real code* but only sample the orderings you anticipated. SpecCraft aims to do both — from the workflow code itself.
+- Compared with TLA+ and Quint: the same kind of exhaustive checking, without a second language, and with a direct
+  check of the real code. See [Other non-TypeScript Tools](/tools/speccraft-vs-non-ts-tools).
+- Compared with fast-check and other property-based testing: every state, not a random sample of them. See
+  [Other TypeScript Tools](/how-speccraft-compares) for the full map of TypeScript tools.
+- Next to proof tools: Lean and Dafny prove one function right for every input. SpecCraft checks the order of events
+  between steps. They work well together. The guides show how to use each from a TypeScript project:
+  [Lean](/tools/lean), [Dafny](/tools/dafny), [Quint](/tools/quint).
 
-## Join the waitlist
+## Where it started
 
-SpecCraft is in early development. Drop your email to hear when it's ready — and to help shape what we build.
+SpecCraft started from a Temporal workflow that grew too hard to reason about, and a two-page formal spec that made it
+clear again. That research, on durable execution and its correctness problems, is in the
+[Durable execution](/durable-execution-problems) pages. The same problem shows up anywhere events can interleave, so
+SpecCraft is now a general TypeScript tool.
+
+## Status
+
+SpecCraft is early. The engine is on npm as [`@speccraft-io/core`](https://www.npmjs.com/package/@speccraft-io/core)
+and on [GitHub](https://github.com/orgs/speccraft-io/repositories). Drop your email to hear about new releases, and to
+help shape what comes next.
 
 <Waitlist />
 
 ---
 
-SpecCraft is built by [Oleksandr Zalizniak](https://zalizniak.com). Follow along on [GitHub](https://github.com/orgs/speccraft-io/repositories) and [LinkedIn](https://www.linkedin.com/company/speccraft-io), or get in touch: [alex@zalizniak.com](mailto:alex@zalizniak.com).
+SpecCraft is built by [Oleksandr Zalizniak](https://zalizniak.com). Follow along on [GitHub](https://github.com/orgs/speccraft-io/repositories), [LinkedIn](https://www.linkedin.com/company/speccraft-io) and [Bluesky](https://bsky.app/profile/speccraft.bsky.social), or get in touch: [alex@zalizniak.com](mailto:alex@zalizniak.com).

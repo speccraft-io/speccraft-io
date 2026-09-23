@@ -23,8 +23,8 @@ export default defineConfig({
 			pagefind: false,
 			title: 'SpecCraft',
 			description:
-				'SpecCraft — tooling to understand, verify, and test complex concurrent and durable-execution workflows, where the dangerous bugs live in interleavings no test suite ever samples.',
-			tagline: 'Understand, verify, and test complex concurrent and durable-execution workflows.',
+				'SpecCraft: write specs in TypeScript, check every order of events exhaustively, then check your real code against the spec.',
+			tagline: 'Specs in TypeScript, checked in every order of events.',
 			logo: { src: './src/assets/speccraft-logo.png', alt: 'SpecCraft' },
 			customCss: ['./src/styles/custom.css'],
 			components: {
