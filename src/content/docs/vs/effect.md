@@ -15,8 +15,8 @@ control time and generate inputs.
 
 ## Using Effect
 
-The code is in [examples/job-lease](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/job-lease),
-written against Effect 4 (`4.0.0-rc.116`), and runs with `pnpm test`.
+The code is in [formal-methods-samples/effect-job-lease](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/effect-job-lease),
+written against Effect 4 (`4.0.0-rc.116`), and runs on its own with `npm install && npm test`.
 
 ### The problem
 

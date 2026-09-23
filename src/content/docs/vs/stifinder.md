@@ -14,8 +14,8 @@ trace", but "what is the failing trace that needs the fewest things to go differ
 
 ## Using stifinder
 
-The code below is in [examples/outbox](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/outbox) and
-runs with `pnpm test`.
+The code below is in [formal-methods-samples/stifinder-outbox](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/stifinder-outbox) and
+runs on its own with `npm install && npm test`.
 
 ### The problem
 

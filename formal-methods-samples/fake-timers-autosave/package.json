@@ -1,0 +1,14 @@
+{
+  "name": "fake-timers-autosave",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@sinonjs/fake-timers": "15.4.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.1"
+  }
+}

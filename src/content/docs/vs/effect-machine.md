@@ -15,8 +15,8 @@ this group: about 53,000 downloads a month in September 2026.
 
 ## Using effect-machine
 
-The code below is in [examples/checkout](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/checkout)
-and runs with `pnpm test`.
+The code below is in [formal-methods-samples/effect-machine-checkout](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/effect-machine-checkout)
+and runs on its own with `npm install && npm test`.
 
 ### The problem
 

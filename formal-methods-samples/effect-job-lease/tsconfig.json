@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "lib": [
+      "ES2023",
+      "ESNext.Disposable",
+      "DOM"
+    ],
+    "types": [],
+    "skipLibCheck": true
+  },
+  "include": [
+    "*.ts"
+  ]
+}

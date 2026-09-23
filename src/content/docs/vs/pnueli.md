@@ -16,8 +16,8 @@ several features.
 ## Using pnueli
 
 The code below is in
-[examples/distributed-lock](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/distributed-lock) and
-runs with `pnpm test`.
+[formal-methods-samples/pnueli-distributed-lock](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/pnueli-distributed-lock) and
+runs on its own with `npm install && npm test`.
 
 ### The problem
 

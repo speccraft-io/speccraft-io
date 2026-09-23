@@ -1,0 +1,15 @@
+{
+  "name": "stifinder-outbox",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "stifinder": "0.1.0",
+    "typescript": "^5.9.3",
+    "valsem": "0.0.4",
+    "vitest": "^5.0.1"
+  }
+}

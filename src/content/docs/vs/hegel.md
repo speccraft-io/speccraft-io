@@ -16,8 +16,8 @@ September 2026. It is in beta.
 ## Using Hegel
 
 The code below is in
-[examples/stock-reservation](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/stock-reservation) and
-runs with `pnpm test`.
+[formal-methods-samples/hegel-stock-reservation](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/hegel-stock-reservation) and
+runs on its own with `npm install && npm test`.
 
 ### The problem
 

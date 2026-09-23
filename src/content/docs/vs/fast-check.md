@@ -15,8 +15,8 @@ looks close: commands with preconditions, run against a model and the real syste
 
 ## Using fast-check
 
-The code below is in [examples/webhook](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/webhook)
-and runs with `pnpm test`. The same example is on the [Quint page](/tools/quint).
+The code below is in [formal-methods-samples/fast-check-webhook](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/fast-check-webhook)
+and runs on its own with `npm install && npm test`. The same example is on the [Quint page](/tools/quint).
 
 ### The problem
 
