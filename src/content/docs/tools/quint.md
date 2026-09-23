@@ -16,6 +16,24 @@ Lean and Dafny prove that one function is right for every input. Quint answers a
 several things run at the same time, in every possible order? This page shows how to use it next to a normal
 TypeScript project, with one small example. No math background needed.
 
+## A separate model, on purpose
+
+The first thing Quint asks of you is a separate model. You do not annotate your TS code. You write a second, much
+smaller description of the system in a `.qnt` file. That sounds like extra work, and it is, but it pays back in three
+ways:
+
+- Isolation. The model has no framework, no database driver, no HTTP, no `async`. Only the state and the steps that
+  matter for the rule. A 15-line handler with its dependencies becomes two actions, and the bug is easier to see there
+  than in the real code.
+- Freedom. You choose what to leave out and how coarse the steps are. You can try a different design (an atomic
+  claim, a lock, a queue per order) in minutes, and check it, before anyone writes or changes production code.
+- A thinking tool. To write the model you have to name every state, every step and every "must never happen". Many
+  design bugs show up while writing it, before the checker even runs. The model is also a precise design doc that
+  cannot go stale without CI noticing, once the replay in Step 4 is in place.
+
+The cost is a second artifact to keep in step with the code. The rest of this page shows how to do that with a replay
+test in vitest.
+
 ## Why you would want this
 
 A service receives an `order.confirmed` webhook and charges the customer's card. The sender retries when it does not
