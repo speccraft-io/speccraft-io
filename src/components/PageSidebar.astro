@@ -22,6 +22,15 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 
 {
 	adoption && (
+		<button type="button" class="tool-info-toggle" aria-expanded="false" aria-controls="tool-info">
+			Adoption, dependencies and similar tools
+		</button>
+	)
+}
+
+<div id="tool-info" class="tool-info">
+{
+	adoption && (
 		<div class="adoption">
 			<h2>Adoption</h2>
 			<a href={`https://github.com/${adoption.github}`} target="_blank" rel="noopener noreferrer">
@@ -71,6 +80,8 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 	)
 }
 
+</div>
+
 <script>
 	// The last commit date comes from the GitHub API in the browser, so it is current on every visit.
 	const units: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -110,6 +121,15 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 
 	for (const el of document.querySelectorAll<HTMLElement>('.last-commit[data-repo]')) {
 		showLastCommit(el);
+	}
+
+	// On narrow screens the boxes sit behind a button instead of the right-hand column.
+	for (const button of document.querySelectorAll<HTMLButtonElement>('.tool-info-toggle')) {
+		button.addEventListener('click', () => {
+			const open = button.getAttribute('aria-expanded') !== 'true';
+			button.setAttribute('aria-expanded', String(open));
+			document.getElementById('tool-info')?.classList.toggle('open', open);
+		});
 	}
 </script>
 
@@ -153,23 +173,36 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 	.similar li.llm {
 		font-weight: 600;
 	}
+	.tool-info-toggle {
+		display: none;
+	}
 	@media (max-width: 71.99rem) {
-		.similar ul {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 0.75rem;
+		.tool-info-toggle {
+			display: block;
+			width: calc(100% - 2 * var(--sl-content-pad-x));
+			margin: 0.75rem var(--sl-content-pad-x) 0;
+			padding: 0.4rem 0.75rem;
+			border: 1px solid var(--sl-color-gray-5);
+			border-radius: 0.5rem;
+			background: transparent;
+			color: var(--sl-color-white);
+			font: inherit;
+			font-size: var(--sl-text-sm);
+			text-align: left;
+			cursor: pointer;
 		}
-		.similar li + li {
-			margin-top: 0;
+		.tool-info-toggle::after {
+			content: '▸';
+			float: right;
+		}
+		.tool-info-toggle[aria-expanded='true']::after {
+			content: '▾';
+		}
+		.tool-info:not(.open) {
+			display: none;
 		}
 		.adoption {
-			flex-direction: row;
-			flex-wrap: wrap;
-			align-items: center;
 			padding: 0.75rem var(--sl-content-pad-x) 0;
-		}
-		.adoption h2 {
-			display: none;
 		}
 	}
 </style>
