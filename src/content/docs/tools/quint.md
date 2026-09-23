@@ -79,6 +79,21 @@ That gives you the `quint` command: `typecheck`, `run` (random runs, fast), `ver
 REPL. `quint verify` needs Java 17 or newer, and downloads its checker the first time. For the editor, install the
 "Quint" extension in VS Code.
 
+What runs underneath:
+
+<a href="/assets/tools/quint/quint-architecture.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-architecture.png" alt="Architecture diagram. webhook.qnt goes into the quint CLI, an npm package that runs in Node, where typecheck happens. quint run goes to the Rust evaluator in ~/.quint, with no Java, which produces random runs as ITF JSON traces. quint verify goes into the TLA+ stack, apalache.jar in ~/.quint, which needs Java 17 or newer: the Apalache server on localhost:8822 compiles Quint to TLA+, SANY parses the generated webhook.tla, then either the Apalache checker with Z3 (the default backend, checking up to --max-steps, 10 by default) or TLC (--backend tlc, every reachable state) does the check."></a>
+
+- `quint typecheck` runs in Node, inside the npm package.
+- `quint run` uses a small Rust program that Quint downloads to `~/.quint` the first time. No Java.
+- `quint verify` is where TLA+ comes in. Quint starts a local Apalache server (Java), which turns your model into a
+  TLA+ file and checks it. `apalache.jar` ships the TLA+ parser (SANY), TLC (the original TLA+ model checker) and the
+  Z3 solver.
+- The default backend (Apalache with Z3) checks runs up to `--max-steps` long, 10 by default. `--backend tlc` walks
+  every reachable state. This page uses TLC for that reason.
+
+So Quint is a friendlier front end on the TLA+ toolchain, not a replacement for it. It is also why only the model
+check in CI needs Java.
+
 ## Step 1: describe the system as state and steps
 
 A Quint model has two parts: variables (the state) and actions (the steps that change it). Each action has a

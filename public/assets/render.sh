@@ -34,3 +34,6 @@ for f in quint-run-bug:1434:1000 quint-verify-bug:210:1000 quint-verify-fixed:18
   "$CHROME" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=2 \
     --screenshot=tools/quint/$n.png --window-size=$w,$h "file://$PWD/tools/quint/$n.html"
 done
+
+"$CHROME" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=2 \
+  --screenshot=tools/quint/quint-architecture.png --window-size=1200,640 "file://$PWD/tools/quint/quint-architecture.html"
