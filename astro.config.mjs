@@ -63,6 +63,9 @@ export default defineConfig({
 						{ label: 'All tools', link: '/how-speccraft-compares' },
 						{ label: 'LemmaScript', link: '/vs/lemmascript' },
 						{ label: 'stateproof', link: '/vs/stateproof' },
+						{ label: 'pnueli', link: '/vs/pnueli' },
+						{ label: 'Polygraph', link: '/vs/polygraph' },
+						{ label: 'tla-precheck', link: '/vs/tla-precheck' },
 					],
 				},
 				{ label: 'Formal methods market', link: '/state-of-formal-methods-market' },
@@ -70,6 +73,7 @@ export default defineConfig({
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },
 				{ icon: 'npm', label: 'npm', href: 'https://www.npmjs.com/package/@speccraft-io/core' },
+				{ icon: 'linkedin', label: 'LinkedIn', href: 'https://www.linkedin.com/company/speccraft-io/' },
 			],
 			lastUpdated: true,
 			// No right-hand "On this page" table of contents on any page.

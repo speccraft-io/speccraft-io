@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { width: 1128px; height: 191px; overflow: hidden; }
+</style>
+</head>
+<body>
+<svg width="1128" height="191" viewBox="0 0 1128 191" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="80%">
+      <stop offset="0%" stop-color="#171225"/>
+      <stop offset="100%" stop-color="#0b0812"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1128" height="191" fill="url(#glow)"/>
+
+  <!-- faint interleaving graph, full width behind the slogan -->
+  <g stroke="#241f33" stroke-width="2" fill="none">
+    <path d="M 60 95 L 170 45"/>
+    <path d="M 60 95 L 170 95"/>
+    <path d="M 60 95 L 170 145"/>
+    <path d="M 170 45 L 290 25"/>
+    <path d="M 170 45 L 290 65"/>
+    <path d="M 170 95 L 290 65"/>
+    <path d="M 170 95 L 290 115"/>
+    <path d="M 170 145 L 290 115"/>
+    <path d="M 170 145 L 290 165"/>
+    <path d="M 290 25 L 420 40"/>
+    <path d="M 290 65 L 420 40"/>
+    <path d="M 290 65 L 420 90"/>
+    <path d="M 290 115 L 420 90"/>
+    <path d="M 290 115 L 420 140"/>
+    <path d="M 290 165 L 420 140"/>
+    <path d="M 420 40 L 560 30"/>
+    <path d="M 420 90 L 560 30"/>
+    <path d="M 420 140 L 560 160"/>
+    <path d="M 560 30 L 700 40"/>
+    <path d="M 560 160 L 700 140"/>
+    <path d="M 700 40 L 840 25"/>
+    <path d="M 700 40 L 840 65"/>
+    <path d="M 700 140 L 840 115"/>
+    <path d="M 700 140 L 840 165"/>
+    <path d="M 840 25 L 960 45"/>
+    <path d="M 840 65 L 960 45"/>
+    <path d="M 840 115 L 960 145"/>
+    <path d="M 840 165 L 960 145"/>
+    <path d="M 960 45 L 1068 95"/>
+    <path d="M 960 145 L 1068 95"/>
+  </g>
+
+  <!-- dim explored nodes -->
+  <g fill="#2f5c3c">
+    <circle cx="170" cy="45" r="4"/>
+    <circle cx="170" cy="95" r="4"/>
+    <circle cx="290" cy="25" r="4"/>
+    <circle cx="290" cy="65" r="4"/>
+    <circle cx="420" cy="40" r="4"/>
+    <circle cx="560" cy="30" r="4"/>
+    <circle cx="700" cy="40" r="4"/>
+    <circle cx="840" cy="25" r="4"/>
+    <circle cx="840" cy="65" r="4"/>
+    <circle cx="960" cy="45" r="4"/>
+  </g>
+
+  <!-- the one bad interleaving, kept visible along the bottom edge -->
+  <g stroke="#a92e6e" stroke-width="2.5" fill="none">
+    <path d="M 60 95 L 170 145 L 290 165 L 420 140 L 560 160 L 700 140 L 840 165 L 960 145 L 1068 95"/>
+  </g>
+  <g fill="#c73a80">
+    <circle cx="170" cy="145" r="5"/>
+    <circle cx="290" cy="165" r="5"/>
+    <circle cx="420" cy="140" r="5"/>
+    <circle cx="560" cy="160" r="5"/>
+    <circle cx="700" cy="140" r="5"/>
+    <circle cx="840" cy="165" r="5"/>
+    <circle cx="960" cy="145" r="5"/>
+  </g>
+  <g>
+    <circle cx="1068" cy="95" r="9" fill="#c73a80"/>
+    <text x="1068" y="100" text-anchor="middle" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="800" fill="#0b0812">!</text>
+  </g>
+
+  <!-- centered slogan -->
+  <text x="564" y="98" text-anchor="middle" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif" font-size="34" font-weight="600" fill="#ffffff">Thinking tools.</text>
+  <rect x="504" y="116" width="120" height="4" rx="2" fill="#57e07a"/>
+</svg>
+</body>
+</html>

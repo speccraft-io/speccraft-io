@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { width: 1200px; height: 460px; overflow: hidden; }
+  text { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; }
+</style>
+</head>
+<body>
+<svg width="1200" height="460" viewBox="0 0 1200 460" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="45%" r="85%">
+      <stop offset="0%" stop-color="#171225"/>
+      <stop offset="100%" stop-color="#0b0812"/>
+    </radialGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#4a4560"/>
+    </marker>
+    <marker id="arrowPink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#f0439c"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="460" fill="url(#glow)"/>
+
+  <!-- title -->
+  <text x="80" y="64" font-size="30" font-weight="700" fill="#ffffff">What gets checked: a model, or the real thing</text>
+  <text x="80" y="94" font-size="16" fill="#9a94ad">A second axis - not how the spec is written, but what the checker actually runs against</text>
+
+  <!-- axis -->
+  <line x1="140" y1="250" x2="1120" y2="250" stroke="#332e47" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <text x="150" y="280" font-size="15" font-weight="600" fill="#8b86a0">Checks a model of the system</text>
+  <text x="1110" y="280" font-size="15" font-weight="600" fill="#8b86a0" text-anchor="end">Exercises the real running code</text>
+
+  <!-- points, on the axis, labels alternating above/below -->
+  <g fill="#8b86a0">
+    <circle cx="175" cy="250" r="7"/>
+    <circle cx="320" cy="250" r="7"/>
+    <circle cx="450" cy="250" r="7"/>
+    <circle cx="720" cy="250" r="7"/>
+    <circle cx="860" cy="250" r="7"/>
+    <circle cx="980" cy="250" r="7"/>
+    <circle cx="1090" cy="250" r="7"/>
+  </g>
+
+  <g font-size="15" fill="#d6d2e0">
+    <text x="113" y="212">Dedicated spec languages</text>
+    <text x="100" y="200" font-size="12" fill="#5c5675">TLA+, Quint, Alloy, FizzBee, SPIN, P</text>
+
+    <text x="270" y="305">XState graph tools</text>
+
+    <text x="390" y="212">Stateright</text>
+
+    <text x="660" y="305" fill="#79738c">stateproof</text>
+    <text x="638" y="322" font-size="12" fill="#5c5675">(model-checked, plus a runtime interpreter)</text>
+
+    <text x="792" y="212">Property-based testing</text>
+    <text x="802" y="197" font-size="12" fill="#5c5675">fast-check, QuickCheck, Hypothesis</text>
+
+    <text x="908" y="305">Concurrency testers</text>
+    <text x="915" y="322" font-size="12" fill="#5c5675">Coyote, loom, shuttle</text>
+
+    <text x="992" y="212">Whole-system simulation</text>
+    <text x="1015" y="197" font-size="12" fill="#5c5675">DST, Antithesis</text>
+  </g>
+
+  <!-- SpecCraft -->
+  <g>
+    <circle cx="570" cy="250" r="24" fill="none" stroke="#f0439c" stroke-width="2" opacity="0.45"/>
+    <circle cx="570" cy="250" r="12" fill="#f0439c"/>
+    <text x="570" y="215" font-size="19" font-weight="800" text-anchor="middle"><tspan fill="#ffffff">Spec</tspan><tspan fill="#f0439c">Craft</tspan></text>
+    <text x="570" y="303" font-size="13" text-anchor="middle" fill="#9a94ad">model + real code</text>
+  </g>
+
+  <!-- roadmap arrow toward real code -->
+  <line x1="602" y1="250" x2="700" y2="250" stroke="#f0439c" stroke-width="2" marker-end="url(#arrowPink)" opacity="0.8"/>
+  <text x="608" y="235" font-size="13" font-weight="600" fill="#f0439c">conformance, inline specs</text>
+
+  <!-- footer -->
+  <rect x="80" y="410" width="72" height="4" rx="2" fill="#57e07a"/>
+  <text x="168" y="417" font-size="15" fill="#8b86a0">speccraft.io</text>
+</svg>
+</body>
+</html>

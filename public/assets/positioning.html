@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { width: 1200px; height: 900px; overflow: hidden; }
+  text { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; }
+</style>
+</head>
+<body>
+<svg width="1200" height="900" viewBox="0 0 1200 900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="45%" r="85%">
+      <stop offset="0%" stop-color="#171225"/>
+      <stop offset="100%" stop-color="#0b0812"/>
+    </radialGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#4a4560"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="900" fill="url(#glow)"/>
+
+  <!-- title -->
+  <text x="80" y="64" font-size="30" font-weight="700" fill="#ffffff">Where SpecCraft sits</text>
+  <text x="80" y="94" font-size="16" fill="#9a94ad">Tools for finding the bugs that live in interleavings</text>
+
+  <!-- plot area: x 140..1120, y 140..790 -->
+
+  <!-- quadrant zone labels -->
+  <text x="170" y="180" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1">SPEC LANGUAGES + INDUSTRIAL CHECKERS</text>
+  <text x="1090" y="180" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1" text-anchor="end">MODEL CHECKER AS A LIBRARY</text>
+  <text x="1090" y="760" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1" text-anchor="end">PROPERTY-BASED TESTING</text>
+  <text x="170" y="760" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1">SIMULATORS</text>
+
+  <!-- axes -->
+  <line x1="140" y1="465" x2="1120" y2="465" stroke="#332e47" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <line x1="630" y1="790" x2="630" y2="140" stroke="#332e47" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+
+  <!-- axis labels -->
+  <text x="150" y="452" font-size="15" font-weight="600" fill="#8b86a0">New spec language</text>
+  <text x="1110" y="452" font-size="15" font-weight="600" fill="#8b86a0" text-anchor="end">Plain code in your language</text>
+  <text x="645" y="162" font-size="15" font-weight="600" fill="#8b86a0">Exhaustive checking</text>
+  <text x="645" y="782" font-size="15" font-weight="600" fill="#8b86a0">Random sampling</text>
+
+  <!-- competitor dots: neutral ink, labels in text tokens -->
+  <g fill="#8b86a0">
+    <circle cx="235" cy="235" r="8"/>
+    <circle cx="470" cy="200" r="8"/>
+    <circle cx="215" cy="320" r="8"/>
+    <circle cx="368" cy="300" r="8"/>
+    <circle cx="425" cy="345" r="8"/>
+    <circle cx="188" cy="378" r="8"/>
+    <circle cx="760" cy="225" r="8"/>
+    <circle cx="672" cy="290" r="8"/>
+    <circle cx="672" cy="335" r="8"/>
+    <circle cx="1060" cy="345" r="8"/>
+    <circle cx="880" cy="370" r="8"/>
+    <circle cx="730" cy="398" r="8"/>
+    <circle cx="1030" cy="412" r="8"/>
+    <circle cx="700" cy="440" r="8"/>
+    <circle cx="912" cy="655" r="8"/>
+    <circle cx="800" cy="692" r="8"/>
+    <circle cx="1035" cy="600" r="8"/>
+    <circle cx="1060" cy="545" r="8"/>
+    <circle cx="330" cy="640" r="8"/>
+  </g>
+
+  <g font-size="16" fill="#d6d2e0">
+    <text x="252" y="240">TLA+ / TLC / Apalache</text>
+    <text x="487" y="205">Quint</text>
+    <text x="232" y="325">Alloy</text>
+    <text x="385" y="305">FizzBee</text>
+    <text x="442" y="350">P (AWS)</text>
+    <text x="205" y="383">SPIN</text>
+    <text x="777" y="230">Stateright (Rust)</text>
+    <text x="689" y="295">tla-precheck (TS DSL to TLA+)</text>
+    <text x="689" y="340" fill="#79738c">stateproof (TS to TLA+)</text>
+    <text x="1043" y="350" text-anchor="end">pnueli (TS)</text>
+    <text x="897" y="375">Polygraph (TS, spec by LLM)</text>
+    <text x="747" y="403">modality-ts (React)</text>
+    <text x="1013" y="417" text-anchor="end">Coyote / loom</text>
+    <text x="717" y="445">XState graph</text>
+    <text x="929" y="660">fast-check</text>
+    <text x="817" y="697">QuickCheck / Hypothesis</text>
+    <text x="1052" y="605">Antithesis (closed)</text>
+    <text x="1043" y="550" text-anchor="end">chronos / unflake (TS)</text>
+    <text x="347" y="645">quint run (simulator)</text>
+  </g>
+
+  <!-- SpecCraft -->
+  <g>
+    <circle cx="990" cy="268" r="26" fill="none" stroke="#f0439c" stroke-width="2" opacity="0.45"/>
+    <circle cx="990" cy="268" r="13" fill="#f0439c"/>
+    <text x="990" y="228" font-size="21" font-weight="800" text-anchor="middle"><tspan fill="#ffffff">Spec</tspan><tspan fill="#f0439c">Craft</tspan></text>
+    <text x="990" y="318" font-size="14" text-anchor="middle" fill="#9a94ad">TypeScript</text>
+  </g>
+
+  <!-- footer -->
+  <rect x="80" y="836" width="72" height="4" rx="2" fill="#57e07a"/>
+  <text x="168" y="843" font-size="15" fill="#8b86a0">speccraft.io</text>
+</svg>
+</body>
+</html>
