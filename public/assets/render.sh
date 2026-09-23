@@ -37,3 +37,6 @@ done
 
 "$CHROME" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=2 \
   --screenshot=tools/quint/quint-architecture.png --window-size=1200,640 "file://$PWD/tools/quint/quint-architecture.html"
+
+"$CHROME" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
+  --screenshot=bluesky-avatar.png --window-size=1000,1000 "file://$PWD/bluesky-avatar.html"
