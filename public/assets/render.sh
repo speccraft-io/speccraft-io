@@ -10,3 +10,6 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 "$CHROME" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=2 \
   --screenshot=model-vs-real-code.png --window-size=1200,460 "file://$PWD/model-vs-real-code.html"
+
+"$CHROME" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
+  --screenshot=bluesky-banner.png --window-size=1500,500 "file://$PWD/bluesky-banner.html"

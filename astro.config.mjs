@@ -76,7 +76,7 @@ export default defineConfig({
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },
 				{ icon: 'npm', label: 'npm', href: 'https://www.npmjs.com/package/@speccraft-io/core' },
 				{ icon: 'linkedin', label: 'LinkedIn', href: 'https://www.linkedin.com/company/speccraft-io/' },
-				{ icon: 'external', label: 'zalizniak.com', href: 'https://zalizniak.com/' },
+				{ icon: 'blueSky', label: 'Bluesky', href: 'https://bsky.app/profile/speccraft.bsky.social' },
 			],
 			lastUpdated: true,
 			// No right-hand "On this page" table of contents on any page.
