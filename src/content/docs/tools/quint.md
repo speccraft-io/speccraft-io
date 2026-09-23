@@ -23,7 +23,7 @@ smaller description of the system in a `.qnt` file. That sounds like extra work,
 ways:
 
 - Isolation. The model has no framework, no database driver, no HTTP, no `async`. Only the state and the steps that
-  matter for the rule. A 15-line handler with its dependencies becomes two actions, and the bug is easier to see there
+  matter for the rule. The handler and its dependencies become two actions, and the bug is easier to see there
   than in the real code.
 - Freedom. You choose what to leave out and how coarse the steps are. You can try a different design (an atomic
   claim, a lock, a queue per order) in minutes, and check it, before anyone writes or changes production code.
