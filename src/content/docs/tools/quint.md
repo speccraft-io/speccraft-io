@@ -258,8 +258,12 @@ it picked:
 
 ```sh
 quint run quint/webhook.qnt --invariant chargedAtMostOnce --mbt \
+  --seed 1 --max-samples 1000 --max-steps 10 \
   --n-traces 50 --out-itf 'quint/traces/run_{seq}.itf.json'
 ```
+
+`--seed` makes the runs repeatable: the same seed gives the same 50 traces on every machine, so a trace that fails in
+CI fails the same way on your laptop. `--max-samples` must be at least `--n-traces`.
 
 The replay test gives each worker its own fake deps over one shared fake database. `chargeCard` does not finish until
 the trace says that worker's charge step happens, which is how the test controls the order of the `await`s:
@@ -360,6 +364,138 @@ To check the replay is not passing by accident: the old bug trace against the fi
 step. The model expected `status: "unpaid"`, the fixed code had already written `"charging"`. The replay notices when
 the code and the model differ, not just when the rule breaks.
 
+## Project layout and CI
+
+One repo. The model sits in its own folder. The traces are built from it on every test run and never committed:
+
+```text
+ts-orders/
+├── .github/workflows/ci.yml
+├── quint/
+│   ├── webhook.qnt              the model: state, steps, the chargedAtMostOnce rule
+│   └── traces/                  generated before every test run, git-ignored
+├── src/
+│   ├── webhook.ts               the real handler
+│   ├── webhook.test.ts          normal unit tests
+│   └── webhook.quint.test.ts    replays quint/traces/ against webhook.ts
+├── .gitignore                   node_modules, quint/traces/, _apalache-out/
+├── package.json
+└── tsconfig.json
+```
+
+Quint is an npm package, so it goes in `devDependencies` like vitest, and `npm ci` installs it for everyone:
+
+```sh
+npm i -D @informalsystems/quint
+```
+
+Scripts in `package.json`:
+
+```json
+"scripts": {
+  "quint:check": "quint typecheck quint/webhook.qnt && quint verify quint/webhook.qnt --invariant chargedAtMostOnce --backend tlc",
+  "quint:traces": "rm -rf quint/traces && mkdir -p quint/traces && quint run quint/webhook.qnt --invariant chargedAtMostOnce --mbt --seed 1 --max-samples 1000 --max-steps 10 --n-traces 50 --out-itf 'quint/traces/run_{seq}.itf.json' > /dev/null",
+  "pretest": "npm run quint:traces",
+  "typecheck": "tsc",
+  "test": "vitest run"
+}
+```
+
+- `quint:check` walks every state of the model. It needs Java 17 or newer. The first run downloads the checker into
+  `~/.quint`, and each run writes logs to `_apalache-out/`, hence the `.gitignore` line.
+- `quint:traces` needs no Java. It starts from an empty folder, so no old trace from an earlier version of the model
+  is left behind.
+- `pretest` runs before `npm test`, so the replay always uses traces from the current model. Nobody has to remember
+  to regenerate them.
+
+The CI workflow has two jobs:
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/cache@v6
+        with:
+          path: ~/.quint
+          key: quint-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - name: Check every state of the model
+        run: npm run quint:check
+
+  ts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/cache@v6
+        with:
+          path: ~/.quint
+          key: quint-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Replay model traces against the real handler
+        run: npm test
+```
+
+- The `quint` job checks the model. It is the only one that needs Java.
+- The `ts` job generates the traces (through `pretest`) and replays them against the real code.
+- The cache keeps the checker and the trace runner Quint downloads, keyed on the lockfile, so a Quint upgrade gets a
+  fresh cache.
+
+What fails when:
+
+| Change | Where CI fails |
+|---|---|
+| A model change breaks the rule | `quint` job, `quint verify`: the counterexample is in the log. The `ts` job fails too, since `quint run` stops at the violation |
+| The handler changes and no longer follows the model | `ts` job, `webhook.quint.test.ts`: the first step where the database and the model differ |
+| The model changes, the handler does not | `ts` job: the new traces no longer match the old handler |
+| The fake deps in the replay drift from the real `Deps` type | `ts` job, `tsc` |
+
+## Making changes
+
+Changing the flow (for example, adding a refund step):
+
+1. Change the model first: a new action, the variables it touches, and a rule if there is a new "must never happen".
+2. Run `npm run quint:check` with 2 workers, then raise the numbers once it passes.
+3. Change the handler. Map the new action to a step in `webhook.quint.test.ts` (which call to start, which promise to
+   release).
+4. Run `npm test` until the replay passes. Commit the model, the handler and the replay test together.
+
+Adding a rule: add a `val` to the model and add it to `--invariant` in both scripts. If the real code can break it
+without breaking the model, the replay test needs the same check (like `charges <= 1` there).
+
+When CI finds a counterexample: copy the trace from the `quint verify` log or rerun `quint run` with the seed it
+prints. Write it to a file with `--out-itf` to replay it locally against the handler. Fix the model or the code, and
+the next run checks every state again.
+
+Upgrading Quint: bump `@informalsystems/quint` in `package.json`. The lockfile changes, so CI gets a fresh cache and
+downloads the matching checker.
+
+Reviewing a pull request: read the model diff first. A new `await` in the handler with no new step in the model means
+the model no longer splits the code where it can interleave. That is the one mistake the replay cannot catch, because
+the replay follows the model's steps.
+
 ## What you get, and what you do not
 
 You get:
@@ -387,11 +523,11 @@ You do not get:
 3. List the variables, including the ones outside your code: messages in flight, retries, what each worker has seen.
 4. Make one action per step between two `await`s in the real code.
 5. Run `quint run` first (fast), then `quint verify` (every state), with 2 or 3 actors.
-6. Export traces with `--mbt --out-itf`, and replay them against the real code with controlled fakes.
+6. Export traces with `--mbt --out-itf` and a fixed `--seed`, and replay them against the real code with controlled fakes.
 
 ## Related
 
-- [How SpecCraft compares](/how-speccraft-compares): SpecCraft does the same kind of checking with the model written
+- [SpecCraft vs non-TS tools](/tools/speccraft-vs-non-ts-tools): SpecCraft does the same kind of checking with the model written
   in TypeScript, and checks the real code against the model over every state, not a sample of traces.
 - [Quint getting started](https://quint-lang.org/docs/getting-started)
 - [Summary of the Quint language](https://quint-lang.org/docs/lang)

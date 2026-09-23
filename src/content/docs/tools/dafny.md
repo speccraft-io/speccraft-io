@@ -233,6 +233,122 @@ Against the Dafny build, all pass:
 
 You still keep a few tests. They check the wiring (the wrapper, the export line, the import path), not the logic.
 
+## Project layout and CI
+
+One repo. The Dafny source sits in its own folder, and the JavaScript it produces is committed next to it:
+
+```text
+ts-ids/
+├── .github/workflows/ci.yml
+├── dafny/
+│   └── Search.dfy               the code, with requires / ensures / invariants
+├── generated/
+│   └── search.cjs               built from Search.dfy, committed, never edited by hand
+├── src/
+│   ├── ids.ts                   typed wrapper, the only file that imports generated/
+│   └── ids.test.ts              tests for the wiring and a few edge cases
+├── .gitignore                   node_modules, generated/*.dtr
+├── package.json
+└── tsconfig.json
+```
+
+Why commit `generated/`:
+
+- The app builds, runs and deploys with plain Node. Only the people who change `dafny/` need Dafny installed.
+- The generated file shows up in code review, so a change in behavior is visible as a diff.
+- CI can check that the committed file really comes from the committed, verified source. The build is repeatable:
+  the same `.dfy` file gives the same `.cjs` file, byte for byte.
+
+`dafny translate` also writes `generated/search-js.dtr`, a record Dafny uses when other Dafny projects link to this
+one. The TS side does not need it, hence the `.gitignore` line.
+
+Scripts and dependencies in `package.json`:
+
+```json
+"scripts": {
+  "dafny": "dafny translate js --include-runtime dafny/Search.dfy -o generated/search && echo 'module.exports = _module;' >> generated/search.js && mv generated/search.js generated/search.cjs",
+  "typecheck": "tsc",
+  "test": "vitest run"
+},
+"dependencies": {
+  "bignumber.js": "^11.1.5"
+}
+```
+
+`bignumber.js` is a normal dependency, not a dev one: the generated code loads it at runtime.
+
+The CI workflow has two jobs:
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  dafny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dafny-lang/setup-dafny-action@v1
+        with:
+          dafny-version: "4.11.0"
+      - name: Verify and regenerate the JavaScript
+        run: npm run dafny
+      - name: generated/ matches the verified Dafny code
+        run: git diff --exit-code generated/
+
+  ts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+```
+
+- `dafny-lang/setup-dafny-action` is the official action. Pin `dafny-version` to the version the team uses locally
+  (`dafny --version`), so CI and laptops produce the same output.
+- `npm run dafny` verifies first. Any failed proof fails the step, and nothing is written.
+- `git diff --exit-code generated/` fails when the committed JavaScript is not what the committed Dafny code
+  produces.
+
+What fails when:
+
+| Change | Where CI fails |
+|---|---|
+| A change to `Search.dfy` that Dafny cannot prove | `dafny` job, `npm run dafny`: the verifier error, no JavaScript written |
+| `Search.dfy` changes, `generated/` is not rebuilt | `dafny` job, `git diff`: the committed JavaScript is stale |
+| Someone edits `generated/search.cjs` by hand | `dafny` job, `git diff`: the rebuild overwrites the edit |
+| The wrapper or the import path breaks | `ts` job, `tsc` or `ids.test.ts` |
+
+## Making changes
+
+Changing the search (for example, returning the insert position instead of `-1`):
+
+1. Change the `ensures` lines first. They are the new promise, and the reviewer reads them before the code.
+2. Change the body. Run `npm run dafny` until it verifies. If a loop fails, update the invariant: it should still be
+   a sentence you can say out loud.
+3. Update the wrapper type in `src/ids.ts` if the signature changed, and the tests that check the wiring.
+4. Commit `Search.dfy`, `generated/search.cjs` and `src/` together.
+
+Adding a function: add it to the same `.dfy` file (or `include` a new one), export it through the wrapper, regenerate.
+One wrapper file per generated file keeps the untyped surface in one place.
+
+Upgrading Dafny: change the version on your machine and in `ci.yml` in the same pull request, then run
+`npm run dafny`. The generated file may change even though your code did not. That diff is the new compiler's output,
+and CI checks it like any other.
+
+Reviewing a pull request: read the `.dfy` diff, starting with `requires` and `ensures`. Skim `generated/`. Its diff
+only confirms the rebuild happened, and CI has already checked that it matches.
+
 ## What you get, and what you do not
 
 You get:
@@ -260,7 +376,7 @@ You do not get:
 3. Write what callers must guarantee as `requires`.
 4. Use limited number types like `int53` so the output uses plain JS numbers.
 5. When a loop fails to verify, write down what stays true on every pass. That is your invariant.
-6. Add the `dafny` script, commit or build the `generated` folder, and wrap it with a typed TS function.
+6. Add the `dafny` script, commit the `generated` folder, and wrap it with a typed TS function.
 
 ## Related
 
