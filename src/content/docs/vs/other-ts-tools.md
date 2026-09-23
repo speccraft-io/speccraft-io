@@ -1,5 +1,5 @@
 ---
-title: SpecCraft and other TS tools
+title: More TS tools and SpecCraft
 description: The popular TypeScript tools that sit next to SpecCraft - test-strength and contract tools that complement it, schema and pattern libraries that look similar but check something else, static verification, and a few niche engines.
 ---
 

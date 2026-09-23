@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs effect-machine
+title: effect-machine vs SpecCraft
 description: effect-machine is a schema-first statechart library for Effect with bounded breadth-first exploration, invariants and coverage in its testing module. This page walks through exploring a checkout machine with it, then compares it with SpecCraft.
 tableOfContents: true
 adoption:

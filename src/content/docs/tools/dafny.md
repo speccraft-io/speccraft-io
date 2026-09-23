@@ -380,7 +380,7 @@ You do not get:
 
 ## Related
 
-- [SpecCraft vs LemmaScript](/vs/lemmascript): writes the contracts as comments in the TS file and translates the
+- [LemmaScript vs SpecCraft](/vs/lemmascript): writes the contracts as comments in the TS file and translates the
   function to Dafny or Lean for you, so you keep writing TypeScript.
 - [Dafny getting started](https://dafny.org/latest/OnlineTutorial/guide)
 - [Dafny reference manual](https://dafny.org/latest/DafnyRef/DafnyRef)

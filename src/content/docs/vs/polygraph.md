@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs Polygraph
+title: Polygraph vs SpecCraft
 description: Polygraph has an LLM derive a JavaScript spec from your code, checks the spec against real traces, then model-checks it exhaustively. This page runs its turnstile example through replay and the model checker, then compares it with SpecCraft, which starts from a spec you write.
 tableOfContents: true
 adoption:

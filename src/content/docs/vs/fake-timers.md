@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs fake timers
+title: Fake timers vs SpecCraft
 description: Fake timers (@sinonjs/fake-timers, and the fake timers in Jest and Vitest built on it) give a test control of the clock. This page shows how to test a debounced autosave with them, then compares them with SpecCraft.
 tableOfContents: true
 adoption:

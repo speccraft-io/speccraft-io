@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs tla-precheck
+title: tla-precheck vs SpecCraft
 description: tla-precheck compiles a restricted TypeScript DSL to both TLA+ and a TypeScript interpreter, proves the two state graphs identical, and generates the runtime code. This page runs its Dog example, passing and broken, then compares it with SpecCraft, which runs a spec in full TypeScript and checks separate code against it.
 tableOfContents: true
 adoption:

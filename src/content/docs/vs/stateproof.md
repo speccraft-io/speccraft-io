@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs stateproof
+title: stateproof vs SpecCraft
 description: stateproof compiles a TypeScript-looking state machine to TLA+ and checks it with TLC. This page runs its README counter from source, shows what verify() returns, then compares it with SpecCraft, which runs the spec as real TypeScript.
 tableOfContents: true
 adoption:

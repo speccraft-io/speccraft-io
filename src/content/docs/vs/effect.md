@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs Effect
+title: Effect vs SpecCraft
 description: How to test async Effect code with @effect/vitest, TestClock and fiber interruption, on a real job lease bug with real output - and how it compares with SpecCraft, which searches the orders events can happen in.
 tableOfContents: true
 adoption:
@@ -254,4 +254,4 @@ invariants hold in every one.
 - Effect on GitHub: https://github.com/Effect-TS/effect
 - @effect/vitest on npm: https://www.npmjs.com/package/@effect/vitest
 - Effect deterministic simulation proposal (closed): https://github.com/Effect-TS/effect/pull/6216
-- effect-machine, a statechart library for Effect with bounded search: [SpecCraft vs effect-machine](/vs/effect-machine)
+- effect-machine, a statechart library for Effect with bounded search: [effect-machine vs SpecCraft](/vs/effect-machine)

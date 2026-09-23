@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs LemmaScript
+title: LemmaScript vs SpecCraft
 description: LemmaScript proves TypeScript functions correct for every input with Dafny or Lean. This page runs its linear search example with Dafny, shows a passing and a failing proof, then compares it with SpecCraft, which explores every ordering of events in a bounded model.
 tableOfContents: true
 adoption:

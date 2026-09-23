@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs Bombadil
+title: Bombadil vs SpecCraft
 description: Bombadil, from Antithesis, is property-based testing for web and terminal UIs, with TypeScript specs of temporal properties and action generators. This page shows how a TypeScript developer writes and runs a Bombadil spec, then compares it with SpecCraft.
 tableOfContents: true
 adoption:

@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs pnueli
+title: pnueli vs SpecCraft
 description: pnueli is an explicit-state model checker in TypeScript with symmetry and partial-order reduction and liveness under weak fairness. This page walks through using it on a distributed lock, then compares it with SpecCraft.
 tableOfContents: true
 adoption:

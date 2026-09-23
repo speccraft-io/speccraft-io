@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs fast-check
+title: fast-check vs SpecCraft
 description: fast-check is the standard property-based testing library for TypeScript, with model-based testing and a scheduler for async races. This page shows how to use its scheduler to find a webhook double charge, then compares it with SpecCraft.
 tableOfContents: true
 adoption:

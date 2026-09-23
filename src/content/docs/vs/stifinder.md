@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs stifinder
+title: stifinder vs SpecCraft
 description: stifinder is a state-space explorer for JavaScript that finds the failure needing the fewest departures from the expected schedule. This page walks through using it on a transactional outbox, then compares it with SpecCraft.
 tableOfContents: true
 adoption:

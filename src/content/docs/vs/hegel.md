@@ -1,5 +1,5 @@
 ---
-title: SpecCraft vs Hegel
+title: Hegel vs SpecCraft
 description: How to use Hegel, Hypothesis-style property-based testing for TypeScript, on a real stock reservation bug - install, generators, shrinking and real output - and how it compares with SpecCraft.
 tableOfContents: true
 adoption:
