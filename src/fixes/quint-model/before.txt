@@ -1,0 +1,63 @@
+module webhook {
+  type Phase = Idle | Read
+
+  pure val WORKERS = Set("w1", "w2")
+  pure val MAX_DELIVERIES = 2
+
+  var status: str
+  var charges: int
+  var sent: int
+  var queued: int
+  var acked: bool
+  var phase: str -> Phase
+  var seen: str -> str
+
+  action init = all {
+    status' = "unpaid",
+    charges' = 0,
+    sent' = 1,
+    queued' = 1,
+    acked' = false,
+    phase' = WORKERS.mapBy(_ => Idle),
+    seen' = WORKERS.mapBy(_ => ""),
+  }
+
+  action retry = all {
+    not(acked),
+    sent < MAX_DELIVERIES,
+    sent' = sent + 1,
+    queued' = queued + 1,
+    status' = status, charges' = charges, acked' = acked, phase' = phase, seen' = seen,
+  }
+
+  action readOrder(w: str): bool = all {
+    phase.get(w) == Idle,
+    queued > 0,
+    queued' = queued - 1,
+    phase' = phase.set(w, Read),
+    seen' = seen.set(w, status),
+    status' = status, charges' = charges, sent' = sent, acked' = acked,
+  }
+
+  action chargeIfUnpaid(w: str): bool = all {
+    phase.get(w) == Read,
+    if (seen.get(w) == "unpaid") all {
+      charges' = charges + 1,
+      status' = "paid",
+    } else all {
+      charges' = charges,
+      status' = status,
+    },
+    phase' = phase.set(w, Idle),
+    acked' = true,
+    seen' = seen, sent' = sent, queued' = queued,
+  }
+
+  action step = any {
+    retry,
+    nondet w = oneOf(WORKERS)
+    any { readOrder(w), chargeIfUnpaid(w) },
+  }
+
+  val chargedAtMostOnce = charges <= 1
+}

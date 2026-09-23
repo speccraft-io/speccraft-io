@@ -2,6 +2,12 @@
 title: Lean for TypeScript developers
 description: A practical first look at Lean from a TypeScript project. Prove a pricing function right for every input, see what a failed proof tells you, and check that the TS code gives the same answers as the proven copy.
 ---
+import CodeFix from '../../../components/CodeFix.astro';
+import leanProofBefore from '../../../fixes/lean-proof/before.txt?raw';
+import leanProofAfter from '../../../fixes/lean-proof/after.txt?raw';
+import leanTsBefore from '../../../fixes/lean-ts/before.txt?raw';
+import leanTsAfter from '../../../fixes/lean-ts/after.txt?raw';
+
 
 [Lean](https://lean-lang.org) is a programming language that can also check proofs. You write a function, then you
 write a claim about it ("the result is never negative"), and Lean checks that the claim holds for every possible
@@ -116,7 +122,7 @@ How to read it:
 
 Run `lake build`:
 
-<a href="/assets/tools/lean/lean-proof-fails.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-proof-fails.webp" alt="lake build output. The two #eval lines print 4000 and -2500. Then: error at line 11, omega could not prove the goal, with a possible counterexample where a is price, c is price * percent / 100, and a - c is at most -1. The build fails."></a>
+<a href="/assets/tools/lean/lean-proof-fails.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-proof-fails.webp" alt="lake build output. The two #eval lines print 4000 and -2500. Then: error at line 11, omega could not prove the goal, with a possible counterexample where a is price, c is price * percent / 100, and a - c is at most -1. The build fails." /></a>
 
 This is the useful part. Lean does not just say "no". It shows the kind of input that breaks the claim:
 
@@ -130,42 +136,7 @@ That happens exactly when `percent` is over 100. The `-2500` from `#eval` confir
 Clamp the percent to 0..100, then prove three rules: never negative, never more than the original price, and the
 discount never goes over the cap.
 
-```lean
-def clampPercent (percent : Int) : Int :=
-  max 0 (min percent 100)
-
-def applyDiscount (price percent cap : Int) : Int :=
-  price - min (price * clampPercent percent / 100) cap
-
-theorem discount_le_price (price percent : Int) (hPrice : 0 ≤ price) :
-    0 ≤ price * clampPercent percent ∧ price * clampPercent percent ≤ price * 100 := by
-  have h0 : 0 ≤ clampPercent percent := by unfold clampPercent; omega
-  have h1 : clampPercent percent ≤ 100 := by unfold clampPercent; omega
-  exact ⟨Int.mul_nonneg hPrice h0, Int.mul_le_mul_of_nonneg_left h1 hPrice⟩
-
-theorem never_negative (price percent cap : Int)
-    (hPrice : 0 ≤ price) :
-    0 ≤ applyDiscount price percent cap := by
-  have := discount_le_price price percent hPrice
-  unfold applyDiscount
-  omega
-
-theorem never_more_than_price (price percent cap : Int)
-    (hPrice : 0 ≤ price) (hCap : 0 ≤ cap) :
-    applyDiscount price percent cap ≤ price := by
-  have := discount_le_price price percent hPrice
-  unfold applyDiscount
-  omega
-
-theorem discount_within_cap (price percent cap : Int) :
-    price - applyDiscount price percent cap ≤ cap := by
-  unfold applyDiscount
-  omega
-
-#guard applyDiscount 5000 20 10000 == 4000
-#guard applyDiscount 5000 150 10000 == 0
-#guard applyDiscount 5000 50 1000 == 4000
-```
+<CodeFix before={leanProofBefore} after={leanProofAfter} lang="lean" title="Discount/Pricing.lean" />
 
 One new piece needs explaining. `omega` cannot multiply two unknowns (`price * percent`). So `discount_le_price` does
 that part with two library facts: a product of two non-negative numbers is non-negative (`Int.mul_nonneg`), and
@@ -175,7 +146,7 @@ assistant. Lean checks every step, so a wrong suggestion fails the build and can
 
 `#guard` is a plain test that runs during the build. It is handy for a few examples next to the proofs.
 
-<a href="/assets/tools/lean/lean-build-ok.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-build-ok.webp" alt="lake build output: all 8 jobs built, build completed successfully."></a>
+<a href="/assets/tools/lean/lean-build-ok.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-build-ok.webp" alt="lake build output: all 8 jobs built, build completed successfully." /></a>
 
 A green build means all three rules hold for every whole-number input, not just the tested ones.
 
@@ -183,7 +154,7 @@ A green build means all three rules hold for every whole-number input, not just 
 
 Look at `never_more_than_price`. It needs `hCap : 0 ≤ cap`. Remove it and build again:
 
-<a href="/assets/tools/lean/lean-missing-cap.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-missing-cap.webp" alt="lake build output: omega could not prove the goal, with a counterexample where d := cap and d is at most -1. The build fails."></a>
+<a href="/assets/tools/lean/lean-missing-cap.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-missing-cap.webp" alt="lake build output: omega could not prove the goal, with a counterexample where d := cap and d is at most -1. The build fails." /></a>
 
 `d := cap` and `d ≤ -1`: a negative cap makes the price go up. You now know a precondition the TS function has
 today and nobody wrote down. You can clamp the cap too, or check it where the cap comes in (for example, the admin
@@ -194,7 +165,7 @@ form). This is the most common way Lean pays off in practice: it forces every hi
 The proofs are about the Lean copy. Nothing yet checks that `pricing.ts` does the same thing. The simplest bridge:
 Lean computes answers for a grid of inputs, and vitest checks the TS function against them.
 
-<a href="/assets/tools/lean/lean-workflow.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-workflow.webp" alt="Workflow diagram: pricing.ts is rewritten as Pricing.lean. lake build checks the proofs for every input. lake exe discount writes cases.json with Lean's answers. vitest checks that the TS function gives the same answers."></a>
+<a href="/assets/tools/lean/lean-workflow.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-workflow.webp" alt="Workflow diagram: pricing.ts is rewritten as Pricing.lean. lake build checks the proofs for every input. lake exe discount writes cases.json with Lean's answers. vitest checks that the TS function gives the same answers." /></a>
 
 A small Lean program prints the grid as JSON. It includes the tricky values: 0, negatives, just over 100:
 
@@ -236,23 +207,14 @@ test.each(cases)('applyDiscount(%i, %i, %i) is %i, as in the Lean model', (price
 
 Against the original, unclamped TS function, 77 of the 350 cases fail:
 
-<a href="/assets/tools/lean/vitest-cross-check-fails.webp" class="lightbox-trigger"><img src="/assets/tools/lean/vitest-cross-check-fails.webp" alt="vitest output: several failures like applyDiscount(1, -50, 0) is 1, as in the Lean model, with AssertionError expected 2 to be 1. 77 failed, 275 passed, 352 total."></a>
+<a href="/assets/tools/lean/vitest-cross-check-fails.webp" class="lightbox-trigger"><img src="/assets/tools/lean/vitest-cross-check-fails.webp" alt="vitest output: several failures like applyDiscount(1, -50, 0) is 1, as in the Lean model, with AssertionError expected 2 to be 1. 77 failed, 275 passed, 352 total." /></a>
 
 `applyDiscount(1, -50, 0)` returns `2` in TS: a 1-cent item with a -50% "discount" now costs 2 cents. Apply the same
 clamp in TS:
 
-```ts
-function clampPercent(percent: number): number {
-  return Math.max(0, Math.min(percent, 100));
-}
+<CodeFix before={leanTsBefore} after={leanTsAfter} lang="ts" title="src/pricing.ts" />
 
-export function applyDiscount(priceCents: number, percent: number, capCents: number): number {
-  const discount = Math.min(Math.floor((priceCents * clampPercent(percent)) / 100), capCents);
-  return priceCents - discount;
-}
-```
-
-<a href="/assets/tools/lean/vitest-ok.webp" class="lightbox-trigger"><img src="/assets/tools/lean/vitest-ok.webp" alt="vitest output: 2 test files passed, 352 tests passed."></a>
+<a href="/assets/tools/lean/vitest-ok.webp" class="lightbox-trigger"><img src="/assets/tools/lean/vitest-ok.webp" alt="vitest output: 2 test files passed, 352 tests passed." /></a>
 
 Commit `cases.json`. The next section shows where everything lives and how CI keeps the three parts (the TS code,
 the Lean copy, the grid) in step.

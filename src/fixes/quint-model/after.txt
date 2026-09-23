@@ -1,0 +1,63 @@
+module webhook {
+  type Phase = Idle | Claimed
+
+  pure val WORKERS = Set("w1", "w2")
+  pure val MAX_DELIVERIES = 2
+
+  var status: str
+  var charges: int
+  var sent: int
+  var queued: int
+  var acked: bool
+  var phase: str -> Phase
+
+  action init = all {
+    status' = "unpaid",
+    charges' = 0,
+    sent' = 1,
+    queued' = 1,
+    acked' = false,
+    phase' = WORKERS.mapBy(_ => Idle),
+  }
+
+  action retry = all {
+    not(acked),
+    sent < MAX_DELIVERIES,
+    sent' = sent + 1,
+    queued' = queued + 1,
+    status' = status, charges' = charges, acked' = acked, phase' = phase,
+  }
+
+  action claimOrder(w: str): bool = all {
+    phase.get(w) == Idle,
+    queued > 0,
+    queued' = queued - 1,
+    if (status == "unpaid") all {
+      status' = "charging",
+      phase' = phase.set(w, Claimed),
+      acked' = acked,
+    } else all {
+      status' = status,
+      phase' = phase,
+      acked' = true,
+    },
+    charges' = charges, sent' = sent,
+  }
+
+  action charge(w: str): bool = all {
+    phase.get(w) == Claimed,
+    charges' = charges + 1,
+    status' = "paid",
+    phase' = phase.set(w, Idle),
+    acked' = true,
+    sent' = sent, queued' = queued,
+  }
+
+  action step = any {
+    retry,
+    nondet w = oneOf(WORKERS)
+    any { claimOrder(w), charge(w) },
+  }
+
+  val chargedAtMostOnce = charges <= 1
+}

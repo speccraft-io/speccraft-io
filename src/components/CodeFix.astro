@@ -297,7 +297,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 				fontSize: 13,
 				theme: isDark() ? 'vs-dark' : 'vs',
 			});
-			const language = sources.lang === 'ts' ? 'typescript' : sources.lang;
+			const language = ({ ts: 'typescript' } as Record<string, string>)[sources.lang] ?? 'plaintext';
 			editor.setModel({
 				original: m.editor.createModel(sources.before, language),
 				modified: m.editor.createModel(sources.after, language),

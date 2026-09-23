@@ -1,0 +1,4 @@
+export function applyDiscount(priceCents: number, percent: number, capCents: number): number {
+  const discount = Math.min(Math.floor((priceCents * percent) / 100), capCents);
+  return priceCents - discount;
+}
