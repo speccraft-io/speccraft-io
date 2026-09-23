@@ -92,3 +92,19 @@
 	border-radius: 0.5rem;
 	margin-bottom: 1.5rem;
 }
+
+/* Full / Code only views (src/components/PageTitle.astro). In "Code only", prose is hidden and only headings,
+   code, outputs, diffs and the distilled <Short> lines stay. Paragraphs that hold an image (terminal output)
+   stay too. */
+.view-short {
+	display: none;
+}
+[data-view='code'] .view-short {
+	display: block;
+}
+[data-view='code'] .view-full,
+[data-view='code']
+	.sl-markdown-content
+	:is(p, ul, ol, blockquote, table):not(:has(img)):not(.code-fix *):not(.view-short, .view-short *) {
+	display: none;
+}

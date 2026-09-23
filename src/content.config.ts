@@ -8,6 +8,8 @@ export const collections = {
 		loader: docsLoader(),
 		schema: docsSchema({
 			extend: z.object({
+				// Adds a Full / Code only switch under the title (see src/components/PageTitle.astro).
+				views: z.boolean().optional(),
 				// Shown in the right sidebar of a tool comparison page (see src/components/PageSidebar.astro).
 				adoption: z
 					.object({

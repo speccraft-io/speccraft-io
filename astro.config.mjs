@@ -55,6 +55,8 @@ export default defineConfig({
 				PageSidebar: './src/components/PageSidebar.astro',
 				// "Spec" in white or near-black, "Craft" in the logo's green.
 				SiteTitle: './src/components/SiteTitle.astro',
+				// A Full / Code only switch under the title on pages that set `views: true`.
+				PageTitle: './src/components/PageTitle.astro',
 			},
 			favicon: '/favicon.svg',
 			head: [

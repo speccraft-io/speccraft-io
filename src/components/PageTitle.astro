@@ -1,0 +1,70 @@
+---
+// The page title, plus a Full / Code only switch on pages whose frontmatter sets `views: true`.
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+
+const views = Astro.locals.starlightRoute.entry.data.views;
+---
+
+<Default />
+{
+	views && (
+		<div class="view-switch not-content" role="group" aria-label="How much to show">
+			<button type="button" data-view="full">Full</button>
+			<button type="button" data-view="code">Code only</button>
+		</div>
+	)
+}
+{
+	views && (
+		<script is:inline>
+			(() => {
+				// Runs before the content is parsed, so a remembered "Code only" never flashes the full page.
+				let view = 'full';
+				try {
+					view = localStorage.getItem('speccraft-view') === 'code' ? 'code' : 'full';
+				} catch {}
+				document.documentElement.dataset.view = view;
+			})();
+		</script>
+	)
+}
+
+<script>
+	for (const button of document.querySelectorAll<HTMLButtonElement>('.view-switch button')) {
+		button.addEventListener('click', () => {
+			const view = button.dataset['view'] === 'code' ? 'code' : 'full';
+			document.documentElement.dataset.view = view;
+			try {
+				localStorage.setItem('speccraft-view', view);
+			} catch {
+				// The choice then lasts only for this page view.
+			}
+		});
+	}
+</script>
+
+<style>
+	.view-switch {
+		display: inline-flex;
+		gap: 0.25rem;
+		margin-top: 0.75rem;
+		padding: 0.2rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 999px;
+	}
+	.view-switch button {
+		padding: 0.2rem 0.9rem;
+		border: 0;
+		border-radius: 999px;
+		background: transparent;
+		color: var(--sl-color-gray-2);
+		font: inherit;
+		font-size: var(--sl-text-sm);
+		cursor: pointer;
+	}
+	:global(html:not([data-view='code'])) .view-switch button[data-view='full'],
+	:global(html[data-view='code']) .view-switch button[data-view='code'] {
+		background: var(--sl-color-accent-low);
+		color: var(--sl-color-white);
+	}
+</style>
