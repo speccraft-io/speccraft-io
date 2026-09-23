@@ -1,0 +1,11 @@
+{
+  "name": "stateproof-subscription",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node setup.ts",
+    "verify": "node verify.ts",
+    "verify:fixed": "node verify.ts --fixed",
+    "test": "node test.ts"
+  }
+}
