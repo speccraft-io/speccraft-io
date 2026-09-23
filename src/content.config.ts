@@ -12,7 +12,7 @@ export const collections = {
 				views: z.boolean().optional(),
 				// Job mentions (from /market/jobs) and a Google Trends graph (public/trends/<google>.svg), shown in the right sidebar.
 				trend: z
-					.object({ jobs: z.number(), google: z.string().optional(), googleUrl: z.string().optional() })
+					.object({ jobs: z.number(), salary: z.string().optional(), google: z.string().optional(), googleUrl: z.string().optional() })
 					.optional(),
 				// What a tool is applicable to, shown in the right sidebar above Dependencies.
 				useCases: z.array(z.string()).optional(),

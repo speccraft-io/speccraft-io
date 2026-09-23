@@ -57,14 +57,14 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 		<div class="adoption similar trend">
 			<h2>Trend</h2>
 			<p>
-				Job market: <a href="/market/jobs">{trend.jobs === 1 ? '1 posting' : `${trend.jobs} postings`}</a> naming it
+				<a href="/market/jobs">{trend.jobs === 1 ? '1 job posting' : `${trend.jobs} job postings`}</a> naming it
+				{trend.salary && <br />}
+				{trend.salary && `Pay: ${trend.salary}`}
 			</p>
-			{trend.google ? (
+			{trend.google && (
 				<a class="trend-graph" href={trend.googleUrl} target="_blank" rel="noopener noreferrer">
 					<img src={`/trends/${trend.google}.svg`} alt="Google search interest, last 12 months" />
 				</a>
-			) : (
-				<p>Google: no reliable trend, the name is too ambiguous</p>
 			)}
 		</div>
 	)
