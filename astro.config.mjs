@@ -53,6 +53,8 @@ export default defineConfig({
 				SocialIcons: './src/components/SocialIcons.astro',
 				// On tool comparison pages, an adoption box replaces the right-hand table of contents.
 				PageSidebar: './src/components/PageSidebar.astro',
+				// "Spec" in white or near-black, "Craft" in the logo's green.
+				SiteTitle: './src/components/SiteTitle.astro',
 			},
 			favicon: '/favicon.svg',
 			head: [
