@@ -1,6 +1,6 @@
 ---
 title: SpecCraft vs tla-precheck
-description: tla-precheck compiles a restricted TypeScript DSL to both TLA+ and a TypeScript interpreter, proves the two state graphs identical, and generates the runtime code. SpecCraft runs a spec in full TypeScript and checks separate code against it.
+description: tla-precheck compiles a restricted TypeScript DSL to both TLA+ and a TypeScript interpreter, proves the two state graphs identical, and generates the runtime code. This page runs its Dog example, passing and broken, then compares it with SpecCraft, which runs a spec in full TypeScript and checks separate code against it.
 tableOfContents: true
 adoption:
   github: kingbootoshi/tla-precheck
@@ -13,69 +13,208 @@ adoption:
 TLA+ and TLC, and the runtime code is generated from the same source. It is the most-used tool in this group, and the
 best answer so far to the translation problem that sinks [stateproof](/vs/stateproof).
 
+## Using tla-precheck
+
+We ran the example below with tla-precheck 0.1.7, TLC 1.8.0 and Java 25. The machine is tla-precheck's own
+`src/examples/dog.machine.ts`, with the import changed to the package name. The output is from our run.
+
+### Install and set up
+
+```sh
+npm install -D tla-precheck
+npx tla-precheck setup
+npx tla-precheck doctor
+```
+
+- **Java 17 or newer** runs TLC, the TLA+ model checker.
+- **`setup`** downloads a pinned `tla2tools.jar` into `~/.tla-precheck` and installs an agent skill for Claude Code
+  or Codex. `doctor` checks Java, TLC and the skill. We skipped `setup` and pointed `TLA2TOOLS_JAR` at a jar we
+  downloaded ourselves, which the CLI also accepts.
+- **A `tsconfig.json`** must exist in the folder you run from. Without one, `check` stopped with `TS5083: Cannot read
+  file '.../tsconfig.json'`.
+- **`npx tla-precheck init`** scaffolds a new `<name>.machine.ts`.
+
+### A first machine
+
+The Dog machine is the README's minimal example: a dog that sleeps, wakes, eats and gets annoyed, with two rules
+about its temper.
+
+```ts
+// dog.machine.ts (shortened: two of six actions shown)
+import { and, defineMachine, enumType, eq, lit, not, scalarVar, setVar, variable } from "tla-precheck";
+
+const mode = variable("mode");
+const temper = variable("temper");
+
+export const dogMachine = defineMachine({
+  version: 2,
+  moduleName: "Dog",
+  variables: {
+    mode: scalarVar(enumType("sleeping", "awake", "eating"), lit("sleeping")),
+    temper: scalarVar(enumType("calm", "angry"), lit("calm"))
+  },
+  actions: {
+    fallAsleep: {
+      params: {},
+      guard: and(eq(mode, lit("awake")), eq(temper, lit("calm"))),
+      updates: [setVar("mode", lit("sleeping"))]
+    },
+    annoy: {
+      params: {},
+      guard: and(eq(mode, lit("awake")), eq(temper, lit("calm"))),
+      updates: [setVar("temper", lit("angry"))]
+    }
+    // wakeUp, serveFood, finishEating, calmDown ...
+  },
+  invariants: {
+    sleepingDogsAreCalm: {
+      description: "Sleeping dogs are never angry",
+      formula: not(and(eq(mode, lit("sleeping")), eq(temper, lit("angry"))))
+    },
+    eatingDogsAreCalm: {
+      description: "Eating dogs are never angry",
+      formula: not(and(eq(mode, lit("eating")), eq(temper, lit("angry"))))
+    }
+  },
+  proof: {
+    defaultTier: "pr",
+    tiers: {
+      pr: { domains: {}, budgets: { maxEstimatedStates: 10, maxEstimatedBranching: 10 } }
+    }
+  }
+});
+
+export default dogMachine;
+```
+
+What each part does:
+
+- **`variables`** declare the state. `scalarVar(enumType(...), lit(...))` is one variable with a fixed set of values
+  and a starting value. For many rows, such as runs owned by users, `mapVar("Runs", ...)` maps each element of a
+  domain to a value.
+- **`actions`** each have `params`, a `guard` and a list of `updates`. Guards and updates are built from builder
+  functions (`eq`, `and`, `not`, `lit`, `setVar`; in bigger machines `index`, `count`, `forall`, `isin`, `setMap`),
+  not written as TypeScript expressions. The DSL has 13 expression kinds, on purpose.
+- **`invariants`** are named formulas that must hold in every reachable state.
+- **`proof.tiers`** set the domains to check and a budget. The budget is estimated before TLC starts, so an oversized
+  run fails at once. Bigger machines add a `nightly` tier with larger domains.
+
+### Running it
+
+```sh
+npx tla-precheck check dog.machine.ts
+```
+
+`check` validates the machine, estimates the state space, runs TLC, then checks that TLC and the TypeScript
+interpreter found the same state graph. It prints the estimate, "Estimate passed. Running TLC verification...", and
+then one JSON result. The key part of ours (shortened):
+
+```json
+{
+  "certificate": {
+    "machine": "Dog",
+    "tier": "pr",
+    "proofPassed": true,
+    "graphEquivalenceAttempted": true,
+    "invariantsChecked": ["sleepingDogsAreCalm", "eatingDogsAreCalm"],
+    "deadlockChecked": true,
+    "equivalent": true,
+    "tsStateCount": 4,
+    "tlcStateCount": 4,
+    "tsEdgeCount": 6,
+    "tlcEdgeCount": 6
+  }
+}
+```
+
+The types allow 6 states; 4 are reachable, and both backends agree on those 4 states and 6 edges.
+
+To see a failure, we dropped the `calm` check from the `fallAsleep` guard, so an angry dog can fall asleep. The exit
+code was 1, the certificate said `"proofPassed": false` and `"equivalent": null`, and its `proofOutput` field held
+TLC's trace (shortened):
+
+```text
+Error: Invariant sleepingDogsAreCalm is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ mode = "sleeping"
+/\ temper = "calm"
+
+State 2: <wakeUp line 22, col 3 to line 24, col 25 of module Dog>
+/\ mode = "awake"
+/\ temper = "calm"
+
+State 3: <annoy line 38, col 3 to line 40, col 23 of module Dog>
+/\ mode = "awake"
+/\ temper = "angry"
+
+State 4: <fallAsleep line 26, col 3 to line 28, col 25 of module Dog>
+/\ mode = "sleeping"
+/\ temper = "angry"
+
+7 states generated, 5 distinct states found, 0 states left on queue.
+```
+
+### What you get
+
+- **A certificate** per machine and tier, in `.generated-machines/<Module>/<tier>/`, next to the generated `.tla` and
+  `.cfg` files. It records whether the proof passed, whether the two backends matched, what was checked, and a hash
+  of the machine source.
+- **A TLC trace on failure.** It names the broken invariant and each step with its action. The actions point at lines
+  in the generated `Dog.tla`, not in your `.machine.ts`.
+- **Generated runtime code** from `npx tla-precheck build <machine>`: typed adapter functions in
+  `src/machine-adapters/` that open a transaction, lock rows, run the interpreter and write the changes; Postgres
+  constraints for the invariants; and a lint rule against writes that bypass the adapter. `build` needs
+  `metadata.runtimeAdapter`, `metadata.ownedTables` and `metadata.ownedColumns` in the machine.
+- **An interpreter** for machines that do not fit the adapter: `buildInitialState`, `enabled` and `step` from
+  `tla-precheck/interpreter`.
+
+### Tips
+
+From the README:
+
+- **One workflow per machine.** Model the billing flow or the subscription lifecycle, not the whole system.
+- **Keep domains tiny.** Two users and three runs find most bugs; put larger domains in a nightly tier.
+- **A failure means the design is wrong.** Fix the machine, not the code around it.
+- **`npx tla-precheck estimate <machine>`** checks the budget without Java, and `check` in CI is the gate.
+
+### Limits
+
+- **The DSL is small.** Every guard, update and invariant must be built from the 13 expression kinds.
+- **Java is required** for `check` and `build`; `verify-db`, which compares a live Postgres schema with the generated
+  constraints, also needs Bun.
+
 ## What tla-precheck is
 
-- A machine is defined with `defineMachine({ variables, actions, invariants })`, using builder functions such as
-  `eq`, `and`, `index`, `count`, `forall`, `setMap`. The DSL has 13 expression kinds, on purpose.
-- The compiler generates two things from one source: a TLA+ spec that TLC checks exhaustively, and a TypeScript
-  interpreter that runs the same machine.
-- It then compares the two state graphs and requires them to be identical. A bug in either the TLA+ generator or the
-  interpreter fails the build.
-- It generates the runtime: typed adapter functions that open a transaction, lock rows, run the interpreter, and
-  write the changes; Postgres constraints that enforce the invariants in the database; and a lint rule that blocks
-  writes bypassing the adapter.
-- Proof tiers: small domains with a state budget for pull requests, larger ones for nightly runs. The budget is
-  estimated before TLC starts, so an oversized run fails fast.
-- Built for agents: an installed skill, and a loop where the agent edits the machine until the proof and the
-  equivalence check both pass.
-- Needs Java 17 or newer for TLC. Its biggest example checks 29 million states in under 3 minutes.
+- One DSL source generates a TLA+ spec that TLC checks exhaustively, and a TypeScript interpreter that runs the same
+  machine. The two state graphs must be identical, so a bug in either the TLA+ generator or the interpreter fails the
+  build.
+- Unlike [stateproof](/vs/stateproof), there is no function source to re-parse: the DSL is explicit, and the
+  translation is checked on every run instead of trusted.
+- Built for agents: an installed skill, and a loop where the agent edits the machine until `proofPassed: true` and
+  `equivalent: true`. Its biggest example checks 29 million states in under 3 minutes.
 
-## Side by side
+## Compared with SpecCraft
 
 | | tla-precheck | SpecCraft |
 |---|---|---|
 | Spec language | A restricted DSL of builder functions (13 expression kinds) | Full TypeScript |
 | Checker | TLC in Java, plus an in-process interpreter compared against it | In-process BFS |
-| Trust in the translation | Two backends checked against each other | No translation |
 | Spec vs implementation | The same artifact: the runtime is generated from the machine | Kept apart: the code is checked against the spec |
-| Code it fits | New state flows, written as a machine and run through the generated adapter | Existing or new code, checked through conformance or inline specs |
 | Database | Generates Postgres constraints and transactional adapters | Not covered |
 | Async orderings in code | Out of scope: the machine is the code | Inline specs: the explorer delivers async replies in every order |
 | Scale controls | Proof tiers and state budgets | Not yet |
 
-## How it differs from stateproof
-
-Both compile a TypeScript-shaped spec to TLA+. stateproof re-parses arbitrary function source and hopes the subset
-it supports is translated right. tla-precheck avoids both problems: the DSL is small and explicit, so there is no
-function source to parse, and the TLA+ output is checked against an independent interpreter on every run. It keeps a
-translator, but one that is checked instead of trusted.
-
-## Where tla-precheck is ahead
-
-- **A checked translation to TLA+**, so it gets TLC's speed and maturity without trusting the compiler.
-- **Code generation to the database.** Guards and invariants reach Postgres as constraints, which closes races no
-  application code can.
-- **Scale controls.** Tiers and budgets that fail before a long run starts. SpecCraft has an open item for exactly
-  this.
-- **Traction.** About 113 stars and roughly 7,000 downloads a month in September 2026, the most of any tool on these
-  pages.
-
-## Where SpecCraft is ahead
-
-- **Full TypeScript.** Guards and effects can call your own helpers and use any language feature; there is no DSL to
-  learn and nothing that has to fit 13 expression kinds.
-- **No Java.** Nothing to install beyond the package.
-- **Works with code you write yourself.** tla-precheck replaces your transition code with generated adapters.
-  SpecCraft leaves your code alone and checks it against the spec, so it also fits existing code and code that is not
-  a database-backed status column.
-- **Async orderings.** Inline specs cover replies and background work landing in any order inside the real code.
-  tla-precheck models one transition at a time inside a database transaction, and leaves async work outside it.
-
-## What SpecCraft takes from it
-
-- **State budgets and tiers**: estimate or cap the state count, and fail fast with a clear message.
-- **Two backends that check each other**, as the model to follow if SpecCraft ever exports to TLA+ or Quint.
-- **Invariants that reach storage**: the idea that a checked rule can also become a database constraint.
+- **tla-precheck is ahead on the pipeline.** A checked translation to TLA+ gets TLC's speed without trusting the
+  compiler, invariants reach Postgres as constraints, and budgets fail before a long run starts. It also has the most
+  traction on these pages: about 113 stars and roughly 7,000 downloads a month in September 2026.
+- **SpecCraft is plain TypeScript.** Guards and effects can call your own helpers and use any language feature, and
+  there is no Java to install.
+- **SpecCraft leaves your code alone.** tla-precheck replaces your transition code with generated adapters and models
+  one transition at a time inside a database transaction. SpecCraft checks existing code against the spec, including
+  replies and background work landing in any order.
+- **What SpecCraft takes from it:** state budgets and tiers that fail fast, two backends that check each other if it
+  ever exports to TLA+ or Quint, and the idea that a checked rule can also become a database constraint.
 
 ## Who builds it
 

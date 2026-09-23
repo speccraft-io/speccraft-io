@@ -1,6 +1,6 @@
 ---
 title: SpecCraft vs stifinder
-description: stifinder is a state-space explorer for JavaScript that finds the failure needing the fewest departures from the expected schedule. It is the closest new engine to SpecCraft's. SpecCraft adds a spec layer, conformance against real code, and inline specs.
+description: stifinder is a state-space explorer for JavaScript that finds the failure needing the fewest departures from the expected schedule. This page walks through using it on a transactional outbox, then compares it with SpecCraft.
 tableOfContents: true
 adoption:
   github: andershessellund/stifinder
@@ -9,11 +9,15 @@ adoption:
 ---
 
 [stifinder](https://github.com/andershessellund/stifinder) is a state-space explorer for JavaScript and TypeScript,
-published on npm in September 2026. It is the newest engine in SpecCraft's corner, and it answers a question SpecCraft
-does not ask yet: not only "is there a failing trace", but "what is the failing trace that needs the fewest things
-to go differently than expected".
+published on npm in September 2026. It answers a question most checkers do not ask: not only "is there a failing
+trace", but "what is the failing trace that needs the fewest things to go differently than expected".
 
-## One problem, both tools
+## Using stifinder
+
+The code below is in [examples/outbox](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/outbox) and
+runs with `pnpm test`.
+
+### The problem
 
 A transactional outbox. The order service writes the order and an outbox row in one database transaction. A relay
 reads the row, publishes the event to a broker, and marks the row sent. Two things go wrong in production: the relay
@@ -29,17 +33,48 @@ three relays to check:
 - **Publish, then mark, with an idempotency key.** The consumer drops a delivery it has already applied. This is the
   fixed relay.
 
-The code below is in [examples/outbox](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/outbox) and
-runs with `pnpm test`. Both tools check the same three relays with the same state: the outbox row, the relay's phase,
-and how many times the consumer applied the order.
+The state is small: the outbox row (`none`, `pending`, `sent`), the relay's phase (`idle`, `read`, `published`,
+`marked`), and how many times the consumer applied the order.
 
-### With stifinder
+### Install and set up
 
-`getEvents` returns the expected next step first. Faults come after it, each with a cost key, so every fault is one
-deviation plus one unit of `crash` or `retry`. The two rules are an `invariant` and a `terminalInvariant`:
+```sh
+pnpm add -D stifinder valsem
+```
+
+- **valsem is a peer dependency.** stifinder deduplicates states and events by structural equality through valsem,
+  its companion value-semantics library, so it has to be installed next to it.
+- **Node 22 or newer.**
+- **tsconfig `lib`.** With `skipLibCheck: false` and a target below ESNext, valsem's types need `ESNext.Collection` in
+  the tsconfig `lib`, or the type check fails inside `node_modules`.
+- **Types and the run function** come from the package root: `import type { EventDescriptor, Model } from 'stifinder'`
+  and `import { exploreIteratively } from 'stifinder'`.
+
+The example uses stifinder 0.1.0 and valsem 0.0.4.
+
+### Writing the model
+
+A model has an `initialState`, `getEvents(state)`, `applyEvent(state, event)`, and optional `invariant` and
+`terminalInvariant` checks:
 
 ```ts
 // stifinder-model.ts (shortened)
+function expected(v: Variant, s: State): EventDescriptor<Event>[] {
+  if (s.outbox === 'none') {
+    return [{ event: 'order service commits order and outbox row' }];
+  }
+  if (s.relay === 'idle' && s.outbox === 'pending') {
+    return [{ event: 'relay reads row' }];
+  }
+  if (publishing(v, s)) {
+    return [{ event: 'relay publishes' }];
+  }
+  if (marking(v, s)) {
+    return [{ event: 'relay marks row sent' }];
+  }
+  return [];
+}
+
 function faults(v: Variant, s: State): EventDescriptor<Event>[] {
   return [
     ...(publishing(v, s) ? [{ event: 'broker times out after delivery' as const, cost: ['retry'] }] : []),
@@ -59,7 +94,26 @@ export function outboxModel(v: Variant): Model<State, Event> {
 }
 ```
 
-Each relay runs with a budget of up to two crashes and two retries. The real results, as the tests assert them:
+What each part does:
+
+- **`getEvents` returns events in preference order.** Index 0 is what "should" happen next. Every other event costs
+  one deviation. Here `expected` puts the normal step first, and `faults` adds a crash or a broker timeout after it.
+- **Cost keys.** An event can carry `cost: ['crash']` or `cost: ['retry']`. So a fault costs one deviation plus one
+  unit of its own key, and the run gets a separate budget per key.
+- **`applyEvent`** returns `{ to: nextState }`. `effects` is a plain table from event name to a function that builds
+  the next state.
+- **`invariant`** is checked on every state. "Applied at most once" goes here.
+- **`terminalInvariant`** is checked only on states where `getEvents` returns nothing, which is how stifinder tells an
+  acceptable ending from a stuck one. "The committed order was never published" goes here: it is only a failure once
+  nothing more can happen.
+- Every callback may be synchronous or return a promise, and all of them must be pure, because stifinder caches
+  results across budgets.
+
+### Running it
+
+`exploreIteratively(model, { baseBudget })` runs the search. It tries a budget of zero deviations first, then one, and
+so on, and within a budget it goes by depth. `baseBudget` sets the limit for each cost key. Each relay here runs with
+up to two crashes and two retries:
 
 ```ts
 // outbox.stifinder.test.ts (shortened)
@@ -86,7 +140,30 @@ expect(duplicate.violation?.steps.map((s) => [s.event, s.index])).toEqual([
   ['relay publishes', 0],
 ]);
 expect(Object.fromEntries(duplicate.violation?.cost ?? [])).toEqual({ retry: 1, __deviations__: 1 });
+```
 
+How to read the result:
+
+- **`violation.steps`** is the trace. Each step has the `event` and its `index` in `getEvents`: 0 is an expected step,
+  anything else is a fault.
+- **`violation.cost`** is the price of the failure. `{ crash: 1, __deviations__: 1 }` says one crash was enough.
+- **`maxDeviationsReached: 1`** says the zero-deviation budget was searched first and was clean, so no run without a
+  fault breaks the rules.
+- **`violation.badState`** is the state that failed. For the lost event it is a row marked `sent`, a relay back to
+  `idle`, and nothing applied.
+- **`exhaustive`** says whether every reachable state was explored. The first run stopped at a violation, so it is
+  `false`.
+
+The lost event needs one crash, right after the row is marked sent. The duplicate needs one retry. With retries taken
+out of the budget (`{ crash: 2 }`), the duplicate comes back as the crash path instead: publish, crash, read again,
+publish again, 6 steps, `{ crash: 1, __deviations__: 1 }`.
+
+### Fixing the bug
+
+The fixed relay publishes first, then marks, and the consumer has an idempotency key:
+
+```ts
+// outbox.stifinder.test.ts (shortened)
 const fixed = await exploreIteratively(outboxModel(publishThenMarkWithKey), { baseBudget: faults });
 expect(fixed.violation).toBeNull();
 expect(fixed.exhaustive).toBe(true);
@@ -94,135 +171,36 @@ expect(fixed.costs.size).toBe(7);
 expect(fixed.edgesComputed).toBe(11);
 ```
 
-The lost event needs one crash, right after the row is marked sent. The duplicate needs one retry. Each report comes
-with its price: the cost vector says one fault, and `maxDeviationsReached: 1` says the zero-fault budget was searched
-first and was clean. The step `index` tells an expected step (0) from a fault (anything else). With retries taken out
-of the budget (`{ crash: 2 }`), the duplicate comes back as the crash path instead: publish, crash, read again,
-publish again, 6 steps, `{ crash: 1, __deviations__: 1 }`.
+It has 7 reachable states (`costs` holds one entry per reachable state) and 11 edges, and the result is `exhaustive:
+true`. Faults are a budget, not part of the state, so this is a proof for any number of crashes and retries, not only
+two. With a budget of one crash and one retry, the same run is `exhaustive: false`: that budget does not cover every
+edge of the state space.
 
-The fixed relay has 7 reachable states and 11 edges, and the result is `exhaustive: true`: every state was explored,
-so the rules hold for any number of crashes and retries, not only two. With a budget of one crash and one retry, the
-same run is `exhaustive: false`: the budget does not cover every edge of the state space. And a run with no fault
-budget at all (`{}`) on the buggy duplicate relay says `violation: null`, `completed: true`, `exhaustive: false`: no
-bug without faults, and explicitly not a proof.
+### Tips
 
-### With SpecCraft
-
-The spec has one action per step. Fault counts are part of the state, and the guards bound them:
-
-```ts
-// speccraft-model.ts (shortened)
-export function outboxSpec(v: Variant, max: Faults): Spec<Bounded> {
-  return {
-    init: () => ({ ...initial, crashes: 0, retries: 0 }),
-    actions: [
-      // commit, read, publish and mark sent, as above
-      {
-        name: 'broker times out after delivery',
-        guard: (s) => publishing(v, s) && s.retries < max.retries,
-        effect: (s) => ({ ...s, applied: consume(v, s.applied), retries: s.retries + 1 }),
-      },
-      {
-        name: 'relay crashes',
-        guard: (s) => s.relay !== 'idle' && s.crashes < max.crashes,
-        effect: (s) => ({ ...s, relay: 'idle', crashes: s.crashes + 1 }),
-      },
-    ],
-    invariants: [
-      { name: 'the order is applied at most once', check: (s) => s.applied <= 1 },
-      {
-        name: 'a row marked sent was published or is still held by the relay',
-        check: (s) => s.outbox !== 'sent' || s.applied > 0 || s.relay === 'marked',
-      },
-    ],
-    stuck: (s) => s.applied === 0,
-  };
-}
-```
-
-With the same bounds, two crashes and two retries:
-
-```ts
-// outbox.speccraft.test.ts (shortened)
-const faults = { crashes: 2, retries: 2 };
-
-const lost = explore(outboxSpec(markThenPublish, faults));
-expect(lost.visitedCount).toBe(27);
-expect(lost.invariants[1]).toEqual({
-  name: 'a row marked sent was published or is still held by the relay',
-  holds: false,
-  counterexample: ['order service commits order and outbox row', 'relay reads row', 'relay marks row sent', 'relay crashes'],
-});
-expect(lost.stuck).toEqual([
-  { outbox: 'sent', relay: 'idle', applied: 0, crashes: 1, retries: 0 },
-  { outbox: 'sent', relay: 'idle', applied: 0, crashes: 2, retries: 0 },
-]);
-
-const duplicate = explore(outboxSpec(publishThenMark, faults));
-expect(duplicate.visitedCount).toBe(71);
-expect(duplicate.invariants[0]?.counterexample).toEqual([
-  'order service commits order and outbox row',
-  'relay reads row',
-  'broker times out after delivery',
-  'relay publishes',
-]);
-
-const fixed = explore(outboxSpec(publishThenMarkWithKey, faults));
-expect(fixed.visitedCount).toBe(39);
-expect(fixed.invariants.every((invariant) => invariant.holds)).toBe(true);
-expect(fixed.stuck).toEqual([]);
-```
-
-The traces are the same four steps. With `retries: 0`, SpecCraft also returns the 6-step crash path for the
-duplicate. The fixed relay holds in all 39 reachable states within the bounds.
-
-### What each run tells you
-
-- **The traces agree here, for different reasons.** stifinder reports the trace with the fewest faults, SpecCraft
-  the trace with the fewest steps. In this model the shortest trace is also the one with the fewest faults, so both
-  print the same four steps. A model where a two-fault trace is shorter than any one-fault trace would split them;
-  this one does not show that.
-- **stifinder says what the failure costs.** `{ crash: 1, __deviations__: 1 }` and a clean zero-fault budget are
-  part of the result: no run without a fault breaks the rules, and one crash is enough. SpecCraft's trace names the
-  crash too, but that it is the minimum is something you learn by lowering the bounds and running again.
-- **stifinder's proof covers every number of faults.** Faults are a budget, not state, so the fixed relay is 7 states
-  and `exhaustive: true` means any number of crashes and retries. In SpecCraft the counters are state: 39 states for
-  two of each, and the result covers exactly those bounds.
-- **stifinder checks the ending directly.** "The committed order was never published" is a `terminalInvariant`, and
-  the violation comes with a trace and the bad state. SpecCraft's `stuck` list finds the same end states but without
-  a trace, so the spec needed a second, state-level rule to get one.
-- **SpecCraft's spec reads as actions.** Each step is a named action with its guard next to its effect, and the
-  same spec can be walked against a real relay with `checkConformance` (not done in this example). stifinder is a
-  search core by design and has no conformance check.
-
-### How to start
-
-- stifinder: `pnpm add -D stifinder valsem` (Node 22 or newer), then write `getEvents` with the expected step first
-  and each fault tagged with a cost key, and call `exploreIteratively` with a `baseBudget` for those keys. A default
-  `baseBudget` of `{}` makes every costed event unaffordable. With `skipLibCheck: false` and a target below ESNext,
-  valsem's types need `ESNext.Collection` in the tsconfig `lib`.
-- SpecCraft: `pnpm add -D @speccraft-io/core`, then write the state with a counter per fault, one action per step
-  with the bound in its guard, and the rules as invariants, and call `explore`.
+- **Always pass a `baseBudget`.** The default is `{}`, which makes every costed event unaffordable. A run with no
+  budget on the buggy duplicate relay says `violation: null`, `completed: true`, `exhaustive: false`: no bug without
+  faults, and explicitly not a proof.
+- **Read `exhaustive`, not `completed`.** `completed` only says the budget that was tried was searched to the end.
+  Only `violation: null` with `exhaustive: true` means the model has no violation.
+- **Put the expected step first.** The order of `getEvents` is the search order. A fault listed first would count the
+  normal step as the deviation.
+- **Use `terminalInvariant` for "eventually done" rules.** A rule like "the order was published" fails on every
+  state before the publish, so as a plain `invariant` it would fail at once.
 
 ## What stifinder is
 
-- A model is an `initialState`, `getEvents(state)` and `applyEvent(state, event)`, plus optional `invariant` and
-  `terminalInvariant` checks. Every callback may be synchronous or return a promise.
-- `getEvents` returns events in preference order. Index 0 is what "should" happen next; every other choice costs one
-  unit of a deviation budget.
-- The search runs budget levels in ascending order and, within a level, by depth. The reported violation is the
-  cheapest one: fewest deviations first, then the smallest total of user-defined costs (`crash`, `retry`, ...), then
-  the fewest steps.
+- A model is an `initialState`, `getEvents` and `applyEvent`, plus optional `invariant` and `terminalInvariant`.
+- The reported violation is the cheapest one: fewest deviations first, then the smallest total of user-defined costs,
+  then the fewest steps.
 - This is delay bounding (Emmi, Qadeer and Rakamaric, POPL 2011), the generalization of CHESS's preemption bounding,
   extended with a vector of user-defined cost keys tracked as a Pareto frontier per state.
-- The result says what a clean run means: `exhaustive: true` only when every reachable state was explored at every
-  budget. A run capped by budget, `maxEdges` or `timeoutMs` says so instead of reading like a proof.
-- `terminalInvariant` checks states where nothing more can happen, which is how it tells an acceptable ending from a
-  deadlock.
-- States and events are deduplicated by structural equality through its companion library `valsem`, and callbacks
-  must be pure, because results are cached across budgets.
+- The result says what a clean run means: a run capped by budget, `maxEdges` or `timeoutMs` says so instead of reading
+  like a proof.
+- The cache survives a change of budget, so deepening the search never repeats work.
+- States and events are compared by structure through `valsem`.
 
-## Side by side
+## Compared with SpecCraft
 
 | | stifinder | SpecCraft |
 |---|---|---|
@@ -232,41 +210,28 @@ duplicate. The fixed relay holds in all 39 reachable states within the bounds.
 | Clean result | Says whether it was exhaustive or only budget-bounded | Exhaustive within the spec's own bounds |
 | Endings | `terminalInvariant` on states with no events | Endings and stuck states as separate lists |
 | Real code | Not covered by the library itself | `checkConformance` walks the spec against a real implementation |
-| Async in real code | The author's `kilde/testing` drives real stream code through every pause and delivery decision | Inline specs: the explorer delivers async replies in every order |
 
-## Where stifinder is ahead
+SpecCraft checks the same three relays with fault counters in the state and the bounds in the guards. With two crashes
+and two retries it returns the same four-step traces (27 states for the lost event, 71 for the duplicate), and the
+fixed relay holds in all 39 reachable states within those bounds.
 
-- **The least surprising failure.** A trace that needs one departure from the normal schedule is far easier to
-  believe and fix than one that needs five. Ordering by deviations first gives that directly.
-- **Cost keys.** Crashes, retries or any other named fault get their own budget, so "fails with at most one crash" is
-  a question the search can answer.
-- **Honest verdicts.** The result separates "no violation exists" from "none found within this budget", in the API
-  and in the README.
-- **Incremental budgets.** The cache survives a change of budget, so deepening the search never repeats work.
-
-## Where SpecCraft is ahead
-
-- **A spec layer.** stifinder is a search core by design; it has no notion of actions with guards and effects,
-  invariants as named checks, endings, or beliefs that must keep failing.
-- **Conformance against real code.** SpecCraft walks the same state graph against the real implementation and
-  reports the first place the code and the spec disagree.
-- **Inline specs.** Guards and effects next to the real methods, real fields mapped to small spec types, and async
-  replies delivered in every order. The closest thing in stifinder's world is `kilde/testing`, which applies the
-  same idea to one library's own streams.
-
-## What SpecCraft takes from it
-
-- **Deviation-ordered search** as an option: report the trace with the fewest departures from a default schedule,
-  not only the shortest one.
-- **Named cost budgets** for faults such as crashes and retries.
-- **A result that states its own completeness**, so a bounded run can never be mistaken for a proof.
+- **The traces agree here, for different reasons.** stifinder reports the trace with the fewest faults, SpecCraft the
+  trace with the fewest steps. In this model they are the same trace.
+- **stifinder says what the failure costs, and its proof covers every number of faults.** In SpecCraft the counters
+  are state, so the result covers exactly the bounds in the spec, and the minimum is found by lowering them and
+  running again.
+- **stifinder checks the ending directly.** Its `terminalInvariant` violation comes with a trace; SpecCraft's `stuck`
+  list finds the same end states without one, so its spec needed a second, state-level rule.
+- **SpecCraft adds a spec layer and real code.** Named actions with guards next to effects, and `checkConformance` or
+  inline specs to check an implementation; stifinder is a search core by design. SpecCraft takes from it
+  deviation-ordered search, named cost budgets, and a result that states its own completeness.
 
 ## Who builds it
 
 Anders Hessellund Jensen, a self-employed developer in Aarhus, Denmark. stifinder is one of three libraries he
 published in September 2026: `valsem` (value semantics for TypeScript), `stifinder`, and `kilde` (signals, streams and
 channels, whose `kilde/testing` entry point uses stifinder to explore every pause and delivery order of real stream
-code). It is new and early: version 0.0.1, no stars and about 165 downloads a month in September 2026.
+code). It is new and early: version 0.1.0, no stars and about 165 downloads a month in September 2026.
 
 ## Links
 

@@ -1,6 +1,6 @@
 ---
 title: SpecCraft vs effect-machine
-description: effect-machine is a schema-first statechart library for Effect with bounded breadth-first exploration, invariants and coverage in its testing module. SpecCraft works on free-form TypeScript state and checks real code, including async replies in every order.
+description: effect-machine is a schema-first statechart library for Effect with bounded breadth-first exploration, invariants and coverage in its testing module. This page walks through exploring a checkout machine with it, then compares it with SpecCraft.
 tableOfContents: true
 adoption:
   github: typeonce-dev/effect-machine
@@ -13,22 +13,66 @@ adoption:
 includes a bounded breadth-first explorer with invariants and shortest counterexamples. It is the most used tool in
 this group: about 53,000 downloads a month in September 2026.
 
-## One problem, both tools
+## Using effect-machine
+
+The code below is in [examples/checkout](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/checkout)
+and runs with `pnpm test`.
+
+### The problem
 
 A checkout has four states: `Cart` (items can be edited), `PaymentPending`, `Paid` and `Failed`. Checkout sends a
-charge for the cart total to the payment provider and waits for its reply. While the payment is pending the user
-can press Back, edit the cart and check out again. The first charge is still in flight, and its reply can arrive
-while the second one is pending:
+charge for the cart total to the payment provider and waits for its reply. While the payment is pending the user can
+press Back, edit the cart and check out again. The first charge is still in flight, and its reply can arrive while the
+second one is pending.
+
+The rule that must hold: in `Paid`, the paid amount is the cart total.
+
+### Install and set up
+
+```sh
+pnpm add @typeonce/effect-machine effect@4.0.0-rc.116
+pnpm add -D @effect/vitest@4.0.0-rc.116
+```
+
+- **effect is a peer dependency at one exact version.** effect-machine 0.38.0, used here, needs `effect`
+  4.0.0-rc.116, a release candidate of Effect 4. A different Effect version does not satisfy it.
+- **tsconfig `lib`.** The types need `ESNext.Disposable` in the tsconfig `lib`.
+- **Imports.** `Machine` comes from `@typeonce/effect-machine`, the explorer `MachineTest` from
+  `@typeonce/effect-machine/testing`, and `Effect`, `Option` and `Schema` from `effect`.
+- **Tests.** `MachineTest.explore` returns an Effect, so the example runs it with `it.effect` from `@effect/vitest`,
+  pinned to the same Effect version.
+
+### Writing the machine
+
+States and events are declared from Effect schemas, then `Machine.make(...).handle(...)` says what each event does in
+each state:
 
 ```ts
 // checkout.effect-machine.test.ts (shortened)
+const States = Machine.state({
+  fields: { items: Schema.Number },
+  states: {
+    Cart: {},
+    PaymentPending: { fields: { amount: Schema.Number } },
+    Paid: { fields: { amount: Schema.Number } },
+    Failed: {},
+  },
+});
+const targets = Machine.targets(States);
+
+const Events = Machine.events({
+  AddItem: {},
+  RemoveItem: {},
+  Checkout: {},
+  Back: {},
+  PaymentSucceeded: { amount: Schema.Number },
+  PaymentFailed: { amount: Schema.Number },
+});
+
 const cart = {
   on: {
     AddItem: { update: targets.root, data: ({ root }: { root: { items: number } }) => ({ items: root.items + 1 }) },
-    RemoveItem: {
-      update: targets.root,
-      data: ({ root }: { root: { items: number } }) => ({ items: root.items - 1 }),
-    },
+    // RemoveItem is the same, with items - 1
     Checkout: {
       target: targets.root.PaymentPending,
       data: ({ root }: { root: { items: number } }) => ({ amount: root.items * price }),
@@ -54,17 +98,31 @@ const buggyMachine = Machine.make({ root: States, events: Events }).handle({
 });
 ```
 
-The rule that must hold: in `Paid`, the paid amount is the cart total. The fix used on both sides is the simplest
-one: Back is not allowed while the payment is pending. (Tagging each reply with a cart version and rejecting a stale
-one would also work.)
+What each part does:
 
-The code below is in [examples/checkout](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/checkout)
-and runs with `pnpm test`.
+- **`Machine.state`** declares the machine's data. `fields` are shared by every state (the item count); each state
+  can add its own (the amount being charged, the amount paid).
+- **`Machine.targets`** gives typed names for the states, such as `targets.root.PaymentPending`.
+- **`Machine.events`** declares each event and its payload. The payment reply carries the amount it was for.
+- **Handlers.** In a state's `on`, `target` moves to another state and `data` fills its fields; `update:
+  targets.root` stays in the state and changes the shared fields.
+- **Invariants.** `MachineTest.invariants(machine).state(name, check)` builds a check on each snapshot. The check
+  returns `true` or a message, here `paid 10 for a cart of 20`.
 
-### With effect-machine
+### Running it
 
-**The natural way first.** In effect-machine, async work belongs to the state that owns it, so the charge is an
-`invoke` on `PaymentPending`:
+`MachineTest.explore(machine, options)` walks the machine breadth-first. Its options:
+
+- **`events(context)`** lists the events to try from each state. The explorer tries only these. `userEvents` offers
+  AddItem, RemoveItem and Checkout in `Cart` (up to two items, to keep the space finite) and Back in `PaymentPending`.
+- **`stateKey(context)`** decides when two snapshots count as the same state.
+- **`invariants`** are checked on every planned edge.
+
+The result has `stats`, a `completeness` tag, and transition coverage. A failure comes back as an error with the
+trace. The example runs it three ways.
+
+**1. The charge as an `invoke`.** In effect-machine, async work belongs to the state that owns it, so the natural way
+is an `invoke` on `PaymentPending`:
 
 ```ts
 // checkout.effect-machine.test.ts (shortened)
@@ -86,9 +144,6 @@ const explored = yield* MachineTest.explore(invokeMachine, {
 });
 ```
 
-`userEvents` offers AddItem, RemoveItem and Checkout in `Cart` (up to two items) and Back in `PaymentPending`. The
-real output:
-
 ```text
 { states: 4, plannedTransitions: 6, retainedEdges: 6, maxDepth: 2 } Complete
 [
@@ -99,14 +154,15 @@ real output:
 ]
 ```
 
-The exploration is complete and the invariant passes, but `Paid` is never reached: the explorer plans transitions
-and does not run invokes. Coverage says so directly: the one missed transition is the invoke's `onDone`. At runtime,
-per its docs, the machine cancels the invoke when Back leaves `PaymentPending`, so the machine itself drops the late
-reply, even if the provider has already charged the card. The planner cannot show that either.
+The first line is `stats` and the completeness tag; the list is the transitions coverage says were never taken. The
+exploration is complete and the invariant passes, but `Paid` is never reached: the explorer plans transitions and does
+not run invokes. Coverage says so directly: the one missed transition is the invoke's `onDone`. At runtime, per its
+docs, the machine cancels the invoke when Back leaves `PaymentPending`, so the machine drops the late reply, even if
+the provider has already charged the card. The planner cannot show that either.
 
-**The reply as a public event.** A provider that answers through a webhook sends its reply to the machine as an
-event, `PaymentSucceeded { amount }` or `PaymentFailed { amount }`, which is the machine shown above. The explorer
-only tries the events the test lists. Listing the reply to the current request:
+**2. The reply as a public event, current reply only.** A provider that answers through a webhook sends its reply to
+the machine as an event, `PaymentSucceeded { amount }` or `PaymentFailed { amount }`. That is `buggyMachine` above.
+The test first lists the reply to the current request:
 
 ```ts
 const explored = yield* MachineTest.explore(buggyMachine, {
@@ -121,12 +177,11 @@ const explored = yield* MachineTest.explore(buggyMachine, {
 6 / 6
 ```
 
-It passes: a complete exploration with all 6 transition definitions covered, and the bug is not found. The reply
-from the first checkout is never offered while the second one is pending.
+It passes: a complete exploration with all 6 transition definitions covered, and the bug is not found. The reply from
+the first checkout is never offered while the second one is pending.
 
-To find it, the test has to list every reply still in flight. `inFlight` reads the trace (a Checkout adds the cart
-total, a reply removes its amount), and the state key includes that set so two states with different replies in
-flight are not merged:
+**3. Every reply still in flight.** `inFlight` reads the trace (a Checkout adds the cart total, a reply removes its
+amount), and the state key includes that set so two states with different replies in flight are not merged:
 
 ```ts
 // checkout.effect-machine.test.ts (shortened)
@@ -168,148 +223,70 @@ final: configuration=[(root), Paid] state={"path":"","state":{"path":"Paid","val
 ```
 
 That is the shortest counterexample: check out one item, go back, add a second item, check out again, and the reply
-to the first charge marks the order paid at 10 for a cart of 20. With Back removed from `PaymentPending`, the same
-exploration passes:
+to the first charge marks the order paid at 10 for a cart of 20. `scenario` is the list of events to replay; each
+step shows the configuration before and after, and the last line is the invariant's own message.
+
+### Fixing the bug
+
+The simplest fix: Back is not allowed while the payment is pending, so `PaymentPending` handles only the two replies.
+(Tagging each reply with a cart version and rejecting a stale one would also work.) The same exploration, with every
+reply still in flight, passes:
 
 ```text
 { states: 8, plannedTransitions: 10, retainedEdges: 10, maxDepth: 3 } Complete
 ```
 
-### With SpecCraft
+### Tips
 
-The spec is plain state and actions. The replies in flight are part of the state, and each reply is an action that
-can fire whenever its charge is in flight, whatever screen the user is on:
-
-```ts
-// model.ts (shortened)
-const back: Action<State> = {
-  name: 'back',
-  guard: (s) => s.screen === 'pending',
-  effect: (s) => ({ ...s, screen: 'cart' }),
-};
-
-const replies: Action<State>[] = amounts.flatMap((amount): Action<State>[] => [
-  {
-    name: `payment of ${amount} succeeds`,
-    guard: (s) => s.inFlight.includes(amount),
-    effect: (s) => ({
-      ...s,
-      inFlight: without(s.inFlight, amount),
-      ...(s.screen === 'pending' ? { screen: 'paid', paid: amount } : {}),
-    }),
-  },
-  // `payment of ${amount} fails` is the same, with screen 'failed'
-]);
-
-function checkoutSpec(actions: Action<State>[]): Spec<State> {
-  return {
-    init,
-    actions: [...actions, ...replies],
-    invariants: [
-      { name: 'the paid amount matches the cart', check: (s) => s.screen !== 'paid' || s.paid === s.items * price },
-    ],
-  };
-}
-
-export const buggySpec: Spec<State> = checkoutSpec([...cartActions, back]);
-export const fixedSpec: Spec<State> = checkoutSpec(cartActions);
-```
-
-```ts
-// checkout.speccraft.test.ts
-const result = explore(buggySpec);
-expect(result.visitedCount).toBe(26);
-expect(result.endings).toHaveLength(6);
-expect(result.invariants).toEqual([
-  {
-    name: 'the paid amount matches the cart',
-    holds: false,
-    counterexample: ['checkout', 'back', 'add item', 'checkout', 'payment of 10 succeeds'],
-  },
-]);
-```
-
-The search visits all 26 reachable states and returns the same five-step trace. Of its 6 endings, two are paid with
-the wrong amount: 10 for a cart of 20, and 20 for a cart of 10. The fixed spec has 8 reachable states and 4 endings,
-and the invariant holds in every one of them.
-
-### What each run tells you
-
-- **effect-machine found the bug, but only once the test was written for it.** With the charge as an `invoke`, the
-  explorer does not run it and cannot find the bug. With the reply as an event, it found the bug only when the test
-  offered every reply still in flight and put that set in the state key. Offering just the reply to the current
-  request gave a complete result, full transition coverage, and no bug.
-- **effect-machine's coverage report is ahead here.** In the invoke version it named the exact transition that
-  exploration never took. SpecCraft reports no coverage, so an action that never fires is not flagged.
-- **In this example SpecCraft also needed the replies written by hand.** The `inFlight` list in the spec does the same
-  job as `inFlight` in the effect-machine test. The difference is where it lives: in the spec's state, where the
-  search treats it like any other state, instead of in the test's event list and state key. SpecCraft's inline specs
-  deliver async replies in every order without that list (see the
-  [annotated cart example](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/annotated-cart)); this
-  example does not use them.
-- **effect-machine explored the machine that runs.** The SpecCraft spec is a second artifact; connecting it to real
-  code takes `checkConformance` or an inline spec.
-- **The traces read differently.** effect-machine prints each step with its configuration and microsteps, and the
-  invariant's own message; SpecCraft prints the step names from the spec.
-
-### How to start
-
-- effect-machine: `pnpm add @typeonce/effect-machine effect@<its exact peer version>`, then call
-  `MachineTest.explore(machine, { events, stateKey, invariants })`. Model replies from outside as public events and
-  list every reply that can still arrive.
-- SpecCraft: `pnpm add -D @speccraft-io/core`, then write the state (including the replies in flight), one action per
-  step, and the rule that must hold, and call `explore`.
+- **An `invoke` is not explored.** The explorer plans transitions; in its own words, "staged actions and runtime
+  activities are not executed". To explore a reply, make it a public event. Coverage flags the invoke's `onDone` as
+  missed, so check the misses list.
+- **Offer every event that can still arrive.** A complete result with full coverage only covers the events the test
+  listed. Offering only the current reply hid the bug.
+- **Put what the events depend on into `stateKey`.** If the events offered depend on the trace, as `inFlight` does,
+  the key must include it, or two different situations are merged into one state.
+- **Use `Effect.flip` to get the failure.** A violation fails the Effect with `MachineTestInvariantError`; flipping
+  it gives the error, with its `trace` and `violations`.
+- **`formatTrace` is long.** Each step prints its microsteps and the full state; `error.trace.steps` gives the events
+  directly when only the path is needed.
 
 ## What effect-machine is
 
 - A machine is declared from Effect `Schema` classes: states, events, and handlers that choose the next state.
-- `MachineTest.explore` walks the machine's state graph breadth-first. You supply `events(context)`, the events to
-  try from each state, and `stateKey(context)`, which decides when two snapshots count as the same state.
+- `MachineTest.explore` walks the machine's state graph breadth-first, with user-supplied `events` and `stateKey`.
 - Invariants are checked on every planned edge, so a failure comes with a shortest discovered counterexample.
-- Hard limits (by default 20 events deep, 1,000 states, 10,000 transitions) are reported as a completeness result.
-  In its own words, a limit never makes an incomplete result appear exhaustive.
+- Hard limits (by default 20 events deep, 1,000 states, 10,000 transitions) are reported as a completeness result. In
+  its own words, a limit never makes an incomplete result appear exhaustive.
 - Transition and branch coverage are reported for every plan the explorer computed.
 - Besides exploration: scenario generation from schemas, a reference model to check traces against, and a runtime
   `probe` that acknowledges live commands, timers and invokes.
 
-## Side by side
+## Compared with SpecCraft
 
 | | effect-machine | SpecCraft |
 |---|---|---|
-| Model | A statechart built from Effect schemas | Plain TypeScript state and actions, any shape |
-| Search | Bounded BFS over the machine's planner | BFS, shortest traces |
+| Model | A statechart built from Effect schemas, Effect only | Plain TypeScript state and actions, any shape |
 | Event choice | You list representative events per state | Actions with guards; parameters expanded into actions |
 | State identity | A user-defined `stateKey` | The full spec state |
 | Result | Shortest counterexample, completeness, coverage | State count, endings, stuck states, shortest trace per invariant |
-| Async work | Not run during exploration: "staged actions and runtime activities are not executed" | Inline specs deliver async replies in every order |
+| Async work | Not run during exploration | Inline specs deliver async replies in every order |
 | Real code | The machine is the real code, when the app is written with it | `checkConformance`, or inline specs on existing classes |
-| Ecosystem | Effect only | Any TypeScript |
 
-## Where effect-machine is ahead
+SpecCraft, with the replies in flight kept in the spec's state as actions that can fire on any screen, visits all 26
+reachable states and returns the same five-step trace; two of its 6 endings are paid with the wrong amount. The fixed
+spec has 8 reachable states and 4 endings, and the invariant holds in every one.
 
-- **Adoption.** A real user base, a fast release cadence (47 versions in two months), and an API reference.
-- **Coverage.** Exact transition and branch coverage for every exploration.
-- **The model is the program.** For an app built on effect-machine there is no second artifact: the machine that
-  runs is the machine that is explored.
-- **Completeness is part of the result**, not a footnote.
-
-## Where SpecCraft is ahead
-
-- **No required shape.** effect-machine explores machines written in its own format, inside Effect. SpecCraft
-  explores any TypeScript state and actions, and checks existing code that was never written as a machine.
-- **Async orders.** effect-machine's explorer plans transitions and does not run invokes or time; runtime behaviour
-  is covered by probes on single scenarios. SpecCraft's inline specs deliver async replies in every order, so a
-  stale reply is found by search.
-- **A spec written first.** SpecCraft keeps the spec as the oracle and checks code against it; effect-machine checks
-  the machine against its own invariants.
-
-## What SpecCraft takes from it
-
-- **Transition and guard coverage** in the exploration result, so an action that never fires is visible.
-- **Hard limits reported as completeness**, which is the same lesson as the missing max-states limit on SpecCraft's
-  list.
-- **A user-defined state key** as an option for collapsing states that differ only in detail the spec does not care
-  about.
+- **effect-machine found the bug, but only once the test was written for it.** With the charge as an `invoke` it
+  cannot, and with only the current reply it gave a complete result, full coverage, and no bug.
+- **In this example SpecCraft also needed the replies written by hand.** Its `inFlight` list does the same job, but
+  in the spec's state instead of the test's event list and state key. SpecCraft's inline specs deliver async replies
+  in every order without that list (see the
+  [annotated cart example](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/annotated-cart)).
+- **effect-machine explores the machine that runs.** There is no second artifact. SpecCraft's spec is separate, and
+  in exchange it can check existing code that was never written as a machine.
+- **effect-machine's coverage report is ahead.** It named the exact transition that was never taken; SpecCraft reports
+  no coverage. SpecCraft takes from it transition coverage, hard limits reported as completeness, and a user-defined
+  state key.
 
 ## Who builds it
 

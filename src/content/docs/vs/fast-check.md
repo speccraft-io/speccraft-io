@@ -1,6 +1,6 @@
 ---
 title: SpecCraft vs fast-check
-description: fast-check is the standard property-based testing library for TypeScript, with model-based testing and a scheduler for async races. It samples randomly and shrinks; SpecCraft explores every reachable state of a spec and returns the shortest trace. They work well together.
+description: fast-check is the standard property-based testing library for TypeScript, with model-based testing and a scheduler for async races. This page shows how to use its scheduler to find a webhook double charge, then compares it with SpecCraft.
 tableOfContents: true
 adoption:
   github: dubzzz/fast-check
@@ -13,7 +13,12 @@ TypeScript: about 5,000 stars and about 140 million npm downloads a month in Sep
 checker, but it is the first tool a TypeScript developer will compare SpecCraft to, because its model-based testing
 looks close: commands with preconditions, run against a model and the real system.
 
-## One bug, both tools
+## Using fast-check
+
+The code below is in [examples/webhook](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/webhook)
+and runs with `pnpm test`. The same example is on the [Quint page](/tools/quint).
+
+### The problem
 
 A service receives an `order.confirmed` webhook and charges the card. The sender retries when it does not hear back
 in time, so the same order can arrive twice. The handler checks the order first:
@@ -30,16 +35,28 @@ export async function handleOrderConfirmed(orderId: string, deps: Deps): Promise
 ```
 
 A test that runs the retry after the first delivery passes. In production two workers take the two deliveries at the
-same time, and each `await` is a point where the other worker can run. The same example is on the
-[Quint page](/tools/quint), so the tools can be compared on one problem.
+same time, and each `await` is a point where the other worker can run.
 
-The code below is in [examples/webhook](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/webhook)
-and runs with `pnpm test`.
+### Install and set up
 
-### With fast-check
+```sh
+pnpm add -D fast-check
+```
 
-`fc.scheduler()` wraps each dependency, so fast-check decides when each call resolves. The test runs two deliveries
-at once against the real handler:
+fast-check works with any test runner. The example uses Vitest and imports `fc` as the default export:
+
+```ts
+import fc from 'fast-check';
+```
+
+The handler takes its database calls as `deps`, so a test can hand it versions that fast-check controls. Without
+that seam there is nothing for the scheduler to wrap.
+
+### Writing the check with the scheduler
+
+`fc.scheduler()` is an arbitrary that produces a scheduler `s`. `s.scheduleFunction(fn)` wraps an async function:
+each call is queued, and the scheduler decides when it resolves. The test builds a small in-memory database, wraps
+each dependency, and starts two deliveries at once against the real handler:
 
 ```ts
 // webhook.fast-check.test.ts (shortened)
@@ -55,8 +72,18 @@ const property = fc.asyncProperty(fc.scheduler(), async (s) => {
   await run;
   expect(db.charges).toBe(1);
 });
-await fc.assert(property, { seed: 1 });
+const details = await fc.check(property, { seed: 1 });
+console.log(fc.defaultReportMessage(details));
 ```
+
+- `fc.asyncProperty` takes the arbitraries and an async predicate. Here the only input is the scheduler.
+- `s.waitIdle()` releases the queued calls one at a time, in an order the scheduler picks, until nothing is left.
+- `expect` throws when the rule breaks, which marks that run as failed.
+- `fc.check` runs the property (100 runs by default) and returns the details. `fc.assert` does the same but throws on
+  failure. The example uses `fc.check` with `fc.defaultReportMessage` so it can print the report and stay green.
+- `seed: 1` makes the run repeatable.
+
+### Running it
 
 The real output:
 
@@ -71,86 +98,47 @@ Counterexample: [schedulerFor()`
 -> [task${5}] function::("o1","paid") resolved
 -> [task${6}] function::("o1","paid") resolved`]
 Shrunk 0 time(s)
+
+Hint: Enable verbose mode in order to have the list of all failing values encountered during the run
 ```
 
-It fails on the first run. Both status reads return `"unpaid"`, both workers charge, and the report is the order in
-which the scheduled calls resolved. With the fix (a `claimOrder` that sets `'charging'` only if the order is still
-`'unpaid'`), the same test passes 100 sampled runs.
+It fails on the first run. The counterexample is the order in which the scheduled calls resolved. Tasks 1 and 2 are
+the two `getStatus` calls, and both return `"unpaid"`. Tasks 3 and 4 are the two `chargeCard` calls, so the card is
+charged twice. Tasks 5 and 6 are the two `setStatus(..., "paid")` calls. The second line is what you pass back to
+replay the failure.
 
-### With SpecCraft
+### Fixing the bug
 
-The spec says what each worker can do next, one step per `await`, and what must always hold:
+The fix replaces the read with `claimOrder`, which sets `'charging'` only if the order is still `'unpaid'` and
+returns whether it did. Only the worker that got the claim charges:
 
 ```ts
-// model.ts (shortened)
-function readThenCharge(w: Worker): Action<State>[] {
-  return [
-    {
-      name: `${w} reads status`,
-      guard: (s) => s.phase[w] === 'queued',
-      effect: (s) => ({ ...moved(s, w, 'read'), seen: { ...s.seen, [w]: s.status } }),
-    },
-    {
-      name: `${w} skips`,
-      guard: (s) => s.phase[w] === 'read' && s.seen[w] !== 'unpaid',
-      effect: (s) => moved(s, w, 'done'),
-    },
-    {
-      name: `${w} charges card`,
-      guard: (s) => s.phase[w] === 'read' && s.seen[w] === 'unpaid',
-      effect: (s) => ({ ...moved(s, w, 'charged'), charges: s.charges + 1 }),
-    },
-  ];
+// webhook.ts
+export async function handleOrderConfirmedFixed(orderId: string, deps: FixedDeps): Promise<void> {
+  const claimed = await deps.claimOrder(orderId);
+  if (claimed) {
+    await deps.chargeCard(orderId);
+    await deps.setStatus(orderId, 'paid');
+  }
 }
-
-export const buggySpec: Spec<State> = {
-  init,
-  actions: workers.flatMap((w) => [...readThenCharge(w), marksPaid(w)]),
-  invariants: [{ name: 'the card is charged at most once', check: (s) => s.charges <= 1 }],
-};
 ```
 
-```ts
-// webhook.speccraft.test.ts
-const result = explore(buggySpec);
-expect(result.visitedCount).toBe(20);
-expect(result.invariants).toEqual([
-  {
-    name: 'the card is charged at most once',
-    holds: false,
-    counterexample: ['w1 reads status', 'w1 charges card', 'w2 reads status', 'w2 charges card'],
-  },
-]);
+In the test, `claimOrder` is wrapped with `s.scheduleFunction` like the others, and the property runs under
+`fc.assert` with the same seed. It passes all 100 sampled runs:
+
+```text
+✓ webhook under fast-check > holds for every sampled order once the claim is atomic 4ms
 ```
 
-The search visits all 20 reachable states and returns the shortest trace to a double charge, in the spec's own
-words: worker 1 reads and charges, and worker 2 reads before worker 1 marks the order paid. It also lists 3 endings,
-one of them with two charges. With the claim made atomic, the fixed spec has 12 reachable states and 1 ending, and the
-invariant holds in every one of them.
+### Tips
 
-### What each run tells you
-
-- **fast-check finds this bug just as easily as SpecCraft does.** It fails on the first run, because every order of
-  these calls breaks the rule. This example does not show where full search beats sampling.
-- **fast-check tested the real handler.** The SpecCraft check above covers the design, written as a spec. To check
-  the real handler's `await`s, SpecCraft uses an inline spec on the real class, where the explorer delivers each async
-  reply in every order (see the cart example in the
-  [speccraft-ts repository](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/annotated-cart)).
-- **A clean run means different things.** fast-check's fixed run says 100 sampled orders passed. SpecCraft's says
-  all 12 reachable states were checked.
-- **The trace reads differently.** fast-check reports the order in which calls resolved; SpecCraft reports steps
-  named in the spec.
-
-:::note[To do]
-A second example with a bug that only one rare order triggers, where sampling can miss it, and the SpecCraft side run
-on the real handler with an inline spec instead of a separate model.
-:::
-
-### How to start
-
-- fast-check: `pnpm add -D fast-check`, then wrap each async dependency with `s.scheduleFunction` in one test.
-- SpecCraft: `pnpm add -D @speccraft-io/core`, then write the state, one action per `await`, and the rule that must
-  hold, and call `explore`.
+- Call `s.waitIdle()` before you await the handlers. Scheduled calls only resolve when the scheduler releases them, so
+  awaiting `run` first never finishes.
+- Wrap every async dependency the race goes through. A call that is not wrapped resolves on its own, and fast-check
+  cannot reorder it.
+- To replay a failure, pass the printed `seed` and `path` back to `fc.assert`. `fc.schedulerFor` pins one order by
+  hand, which turns a found race into an ordinary regression test.
+- A green run means the sampled orders passed. With more awaits or more workers, raise `numRuns`.
 
 ## What fast-check is
 
@@ -160,12 +148,12 @@ on the real handler with an inline spec instead of a separate model.
   `run` that updates a model and the real system and asserts they agree. `modelRun`, `asyncModelRun` and
   `scheduledModelRun` run them.
 - The scheduler: `fc.scheduler()` wraps promises so fast-check decides when each one resolves, and tries different
-  orders to find race conditions. `fc.schedulerFor([1, 3, 2])` pins one order by hand.
+  orders to find race conditions.
 - Replay: a failure prints a `seed` and `path` (and a `replayPath` for commands) that go straight back to the
   minimal counterexample.
 - Works with any test runner; integrations for Jest and Vitest.
 
-## Side by side
+## Compared with SpecCraft
 
 | | fast-check | SpecCraft |
 |---|---|---|
@@ -175,43 +163,24 @@ on the real handler with an inline spec instead of a separate model.
 | Counterexample | A shrunk sequence, replayable by seed | The shortest trace |
 | Async orders | `fc.scheduler`: sampled orders of wrapped promises | Inline specs: every order of async replies |
 | Inputs | Rich generators for any data | Small, finite value sets chosen in the spec |
-| Real code | Commands run against the real system every time | `checkConformance`, or inline specs on real classes |
-| Output beyond pass or fail | None by design | State count, endings, stuck states, beliefs that must keep failing |
 
-## Where fast-check is ahead
+On this example SpecCraft checks a spec of the handler, not the handler itself. It visits all 20 reachable states and
+returns a 4-step trace to the double charge, and the fixed spec holds in all 12 reachable states. fast-check found the
+same bug on its first run, because every order of these calls breaks the rule.
 
-- **Adoption and maturity.** Eight years of development, a large user base, and good documentation.
-- **Data.** Generators for arbitrary inputs and shrinking to the smallest one. SpecCraft keeps values small and
-  finite on purpose, so it cannot say much about a parser or a price calculation.
-- **The real system, always.** Every command runs against the real code, with no separate spec state to keep in step.
-- **Async races today.** The scheduler is a practical, well-tested way to shake out promise ordering bugs.
+- fast-check runs the real code every time and is strong on data: generators for any input and shrinking to the
+  smallest one. SpecCraft keeps values small and finite on purpose.
+- SpecCraft walks every reachable state, so a bug that needs one rare order is not left to chance, and a clean run is
+  a statement about all of them.
+- They fit together: fast-check for functions over rich data (parsers, pricing), SpecCraft for the order of events
+  around them. A SpecCraft trace can be pinned with `fc.schedulerFor` as a regression test.
+- SpecCraft takes ideas from it: replay from a short token like `replayPath`, and temporal properties over command
+  runs, as [fast-check-ltl](https://www.npmjs.com/package/fast-check-ltl) adds on top of fast-check.
 
-## Where SpecCraft is ahead
-
-- **Exhaustive, not sampled.** fast-check's model-based testing picks some sequences; a bug that needs one rare
-  order may never be drawn. SpecCraft walks every reachable state, so a clean run is a statement about all of them.
-- **Shortest traces.** SpecCraft's breadth-first search returns the shortest trace to each failure. fast-check
-  shrinks a random one, which is usually short but not guaranteed to be shortest.
-- **Every async order.** `fc.scheduler` samples orders of the promises it wraps; SpecCraft's inline specs deliver
-  async replies in every order the spec allows.
-- **Requirements discovery.** Endings, stuck states, and questions for the product owner fall out of the search.
-  fast-check answers pass or fail for the properties you thought of.
-
-## How they work together
-
-- fast-check for functions over rich data (parsers, pricing, formatting); SpecCraft for the order of events around
-  them (workflows, retries, stale replies).
-- A SpecCraft counterexample trace is a ready-made regression test, and fast-check's `fc.schedulerFor` can pin its
-  async order in an ordinary test.
-- A SpecCraft spec with small value sets can be backed by fast-check tests that check the same functions over the
-  full range of inputs.
-
-## What SpecCraft takes from it
-
-- **Replay from a short token**, the way `replayPath` jumps straight to the minimal counterexample.
-- **A scheduler API that wraps real promises**, as a model for how inline specs could take over async in real code.
-- **Temporal properties over command runs**, as [fast-check-ltl](https://www.npmjs.com/package/fast-check-ltl)
-  (September 2026) adds on top of fast-check, as a shape for SpecCraft's liveness checks.
+:::note[To do]
+A second example with a bug that only one rare order triggers, where sampling can miss it, and the SpecCraft side run
+on the real handler with an inline spec instead of a separate model.
+:::
 
 ## Who builds it
 
