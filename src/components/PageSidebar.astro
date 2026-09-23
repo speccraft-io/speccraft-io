@@ -43,6 +43,19 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 }
 
 {
+	adoption?.requires && (
+		<div class="adoption similar">
+			<h2>Dependencies</h2>
+			<ul>
+				{adoption.requires.map((item) => (
+					<li class={item.startsWith('LLM') ? 'llm' : undefined}>{item}</li>
+				))}
+			</ul>
+		</div>
+	)
+}
+
+{
 	similar && (
 		<div class="adoption similar">
 			<h2>Similar tools</h2>
@@ -52,19 +65,6 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 					<li>
 						<a href={tool.link}>{tool.label}</a>
 					</li>
-				))}
-			</ul>
-		</div>
-	)
-}
-
-{
-	adoption?.requires && (
-		<div class="adoption similar">
-			<h2>Dependencies</h2>
-			<ul>
-				{adoption.requires.map((item) => (
-					<li class={item.startsWith('LLM') ? 'llm' : undefined}>{item}</li>
 				))}
 			</ul>
 		</div>
