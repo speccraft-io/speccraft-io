@@ -47,6 +47,12 @@ case, so it gets stuck on the ones you missed.
 - The function is small, and a wrong answer costs real money or trust.
 - You can say the rule in one sentence: "the price never goes below zero".
 
+Lean is itself a pure functional language. A pure TS function (same inputs give the same output, no mutation, no
+I/O) copies into Lean almost line for line, as `applyDiscount` does below. Code written in a functional style in TS,
+with `map`, `filter`, `reduce` and recursion instead of loops over mutable variables, is the easiest to bring over.
+Code with mutable loops, classes or `await` has to be rewritten into pure style first. That is more work, and the
+copy is more likely to drift from the original. For loops and mutation, [Dafny](/tools/dafny) is the closer fit.
+
 Lean is not the tool for "what happens when two requests arrive at the same time". That is about the order of
 events, not one function. See the Quint page for that.
 
