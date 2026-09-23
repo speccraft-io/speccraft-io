@@ -81,6 +81,13 @@ export default defineConfig({
 			sidebar: [
 				{ label: 'Home', link: '/' },
 				{
+					label: 'Concepts',
+					items: [
+						{ label: 'State machines and FSMs', link: '/concepts/state-machines' },
+						{ label: 'Petri nets', link: '/concepts/petri-nets' },
+					],
+				},
+				{
 					label: 'Formal TypeScript tools',
 					items: [
 						{ label: 'Overview', link: '/how-speccraft-compares' },
