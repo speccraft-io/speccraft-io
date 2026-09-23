@@ -3,9 +3,9 @@
 // in their frontmatter. Other pages keep Starlight's table of contents off (see astro.config.mjs).
 import { similarTools } from '../tool-kinds';
 
-const { adoption, requires } = Astro.locals.starlightRoute.entry.data;
+const { adoption, requires, useCases } = Astro.locals.starlightRoute.entry.data;
 const similar = adoption ? similarTools(Astro.url.pathname) : undefined;
-const toggleLabel = adoption ? 'Adoption, dependencies and similar tools' : 'Dependencies';
+const toggleLabel = adoption ? 'Adoption, dependencies and similar tools' : useCases ? 'Use cases and dependencies' : 'Dependencies';
 
 const shield = (path: string, label: string) =>
 	`https://img.shields.io/${path}?style=flat&label=${encodeURIComponent(label)}`;
@@ -22,7 +22,7 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 ---
 
 {
-	(adoption || requires) && (
+	(adoption || requires || useCases) && (
 		<button type="button" class="tool-info-toggle" aria-expanded="false" aria-controls="tool-info">
 			{toggleLabel}
 		</button>
@@ -48,6 +48,19 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 			<p class="last-commit" data-repo={adoption.github} hidden>
 				Last commit: <a href={`https://github.com/${adoption.github}/commits`} target="_blank" rel="noopener noreferrer"></a>
 			</p>
+		</div>
+	)
+}
+
+{
+	useCases && (
+		<div class="adoption similar">
+			<h2>Use cases</h2>
+			<ul>
+				{useCases.map((item) => (
+					<li>{item}</li>
+				))}
+			</ul>
 		</div>
 	)
 }
