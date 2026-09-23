@@ -41,6 +41,8 @@ different question from "can these events happen in an order that breaks somethi
 | [theoremts](https://github.com/theoremts/theorem) | `requires`, `ensures` and `invariant` written as plain TS calls, proved with Z3, stripped at build time | 395/mo, 4 stars | The same "specs are plain TypeScript" idea, applied to single functions instead of state spaces |
 | [ts-refinement](https://github.com/trvswgnr/ts-refinement) | Refinement types such as `Refined<number, "n > 0">`, checked by a compiler plugin | 365/mo | Stronger types; no behavior over time |
 | [Flow](https://github.com/facebook/flow), [ReScript](https://github.com/rescript-lang/rescript) | Stricter or sound type systems for JavaScript | 1.6M/mo, 162k/mo | Type safety, not protocol correctness |
+| [Thales](https://github.com/jessealama/thales) | Compiles a strict subset of TypeScript (no mutation, classes or async) to Lean 4 for proofs | 66 stars, started April 2026 | Like LemmaScript, proof for pure functions; says nothing about the order of async events |
+| [pabst](https://github.com/jessealama/pabst) (npm `pabst-checker`) | Properties written as JSDoc `@ensures` comments on functions, checked by fast-check | New, July 2026 | Contracts as comments, sampled; the same author's Thales is the proof side |
 
 [LemmaScript](/vs/lemmascript) has its own page, and [Lean](/tools/lean) and [Dafny](/tools/dafny) show proof
 from a TypeScript project.
@@ -50,6 +52,9 @@ from a TypeScript project.
 | Tool | What it does | Status | Relation |
 |---|---|---|---|
 | [libpetri](https://github.com/debe/libpetri) | Coloured time Petri nets in TypeScript, Java and Rust, with checks for deadlock freedom, mutual exclusion and bounds | Active, 25 stars, 818/mo | A real concurrency verifier, with the model written as a net instead of plain TypeScript |
+| [ts-fuzzing](https://github.com/mizchi/ts-fuzzing) | Generators from TS types or zod and valibot schemas, guided fuzzing, and random stateful command sequences | 2 stars, 13/mo | Random stateful testing like fast-check; no exhaustive search |
+| [chaosbringer](https://github.com/mizchi/chaosbringer) | A Playwright crawler that injects network, lifecycle and runtime faults and checks invariants | 45 stars, 2.6k/mo | Fault injection into a real app, not state exploration |
+| [dspec](https://github.com/mizchi/dspec) | A prototype where a typed formal model is the master spec, with conformance evidence from the code | 35 stars, not on npm | The same spec-first idea as SpecCraft, at an early stage |
 | [@doeixd/machine](https://www.npmjs.com/package/@doeixd/machine) | Typestate machines: a wrong transition is a type error | Active, 168/mo | Prevents illegal calls; no exploration |
 | [jsverify](https://github.com/jsverify/jsverify), [testcheck-js](https://github.com/leebyron/testcheck-js) | Early QuickCheck ports for JavaScript | Unmaintained since 2018 and 2017, still 150k/mo and 75k/mo | Predecessors of fast-check |
 
