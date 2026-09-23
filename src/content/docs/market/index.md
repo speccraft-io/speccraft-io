@@ -12,6 +12,10 @@ know, and where the results get reported publicly. Every entry was checked at th
 not pulled from memory, and every job listing's open/closed status was reconfirmed directly
 against that date.
 
+Two parts have their own pages: [Job listings](/market/jobs) (full-time roles that ask for formal methods skills)
+and [Marketplaces](/market/marketplaces) (freelance, contract and expert platforms, and what each one has for
+formal methods work).
+
 ---
 
 ## Landscape by problem type
@@ -131,33 +135,6 @@ CryptoVerif, MathSAT) don't get one.
 | [Jonathan Nadal](https://github.com/jonnadal) ([Stateright](https://github.com/stateright/stateright)) | Embedded model checker as a Rust library | Same idea as speccraft-ts, different language. |
 | [Jack Vanlightly](https://jack-vanlightly.com) | Public technical writing on distributed systems + formal verification | Builds credibility via writing rather than a direct consulting offer. |
 | [JP Kadarkarai](https://sessionize.com/jayaprabhakar-kadarkarai/) ([FizzBee](https://fizzbee.io)) | Open-source, more approachable alternative to TLA+ | Tool/OSS project, not an active paid practice. |
-
-## Job postings
-
-Real, current hiring concentrates in two places: large-company research labs paying $170K-$430K/yr for Lean/Coq/TLA+
-expertise, and defense/government contractors requiring US citizenship and clearance.
-
-| Role / Company | Comp | Status |
-|---|---|---|
-| [Applied Scientist, Automated Reasoning — AWS](https://www.amazon.jobs/en/jobs/10522626/applied-scientist-automated-reasoning) | $171.6K-$222.2K | Open |
-| [Principal Engineer, Memory Safety — Google Cloud](https://www.google.com/about/careers/applications/jobs/results/116811289145025222-principal-engineer-memory-safety-and-agentic-modernization) | $307K-$427K | Open |
-| [Formal Methods Research Engineer — Oath Technologies](https://www.linkedin.com/jobs/view/4465348128) | $250K-$385K | Open |
-| [Research Scientist, Verified Code Gen — Google DeepMind](https://www.linkedin.com/jobs/view/4461993815) | $174K-$252K | Open |
-| [Research Engineer, Formal Methods — Harmonic](https://www.linkedin.com/jobs/view/4464973689) | Not disclosed | Open |
-| [Formal Verification Engineer — Harmonic](https://www.linkedin.com/jobs/view/4465122650) (second role) | Not disclosed | Open |
-| [MTS, AI-Driven Compilation — SF Tensor Company](https://wellfound.com/jobs/4650718-member-of-technical-staff-ai-driven-compilation) | $275K-$315K | Open |
-| [Research Scientist, Formal Methods — Riverside Research](https://www.linkedin.com/jobs/view/4468686367) | $60K-$115K | Open, clearance-eligible |
-| [Research Scientist, Cryptography — Riverside Research](https://www.linkedin.com/jobs/view/4461236617) | $95K-$175K | Open, clearance-eligible |
-| [Research SWE, Formal Methods — RTX/BBN](https://www.linkedin.com/jobs/view/4395251978) | $86.8K-$165.2K | Open, Top Secret clearance required |
-| [Senior Security Engineer — Trail of Bits](https://apply.workable.com/trailofbits/j/82AEBAB99A/) | Not disclosed | Open |
-| [Formal Methods Engineer — Sigil Logic](https://www.linkedin.com/jobs/view/formal-methods-engineer-at-sigil-logic-4458650754) | Not disclosed | Closed |
-| [Senior Principal SWE — Oracle](https://www.linkedin.com/jobs/view/senior-principal-software-engineer-at-oracle-4436665437) | Not disclosed | Closed |
-| [MTS, Formal Verification — Architect Labs](https://www.linkedin.com/jobs/view/member-of-technical-staff-formal-verification-at-architect-4467265344) | Not disclosed | Closed |
-| [SWE, Formal Methods — Beyond Tabs](https://www.linkedin.com/jobs/view/software-engineer-engineer-iii-to-principal-formal-methods-at-beyond-tabs-com-4443515220) | Not disclosed | Closed |
-| [Principal Research Engineer — Huawei Ireland](https://ie.linkedin.com/jobs/view/2024-principal-research-engineer-formal-methods-permanent-at-huawei-ireland-research-center-3717768823) | Not disclosed | Closed since 2023, 0 applicants |
-
-A wider sweep turned up roughly 25 postings total, including a scattering of internship, PhD, and thesis-level
-roles (Johns Hopkins APL, Aerospace Corporation, ABB) not listed above.
 
 ## What formal methods has actually delivered
 

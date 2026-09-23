@@ -6,6 +6,9 @@ import rehypeExternalLinks from 'rehype-external-links';
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://speccraft.io',
+	redirects: {
+		'/state-of-formal-methods-market': '/market/',
+	},
 	markdown: {
 		// External links (anything with a protocol, e.g. https://) open in a new tab;
 		// internal Starlight links stay relative (e.g. /how-speccraft-compares) so they're
@@ -87,7 +90,14 @@ export default defineConfig({
 						{ label: 'Quint', link: '/tools/quint' },
 					],
 				},
-				{ label: 'Formal methods market', link: '/state-of-formal-methods-market' },
+				{
+					label: 'Formal methods market',
+					items: [
+						{ label: 'Overview', link: '/market/' },
+						{ label: 'Job listings', link: '/market/jobs' },
+						{ label: 'Marketplaces', link: '/market/marketplaces' },
+					],
+				},
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },

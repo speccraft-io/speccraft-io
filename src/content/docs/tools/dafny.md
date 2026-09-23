@@ -74,7 +74,7 @@ npm i bignumber.js
 
 The Dafny version looks a lot like TS. The new parts are the lines between the signature and the body:
 
-```dafny
+```text
 // dafny/Search.dfy
 newtype int53 = x: int | -0x20_0000_0000_0000 < x < 0x20_0000_0000_0000
 
@@ -131,7 +131,7 @@ a loop invariant. For binary search it is the same thing you would say to explai
 - Everything before `lo` is smaller than the target.
 - Everything after `hi` is bigger than the target.
 
-```dafny
+```text
   while lo < hi
     invariant 0 <= lo as int <= |ids| && -1 <= hi as int < |ids|
     invariant forall i :: 0 <= i < lo as int ==> ids[i] < target
@@ -155,7 +155,7 @@ The range errors are gone. One error is left, and it is the real bug. When the l
 
 Keep looping while there is still something to check:
 
-```dafny
+```text
   while lo <= hi
 ```
 
