@@ -1,0 +1,262 @@
+---
+title: tla-precheck vs SpecCraft
+description: tla-precheck compiles a restricted TypeScript DSL to both TLA+ and a TypeScript interpreter, proves the two state graphs identical, and generates the runtime code. This page walks through using it on a ticket shop with a per-customer limit bug, then compares it with SpecCraft, which runs a spec in full TypeScript and checks separate code against it.
+tableOfContents: true
+adoption:
+  github: kingbootoshi/tla-precheck
+  npm: 'tla-precheck'
+  created: 2026-03-15
+---
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/tla-precheck/before.ts.txt?raw';
+import after from '../../../fixes/tla-precheck/after.ts.txt?raw';
+
+[tla-precheck](https://github.com/kingbootoshi/tla-precheck) is a TypeScript tool, published on npm as
+`tla-precheck` in March 2026. You write a state machine once in a restricted TypeScript DSL; it is model-checked with
+TLA+ and TLC, and the runtime code is generated from the same source. It is the most-used tool in this group, and the
+best answer so far to the t## Using tla-precheck
+
+The code below is in
+[formal-methods-samples/tla-precheck-tickets](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/tla-precheck-tickets) and
+runs on its own with `npm install && npm test`, once TLC is set up. We ran it with tla-precheck 0.1.7 and Java 25. The
+output is from our run.
+
+### The problem
+
+A ticket shop lets a customer hold a seat, then buy it or let it go, and a sold seat can be refunded. The rule is one
+seat per customer. The hold is allowed when the seat is free and the customer holds no other seat:
+
+```ts
+// tickets.machine.ts (shortened)
+hold: {
+  params: { s: "Seats", c: "Customers" },
+  guard: and(
+    eq(index(status, param("s")), lit("free")),
+    eq(count("Seats", "x", and(
+      eq(index(holder, param("x")), param("c")),
+      eq(index(status, param("x")), lit("held"))
+    )), lit(0))
+  ),
+  updates: [setMap("status", param("s"), lit("held")), setMap("holder", param("s"), param("c"))]
+}
+```
+
+The count looks only at held seats. Once a customer buys their seat, it is sold, not held, and nothing stops them
+from holding a second one.
+
+In tla-precheck this machine is the code: `npx tla-precheck build` generates the runtime adapters from it, so the bug
+and the fix both live in the `.machine.ts` file.
+
+### Install and set up
+
+```sh
+npm install -D tla-precheck
+npx tla-precheck setup
+npx tla-precheck doctor
+```
+
+- **Java 17 or newer** runs TLC, the TLA+ model checker.
+- **`setup`** downloads a pinned `tla2tools.jar` into `~/.tla-precheck` and installs an agent skill for Claude Code
+  or Codex. `doctor` checks Java, TLC and the skill. We skipped `setup` and pointed `TLA2TOOLS_JAR` at a jar we
+  downloaded ourselves, which the CLI also accepts.
+- **A `tsconfig.json`** must exist in the folder you run from. Without one, `check` stopped with `TS5083: Cannot read
+  file '.../tsconfig.json'`.
+- **`npx tla-precheck init`** scaffolds a new `<name>.machine.ts`.
+
+### Writing the machine
+
+The rest of the machine: the state, the other actions, the rule, and how big a world to check.
+
+```ts
+// tickets.machine.ts (shortened)
+export const ticketsMachine = defineMachine({
+  version: 2,
+  moduleName: "Tickets",
+  variables: {
+    status: mapVar("Seats", enumType("free", "held", "sold"), lit("free")),
+    holder: mapVar("Seats", optionType(domainType("Customers")), lit(null))
+  },
+  actions: {
+    hold: { /* above */ },
+    buy: {
+      params: { s: "Seats", c: "Customers" },
+      guard: and(eq(index(status, param("s")), lit("held")), eq(index(holder, param("s")), param("c"))),
+      updates: [setMap("status", param("s"), lit("sold"))]
+    },
+    // release (held to free) and refund (sold to free) look the same
+  },
+  invariants: {
+    oneSeatPerCustomer: {
+      description: "A customer never has more than one seat, held or sold",
+      formula: forall("Customers", "c", lte(count("Seats", "x", eq(index(holder, param("x")), param("c"))), lit(1)))
+    }
+  },
+  proof: {
+    defaultTier: "pr",
+    tiers: {
+      pr: {
+        domains: {
+          Customers: modelValues("c", { size: 2, symmetry: true }),
+          Seats: ids({ prefix: "s", size: 3 })
+        },
+        budgets: { maxEstimatedStates: 1000, maxEstimatedBranching: 20 }
+      }
+    }
+  }
+});
+```
+
+What each part does:
+
+- **`variables`** declare the state. `mapVar("Seats", ...)` maps every seat to a value, with a starting value for
+  all of them; `optionType(domainType("Customers"))` is a customer or `null`.
+- **`actions`** each have `params`, a `guard` and a list of `updates`. The checker tries every combination of
+  parameters. Guards and updates are built from builder functions (`eq`, `and`, `index`, `count`, `forall`,
+  `setMap`), not written as TypeScript expressions. The DSL has 13 expression kinds, on purpose, and no arithmetic.
+- **`invariants`** are named formulas that must hold in every reachable state.
+- **`proof.tiers`** set the domains to check and a budget. Two customers and three seats is the `pr` tier; the budget
+  is estimated before TLC starts, so an oversized run fails at once. `symmetry: true` tells TLC that the two customers
+  are interchangeable, so it checks each state once instead of twice.
+
+### Running it
+
+```sh
+npx tla-precheck check tickets.machine.ts
+```
+
+`check` validates the machine, estimates the state space (729 states allowed by the types here), runs TLC, then
+checks that TLC and the TypeScript interpreter found the same state graph. It prints the estimate, "Estimate passed.
+Running TLC verification...", and then one JSON result. It exited with code 1, the certificate said
+`"proofPassed": false`, and its `proofOutput` field held TLC's trace (shortened):
+
+```text
+Error: Invariant oneSeatPerCustomer is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ holder = [s1 |-> "__NULL__", s2 |-> "__NULL__", s3 |-> "__NULL__"]
+/\ status = [s1 |-> "free", s2 |-> "free", s3 |-> "free"]
+
+State 2: <hold("s1",c1) line 23, col 3 to line 27, col 39 of module Tickets>
+/\ holder = [s1 |-> c1, s2 |-> "__NULL__", s3 |-> "__NULL__"]
+/\ status = [s1 |-> "held", s2 |-> "free", s3 |-> "free"]
+
+State 3: <hold("s2",c2) line 23, col 3 to line 27, col 39 of module Tickets>
+/\ holder = [s1 |-> c1, s2 |-> c2, s3 |-> "__NULL__"]
+/\ status = [s1 |-> "held", s2 |-> "held", s3 |-> "free"]
+
+State 4: <buy("s1",c1) line 29, col 3 to line 33, col 25 of module Tickets>
+/\ holder = [s1 |-> c1, s2 |-> c2, s3 |-> "__NULL__"]
+/\ status = [s1 |-> "sold", s2 |-> "held", s3 |-> "free"]
+
+State 5: <hold("s3",c1) line 23, col 3 to line 27, col 39 of module Tickets>
+/\ holder = [s1 |-> c1, s2 |-> c2, s3 |-> c1]
+/\ status = [s1 |-> "sold", s2 |-> "held", s3 |-> "held"]
+
+40 states generated, 25 distinct states found, 0 states left on queue.
+```
+
+Customer `c1` holds `s1`, buys it, and holds `s3`. The step where `c2` holds `s2` plays no part: the trace is not the
+shortest one, which would take three steps. It ran in about a second and a half.
+
+### Fixing the bug
+
+The fixed machine is in `tickets.machine.fixed.ts`, a copy of `tickets.machine.ts` with only the lines of the fix
+changed. The hold now counts every seat the customer has, held or sold:
+
+<CodeFix before={before} after={after} title="tickets.machine.ts" />
+
+The same check passes with exit code 0. The key part of the certificate:
+
+```json
+{
+  "machine": "Tickets",
+  "tier": "pr",
+  "proofPassed": true,
+  "graphEquivalenceAttempted": true,
+  "invariantsChecked": ["oneSeatPerCustomer"],
+  "deadlockChecked": true,
+  "symmetryUsedInProof": true,
+  "equivalent": true,
+  "tsStateCount": 37,
+  "tlcStateCount": 37,
+  "tsEdgeCount": 120,
+  "tlcEdgeCount": 120
+}
+```
+
+TLC found 19 distinct states with symmetry. The equivalence run, without symmetry, found 37 states and 120 edges, and
+the TypeScript interpreter found the same graph.
+
+Deadlock checking is on by default. Our first version had no `refund` action, and the fixed machine then failed with
+"Deadlock reached" once both customers had bought a seat: no action was enabled. A real shop refunds, so the action
+went into both files.
+
+### Tips
+
+- **Read the certificate,** in `.generated-machines/<Module>/<tier>/`, next to the generated `.tla` and `.cfg` files.
+  It records whether the proof passed, whether the two backends matched, what was checked, and a hash of the machine
+  source.
+- **Map trace lines back yourself.** Each TLC step names the action and its parameters, but the line numbers point at
+  the generated `Tickets.tla`, not your `.machine.ts`.
+- **One workflow per machine** (from the README). Model the billing flow or the subscription lifecycle, not the whole
+  system.
+- **Keep domains tiny** (from the README). Two users and three runs find most bugs; put larger domains in a nightly
+  tier.
+- **`npx tla-precheck estimate <machine>`** checks the budget without Java, and `check` in CI is the gate.
+- **Generate the runtime code** with `npx tla-precheck build <machine>`: typed adapter functions that open a
+  transaction, lock rows, run the interpreter and write the changes; Postgres constraints for the invariants; and a
+  lint rule against writes that bypass the adapter. `build` needs `metadata.runtimeAdapter`, `metadata.ownedTables`
+  and `metadata.ownedColumns` in the machine. For machines that do not fit the adapter, `tla-precheck/interpreter`
+  has `buildInitialState`, `enabled` and `step`.
+
+### Limits
+
+- **The DSL is small.** Every guard, update and invariant must be built from the 13 expression kinds; there is no
+  addition, so a counter is an enum or a count over a domain.
+- **Java is required** for `check` and `build`; `verify-db`, which compares a live Postgres schema with the generated
+  constraints, also needs Bun.
+
+ard, update and invariant must be built from the 13 expression kinds.
+- **Java is required** for `check` and `build`; `verify-db`, which compares a live Postgres schema with the generated
+  constraints, also needs Bun.
+
+## What tla-precheck is
+
+- One DSL source generates a TLA+ spec that TLC checks exhaustively, and a TypeScript interpreter that runs the same
+  machine. The two state graphs must be identical, so a bug in either the TLA+ generator or the interpreter fails the
+  build.
+- Unlike [stateproof](/vs/stateproof), there is no function source to re-parse: the DSL is explicit, and the
+  translation is checked on every run instead of trusted.
+- Built for agents: an installed skill, and a loop where the agent edits the machine until `proofPassed: true` and
+  `equivalent: true`. Its biggest example checks 29 million states in under 3 minutes.
+
+## Compared with SpecCraft
+
+| | tla-precheck | SpecCraft |
+|---|---|---|
+| Spec language | A restricted DSL of builder functions (13 expression kinds) | Full TypeScript |
+| Checker | TLC in Java, plus an in-process interpreter compared against it | In-process BFS |
+| Spec vs implementation | The same artifact: the runtime is generated from the machine | Kept apart: the code is checked against the spec |
+| Database | Generates Postgres constraints and transactional adapters | Not covered |
+| Async orderings in code | Out of scope: the machine is the code | Inline specs: the explorer delivers async replies in every order |
+| Scale controls | Proof tiers and state budgets | Not yet |
+
+- **tla-precheck is ahead on the pipeline.** A checked translation to TLA+ gets TLC's speed without trusting the
+  compiler, invariants reach Postgres as constraints, and budgets fail before a long run starts. It also has the most
+  traction on these pages: about 113 stars and roughly 7,000 downloads a month in September 2026.
+- **SpecCraft is plain TypeScript.** Guards and effects can call your own helpers and use any language feature, and
+  there is no Java to install.
+- **SpecCraft leaves your code alone.** tla-precheck replaces your transition code with generated adapters and models
+  one transition at a time inside a database transaction. SpecCraft checks existing code against the spec, including
+  replies and background work landing in any order.
+- **What SpecCraft takes from it:** state budgets and tiers that fail fast, two backends that check each other if it
+  ever exports to TLA+ or Quint, and the idea that a checked rule can also become a database constraint.
+
+## Who builds it
+
+A solo project by the GitHub user kingbootoshi. Created in March 2026, with its last commit in early April 2026.
+
+## Links
+
+- tla-precheck on GitHub: https://github.com/kingbootoshi/tla-precheck
+- tla-precheck on npm: https://www.npmjs.com/package/tla-precheck

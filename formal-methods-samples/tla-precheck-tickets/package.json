@@ -1,0 +1,14 @@
+{
+  "name": "tla-precheck-tickets",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tla-precheck check tickets.machine.ts",
+    "check:fixed": "tla-precheck check tickets.machine.fixed.ts",
+    "test": "node test.ts"
+  },
+  "devDependencies": {
+    "tla-precheck": "0.1.7",
+    "typescript": "^5.9.3"
+  }
+}

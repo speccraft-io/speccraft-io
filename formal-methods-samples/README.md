@@ -9,6 +9,7 @@ Small, self-contained case studies used on [speccraft.io](https://speccraft.io).
 - [pnueli-distributed-lock](pnueli-distributed-lock): A distributed lock with lease expiry: two writers without fencing tokens. Checked with pnueli.
 - [stifinder-outbox](stifinder-outbox): A transactional outbox relay that loses or duplicates events after a crash or retry. Checked with stifinder.
 - [polygraph-coupon](polygraph-coupon): A cart reducer that keeps a minimum-spend coupon after an item is removed. Checked with Polygraph.
+- [tla-precheck-tickets](tla-precheck-tickets): A ticket shop where a customer can buy a seat and then hold a second one. Checked with tla-precheck.
 - [effect-machine-checkout](effect-machine-checkout): A checkout statechart where a late payment reply marks a changed cart paid. Checked with effect-machine.
 
 Each one runs on its own:
