@@ -18,7 +18,12 @@ import after from '../../../fixes/polygraph/after.ts.txt?raw';
 [Polygraph](https://github.com/cognitive-fab/polygraph) is a Claude Code plugin and standalone CLI by Cognitive Fab
 LLC, first published in July 2026. It finds bugs in stateful JavaScript and TypeScript code (workflows, reducers,
 protocol handlers, checkout flows) by exhaustively exploring every state reachable over a declared, finite set of
-actions and ## Using Polygraph
+actions and payloads.
+
+**How close to SpecCraft:** close. It covers the most of SpecCraft's method end to end, but an LLM derives the spec
+from existing code instead of you writing it first.
+
+## Using Polygraph
 
 The code below is in
 [formal-methods-samples/polygraph-coupon](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/polygraph-coupon) and
@@ -225,9 +230,6 @@ no session removed an item from a cart at the minimum. Only the model checker fo
   `--max-states`: Polygraph's turnstile example, which counts coins, did not finish within two minutes for us without
   it. The default cap is 100,000 states.
 - **The 8.0 format change.** Version 8.0 removed the older `next(state, action, data)` spec format. Some examples
-  still in the repo (`subscription`, `polygen-otp`) use it, and the 8.3.0 checker refused them by name when we tried.
-
-older `next(state, action, data)` spec format. Some examples
   still in the repo (`subscription`, `polygen-otp`) use it, and the 8.3.0 checker refused them by name when we tried.
 
 ## What Polygraph is

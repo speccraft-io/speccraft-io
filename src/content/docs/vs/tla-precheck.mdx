@@ -18,7 +18,12 @@ import after from '../../../fixes/tla-precheck/after.ts.txt?raw';
 [tla-precheck](https://github.com/kingbootoshi/tla-precheck) is a TypeScript tool, published on npm as
 `tla-precheck` in March 2026. You write a state machine once in a restricted TypeScript DSL; it is model-checked with
 TLA+ and TLC, and the runtime code is generated from the same source. It is the most-used tool in this group, and the
-best answer so far to the t## Using tla-precheck
+best answer so far to the translation problem that sinks [stateproof](/vs/stateproof).
+
+**How close to SpecCraft:** close in aim, different in form. Every state is checked, but the spec is a restricted
+DSL compiled to TLA+, not plain TypeScript.
+
+## Using tla-precheck
 
 The code below is in
 [formal-methods-samples/tla-precheck-tickets](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/tla-precheck-tickets) and
@@ -217,10 +222,6 @@ went into both files.
 
 - **The DSL is small.** Every guard, update and invariant must be built from the 13 expression kinds; there is no
   addition, so a counter is an enum or a count over a domain.
-- **Java is required** for `check` and `build`; `verify-db`, which compares a live Postgres schema with the generated
-  constraints, also needs Bun.
-
-ard, update and invariant must be built from the 13 expression kinds.
 - **Java is required** for `check` and `build`; `verify-db`, which compares a live Postgres schema with the generated
   constraints, also needs Bun.
 

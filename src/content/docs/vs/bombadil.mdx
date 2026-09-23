@@ -18,7 +18,12 @@ import after from '../../../fixes/bombadil/after.ts.txt?raw';
 [Bombadil](https://github.com/antithesishq/bombadil) is property-based testing for web and terminal user
 interfaces, built by [Antithesis](https://antithesis.com) and open source since December 2025. Its specs are
 TypeScript modules, which makes it the best-known tool where TypeScript developers write temporal properties today.
-It is the too## Using Bombadil
+It is the tool most likely to be compared with SpecCraft first.
+
+**How close to SpecCraft:** far. It samples runs of a real UI against temporal properties; it does not explore every
+state of a spec.
+
+## Using Bombadil
 
 The code below is in
 [formal-methods-samples/bombadil-checkout](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/bombadil-checkout) and
@@ -183,10 +188,6 @@ From our runs:
 - **Found by sampling.** Whether the bug shows up depends on the page layout and on timing, as the two tips above show.
 - **It needs a browser that starts.** Inside a sandbox that blocked Chrome, every run stopped with "timed out while
   waiting for chrome/chromium".
-
-ot work inside a spec.
-- **The terminal driver is experimental.** It has no `inspect` view yet and does not support custom actions.
-- **Still 0.x.** The API may change between versions.
 
 ## What Bombadil is
 

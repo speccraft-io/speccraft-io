@@ -16,7 +16,12 @@ import after from '../../../fixes/lemmascript/after.ts.txt?raw';
 
 [LemmaScript](https://github.com/midspiral/LemmaScript) is a verification toolchain for TypeScript by
 [Midspiral](https://www.linkedin.com/company/midspiral/), currently a tech preview. It is the most serious
-"formal methods for Type## Using LemmaScript
+"formal methods for TypeScript" project we know of.
+
+**How close to SpecCraft:** far, and complementary. It proves pure functions correct for every input; SpecCraft
+explores orders of events.
+
+## Using LemmaScript
 
 The code below is in
 [formal-methods-samples/lemmascript-split-bill](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/lemmascript-split-bill) and
@@ -177,10 +182,6 @@ ones.
 - **The translation has a model.** Numbers become ideal integers, and some TypeScript unions cannot be translated.
   `total / people` becomes exact division over reals, where JavaScript uses floating point, and `Math.ceil` and
   `Math.floor` become helpers over it.
-- **I/O is the trust boundary.** The case studies prove the pure core and name the UI, network, Durable Objects and
-  WebSockets as unverified.
-
-s cannot be translated.
 - **I/O is the trust boundary.** The case studies prove the pure core and name the UI, network, Durable Objects and
   WebSockets as unverified.
 
