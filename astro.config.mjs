@@ -59,15 +59,6 @@ export default defineConfig({
 			sidebar: [
 				{ label: 'Home', link: '/' },
 				{
-					label: 'Durable execution',
-					items: [
-						{ label: 'The problems', link: '/durable-execution-problems' },
-						{ label: 'Existing ecosystem', link: '/durable-workflow-correctness-tooling-research' },
-						{ label: 'Known methods', link: '/approaches-to-correctness' },
-						{ label: 'Config document workflow', link: '/case-study-config-document-workflow' },
-					],
-				},
-				{
 					label: 'SpecCraft vs TS tools',
 					items: [
 						{ label: 'Overview', link: '/how-speccraft-compares' },
@@ -101,6 +92,15 @@ export default defineConfig({
 						{ label: 'Overview', link: '/market/' },
 						{ label: 'Job listings', link: '/market/jobs' },
 						{ label: 'Marketplaces', link: '/market/marketplaces' },
+					],
+				},
+				{
+					label: 'Durable execution',
+					items: [
+						{ label: 'The problems', link: '/durable-execution-problems' },
+						{ label: 'Existing ecosystem', link: '/durable-workflow-correctness-tooling-research' },
+						{ label: 'Known methods', link: '/approaches-to-correctness' },
+						{ label: 'Config document workflow', link: '/case-study-config-document-workflow' },
 					],
 				},
 			],
