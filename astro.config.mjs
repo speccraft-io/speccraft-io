@@ -32,6 +32,8 @@ export default defineConfig({
 				ThemeSelect: './src/components/ThemeSelect.astro',
 				// Show a date on every page, falling back to the file's modified time before its first commit.
 				LastUpdated: './src/components/LastUpdated.astro',
+				// Header GitHub / npm / LinkedIn links open in a new tab.
+				SocialIcons: './src/components/SocialIcons.astro',
 			},
 			favicon: '/favicon.svg',
 			head: [
@@ -74,6 +76,7 @@ export default defineConfig({
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },
 				{ icon: 'npm', label: 'npm', href: 'https://www.npmjs.com/package/@speccraft-io/core' },
 				{ icon: 'linkedin', label: 'LinkedIn', href: 'https://www.linkedin.com/company/speccraft-io/' },
+				{ icon: 'external', label: 'zalizniak.com', href: 'https://zalizniak.com/' },
 			],
 			lastUpdated: true,
 			// No right-hand "On this page" table of contents on any page.
