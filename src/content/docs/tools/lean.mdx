@@ -24,11 +24,7 @@ This page shows how to use it next to a normal TypeScript project, with one smal
 
 Unit tests check the cases you wrote. Here is a normal discount function and two normal tests:
 
-:::note
-`applyDiscount` is a pure function: the same inputs always give the same output, and it changes nothing outside
-itself. No mutation of its arguments or of shared state, no I/O, no clock, no randomness. That is what makes it easy to
-copy into Lean.
-:::
+<small>Note: `applyDiscount` is a pure function: same inputs, same output, and no side effects.</small>
 
 ```ts
 // src/pricing.ts
