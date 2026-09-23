@@ -58,7 +58,7 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 			<h2>Dependencies</h2>
 			<ul>
 				{requires.map((item) => (
-					<li class={/^(LLM|AI)\b/.test(item) ? 'llm' : undefined}>{item}</li>
+					<li>{item}</li>
 				))}
 			</ul>
 		</div>
@@ -170,9 +170,6 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 	}
 	.similar li + li {
 		margin-top: 0.25rem;
-	}
-	.similar li.llm {
-		font-weight: 600;
 	}
 	.tool-info-toggle {
 		display: none;
