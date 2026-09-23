@@ -8,6 +8,140 @@ TypeScript: about 5,000 stars and about 140 million npm downloads a month in Sep
 checker, but it is the first tool a TypeScript developer will compare SpecCraft to, because its model-based testing
 looks close: commands with preconditions, run against a model and the real system.
 
+## One bug, both tools
+
+A service receives an `order.confirmed` webhook and charges the card. The sender retries when it does not hear back
+in time, so the same order can arrive twice. The handler checks the order first:
+
+```ts
+// webhook.ts
+export async function handleOrderConfirmed(orderId: string, deps: Deps): Promise<void> {
+  const status = await deps.getStatus(orderId);
+  if (status === 'unpaid') {
+    await deps.chargeCard(orderId);
+    await deps.setStatus(orderId, 'paid');
+  }
+}
+```
+
+A test that runs the retry after the first delivery passes. In production two workers take the two deliveries at the
+same time, and each `await` is a point where the other worker can run. The same example is on the
+[Quint page](/tools/quint), so the tools can be compared on one problem.
+
+The code below is in [examples/webhook](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/webhook)
+and runs with `pnpm test`.
+
+### With fast-check
+
+`fc.scheduler()` wraps each dependency, so fast-check decides when each call resolves. The test runs two deliveries
+at once against the real handler:
+
+```ts
+// webhook.fast-check.test.ts (shortened)
+const property = fc.asyncProperty(fc.scheduler(), async (s) => {
+  const db: Db = { status: 'unpaid', charges: 0 };
+  const deps = {
+    getStatus: s.scheduleFunction(async (_id: string) => db.status),
+    chargeCard: s.scheduleFunction(async (_id: string) => { db.charges += 1; }),
+    setStatus: s.scheduleFunction(async (_id: string, status: OrderStatus) => { db.status = status; }),
+  };
+  const run = Promise.all([handleOrderConfirmed('o1', deps), handleOrderConfirmed('o1', deps)]);
+  await s.waitIdle();
+  await run;
+  expect(db.charges).toBe(1);
+});
+await fc.assert(property, { seed: 1 });
+```
+
+The real output:
+
+```text
+Property failed after 1 tests
+{ seed: 1, path: "0", endOnFailure: true }
+Counterexample: [schedulerFor()`
+-> [task${2}] function::("o1") resolved with value "unpaid"
+-> [task${1}] function::("o1") resolved with value "unpaid"
+-> [task${4}] function::("o1") resolved
+-> [task${3}] function::("o1") resolved
+-> [task${5}] function::("o1","paid") resolved
+-> [task${6}] function::("o1","paid") resolved`]
+Shrunk 0 time(s)
+```
+
+It fails on the first run. Both status reads return `"unpaid"`, both workers charge, and the report is the order in
+which the scheduled calls resolved. With the fix (a `claimOrder` that sets `'charging'` only if the order is still
+`'unpaid'`), the same test passes 100 sampled runs.
+
+### With SpecCraft
+
+The spec says what each worker can do next, one step per `await`, and what must always hold:
+
+```ts
+// model.ts (shortened)
+function readThenCharge(w: Worker): Action<State>[] {
+  return [
+    {
+      name: `${w} reads status`,
+      guard: (s) => s.phase[w] === 'queued',
+      effect: (s) => ({ ...moved(s, w, 'read'), seen: { ...s.seen, [w]: s.status } }),
+    },
+    {
+      name: `${w} skips`,
+      guard: (s) => s.phase[w] === 'read' && s.seen[w] !== 'unpaid',
+      effect: (s) => moved(s, w, 'done'),
+    },
+    {
+      name: `${w} charges card`,
+      guard: (s) => s.phase[w] === 'read' && s.seen[w] === 'unpaid',
+      effect: (s) => ({ ...moved(s, w, 'charged'), charges: s.charges + 1 }),
+    },
+  ];
+}
+
+export const buggySpec: Spec<State> = {
+  init,
+  actions: workers.flatMap((w) => [...readThenCharge(w), marksPaid(w)]),
+  invariants: [{ name: 'the card is charged at most once', check: (s) => s.charges <= 1 }],
+};
+```
+
+```ts
+// webhook.speccraft.test.ts
+const result = explore(buggySpec);
+expect(result.visitedCount).toBe(20);
+expect(result.invariants).toEqual([
+  {
+    name: 'the card is charged at most once',
+    holds: false,
+    counterexample: ['w1 reads status', 'w1 charges card', 'w2 reads status', 'w2 charges card'],
+  },
+]);
+```
+
+The search visits all 20 reachable states and returns the shortest trace to a double charge, in the spec's own
+words: worker 1 reads and charges, and worker 2 reads before worker 1 marks the order paid. It also lists 3 endings,
+one of them with two charges. With the claim made atomic, the fixed spec has 12 reachable states and 1 ending, and the
+invariant holds in every one of them.
+
+### What each run tells you
+
+- **Both find this bug.** fast-check finds it on its first run, because every order of these calls breaks the rule.
+  A bug that needs one rare order is where sampling and full search start to differ.
+- **fast-check tested the real handler.** The SpecCraft check above covers the design, written as a spec. To check
+  the real handler's `await`s, SpecCraft uses an inline spec on the real class, where the explorer delivers each async
+  reply in every order (see the cart example in the
+  [speccraft-ts repository](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/annotated-cart)).
+- **A clean run means different things.** fast-check's fixed run says 100 sampled orders passed. SpecCraft's says
+  all 12 reachable states were checked.
+- **The trace reads differently.** fast-check reports the order in which calls resolved; SpecCraft reports steps
+  named in the spec.
+
+### How to start
+
+- fast-check: `pnpm add -D fast-check`, then wrap each async dependency with `s.scheduleFunction` in one test.
+- SpecCraft: `pnpm add -D @speccraft-io/core`, then write the state, one action per `await`, and the rule that must
+  hold, and call `explore`.
+
 ## What fast-check is
 
 - Properties over generated inputs: arbitraries for numbers, strings, objects and anything built from them. A failure
