@@ -104,6 +104,7 @@ export default defineConfig({
 						{ label: 'Lean', link: '/tools/lean' },
 						{ label: 'Dafny', link: '/tools/dafny' },
 						{ label: 'Quint', link: '/tools/quint' },
+						{ label: 'TLA+', link: '/tools/tla-plus' },
 					],
 				},
 				{

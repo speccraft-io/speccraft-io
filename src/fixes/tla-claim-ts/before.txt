@@ -1,0 +1,27 @@
+export interface Deps {
+  capture(orderId: string): Promise<void>; // take the held money
+  release(orderId: string): Promise<void>; // give the hold back to the customer
+}
+
+// One per order. approve() runs when a manager approves the order,
+// expire() when the 24h timer fires. Whichever comes first wins.
+export class PaymentHold {
+  private settled = false;
+
+  constructor(
+    private orderId: string,
+    private deps: Deps,
+  ) {}
+
+  async approve(): Promise<void> {
+    if (this.settled) return;
+    await this.deps.capture(this.orderId);
+    this.settled = true;
+  }
+
+  async expire(): Promise<void> {
+    if (this.settled) return;
+    await this.deps.release(this.orderId);
+    this.settled = true;
+  }
+}

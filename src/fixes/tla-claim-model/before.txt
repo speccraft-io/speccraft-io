@@ -1,0 +1,61 @@
+---- MODULE PaymentHold ----
+\* A card hold on one order. A manager may approve it (capture the money),
+\* and a 24h timer releases it back to the customer. Both handlers share one flag.
+
+VARIABLES settled, captured, released, pc
+
+vars == <<settled, captured, released, pc>>
+
+Init ==
+    /\ settled = FALSE
+    /\ captured = FALSE
+    /\ released = FALSE
+    /\ pc = [h \in {"approve", "expire"} |-> "idle"]
+
+\* approve() starts: reads the flag, then awaits capture() if the hold is open.
+StartApprove ==
+    /\ pc["approve"] = "idle"
+    /\ pc' = [pc EXCEPT !["approve"] = IF settled THEN "done" ELSE "capturing"]
+    /\ UNCHANGED <<settled, captured, released>>
+
+\* capture() returns, and approve() sets the flag.
+CaptureOk ==
+    /\ pc["approve"] = "capturing"
+    /\ captured' = TRUE
+    /\ settled' = TRUE
+    /\ pc' = [pc EXCEPT !["approve"] = "done"]
+    /\ UNCHANGED released
+
+\* capture() throws (card declined, bank timeout). approve() rethrows, the flag stays as it was.
+CaptureFails ==
+    /\ pc["approve"] = "capturing"
+    /\ pc' = [pc EXCEPT !["approve"] = "done"]
+    /\ UNCHANGED <<settled, captured, released>>
+
+\* The 24h timer fires: expire() reads the flag, then awaits release() if the hold is open.
+StartExpire ==
+    /\ pc["expire"] = "idle"
+    /\ pc' = [pc EXCEPT !["expire"] = IF settled THEN "done" ELSE "releasing"]
+    /\ UNCHANGED <<settled, captured, released>>
+
+\* release() returns, and expire() sets the flag.
+ReleaseOk ==
+    /\ pc["expire"] = "releasing"
+    /\ released' = TRUE
+    /\ settled' = TRUE
+    /\ pc' = [pc EXCEPT !["expire"] = "done"]
+    /\ UNCHANGED captured
+
+Next == StartApprove \/ CaptureOk \/ CaptureFails \/ StartExpire \/ ReleaseOk
+
+\* The timer always fires and awaited calls always return; the manager may never approve.
+Spec ==
+    /\ Init /\ [][Next]_vars
+    /\ WF_vars(StartExpire) /\ WF_vars(ReleaseOk) /\ WF_vars(CaptureOk \/ CaptureFails)
+
+\* Never take the money and also give the hold back.
+NotBoth == ~(captured /\ released)
+
+\* Every hold ends: the money is either taken or given back.
+Settles == <>(captured \/ released)
+====
