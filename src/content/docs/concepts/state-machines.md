@@ -6,6 +6,11 @@ description: What a state machine is in Lamport's sense, how a finite state mach
 "State machine" and "FSM" are often used as if they meant the same thing. They do not, and the difference explains
 most arguments about whether state machines scale.
 
+A typical example is [this LinkedIn thread](https://www.linkedin.com/feed/update/urn:li:activity:7507784578888237057/).
+The post quotes Lamport's definition of a state machine. A comment replies that FSMs start simple, grow unwieldy as
+requirements change, and lead to races when logic spans execution contexts, so Petri nets are better. The comment is
+right about FSMs, but the post was about the general state machine, and the two get treated as one.
+
 ## State machine: the general idea
 
 Leslie Lamport's definition: a state machine is a set of states, a set of initial states, and a next-state relation
