@@ -39,6 +39,26 @@ So every FSM is a state machine, but not every state machine is an FSM.
 
 Both complaints are fair. Both are about writing states by hand, not about state machines.
 
+## FSMs in TypeScript
+
+These are the libraries TypeScript teams use to write states by hand:
+
+| Library | What it is |
+|---|---|
+| [XState](https://stately.ai/docs/xstate) | Statecharts and actors, about 19 million npm downloads a month in September 2026. [`xstate/graph`](https://stately.ai/docs/xstate-graph) walks a machine's graph to generate test paths |
+| [Robot](https://github.com/matthewp/robot) (`robot3`) | A small, functional FSM library |
+| [Zag.js](https://zagjs.com) | State machines behind UI components: menus, dialogs, date pickers |
+| [javascript-state-machine](https://github.com/jakesgordon/javascript-state-machine) | The classic FSM library: named states and transitions |
+| [effect-machine](/vs/effect-machine) | Statecharts for Effect, with bounded exploration and invariants |
+
+XState's statecharts (David Harel's extension of FSMs) are the standard answer to the first complaint. Nested states,
+parallel regions and extra data (`context`) stop the diagram from multiplying: two independent parts become two
+regions instead of 9 combined states.
+
+The second complaint remains. Each machine or actor is checked on its own. The race between two actors, or between a
+machine and the `async` code it calls, is outside every diagram, and no library here tries every interleaving of it.
+See [SpecCraft vs TypeScript tools](/how-speccraft-compares) for the tools that do.
+
 ## How a model checker's state machine differs
 
 TLA+, Quint and SpecCraft use Lamport's kind. You write the variables and the steps, and the checker works out the
