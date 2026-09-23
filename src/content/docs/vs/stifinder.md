@@ -195,7 +195,7 @@ duplicate. The fixed relay holds in all 39 reachable states within the bounds.
 - stifinder: `pnpm add -D stifinder valsem` (Node 22 or newer), then write `getEvents` with the expected step first
   and each fault tagged with a cost key, and call `exploreIteratively` with a `baseBudget` for those keys. A default
   `baseBudget` of `{}` makes every costed event unaffordable. With `skipLibCheck: false` and a target below ESNext,
-  valsem's types need `/// <reference lib="esnext.collection" />`.
+  valsem's types need `ESNext.Collection` in the tsconfig `lib`.
 - SpecCraft: `pnpm add -D @speccraft-io/core`, then write the state with a counter per fault, one action per step
   with the bound in its guard, and the rules as invariants, and call `explore`.
 
