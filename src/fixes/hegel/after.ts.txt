@@ -1,0 +1,8 @@
+async reserve(sku: string, quantity: number): Promise<string | null> {
+  const available = this.stock[sku] ?? 0;
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > available) {
+    return null;
+  }
+  this.stock[sku] = available - quantity;
+  return await this.deps.saveReservation({ sku, quantity });
+}

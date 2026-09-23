@@ -1,0 +1,7 @@
+export async function handleOrderConfirmedFixed(orderId: string, deps: FixedDeps): Promise<void> {
+  const claimed = await deps.claimOrder(orderId);
+  if (claimed) {
+    await deps.chargeCard(orderId);
+    await deps.setStatus(orderId, 'paid');
+  }
+}

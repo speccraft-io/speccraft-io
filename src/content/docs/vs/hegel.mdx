@@ -7,6 +7,10 @@ adoption:
   npm: '@hegeldev/hegel'
   created: 2026-01-14
 ---
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/hegel/before.ts.txt?raw';
+import after from '../../../fixes/hegel/after.ts.txt?raw';
+
 
 [Hegel](https://hegel.dev) is a property-based testing engine built on [Hypothesis](https://hypothesis.works), the
 most widely used property-based testing library, with libraries for Rust, Go, C++, TypeScript, Java and OCaml. The
@@ -139,17 +143,7 @@ It finds the oversell too, shrunk to one mug and two reservations of one.
 
 Reject a quantity that is not a whole number of at least 1, and take the units before the save:
 
-```ts
-// inventory.ts (shortened)
-async reserve(sku: string, quantity: number): Promise<string | null> {
-  const available = this.stock[sku] ?? 0;
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > available) {
-    return null;
-  }
-  this.stock[sku] = available - quantity;
-  return await this.deps.saveReservation({ sku, quantity });
-}
-```
+<CodeFix before={before} after={after} title="inventory.ts" />
 
 With the fix, both tests pass 100 test cases.
 

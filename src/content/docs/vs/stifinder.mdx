@@ -7,6 +7,9 @@ adoption:
   npm: 'stifinder'
   created: 2026-09-13
 ---
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/stifinder/before.ts.txt?raw';
+import after from '../../../fixes/stifinder/after.ts.txt?raw';
 
 [stifinder](https://github.com/andershessellund/stifinder) is a state-space explorer for JavaScript and TypeScript,
 published on npm in September 2026. It answers a question most checkers do not ask: not only "is there a failing
@@ -160,7 +163,11 @@ publish again, 6 steps, `{ crash: 1, __deviations__: 1 }`.
 
 ### Fixing the bug
 
-The fixed relay publishes first, then marks, and the consumer has an idempotency key:
+The duplicate goes away when the consumer checks an idempotency key:
+
+<CodeFix before={before} after={after} title="outbox.ts" />
+
+The same exploration on the fixed relay, which publishes first, then marks:
 
 ```ts
 // outbox.stifinder.test.ts (shortened)

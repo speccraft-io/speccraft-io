@@ -7,6 +7,10 @@ adoption:
   npm: 'effect'
   created: 2019-11-13
 ---
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/effect/before.ts.txt?raw';
+import after from '../../../fixes/effect/after.ts.txt?raw';
+
 
 [Effect](https://effect.website) is the most popular answer in TypeScript to "how do I write async code that is
 correct": about 16,000 stars and about 120 million npm downloads a month in September 2026, with `@effect/vitest`
@@ -177,16 +181,7 @@ the revived lease.
 The fix is on the server side, a token: acquire hands one out, and renew and release act only if the lease still
 carries it.
 
-```ts
-// lease.ts (shortened)
-export const tokenChecked: LeaseRules = {
-  renew: (table, _owner, token, now) => {
-    const lease = live(table, now);
-    return lease?.token === token ? [true, { ...table, lease: { ...lease, expiresAt: now + ttl } }] : [false, table];
-  },
-  release: (table, token) => (table.lease?.token === token ? { ...table, lease: null } : table),
-};
-```
+<CodeFix before={before} after={after} title="lease.ts" />
 
 The same slow-renewal test with `tokenChecked` expects `toBeNull()`, and the whole file passes:
 

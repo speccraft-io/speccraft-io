@@ -1,0 +1,15 @@
+export function write(s: State, i: number, store: Store): State | null {
+  const node = s.nodes[i];
+  if (node?.phase !== 'holding' || node.token === null) {
+    return null;
+  }
+  if (store === 'fencing' && node.token < s.newest) {
+    return withNode(s, i, { phase: 'idle', lease: false, token: null });
+  }
+  const accepted = {
+    ...s,
+    newest: Math.max(s.newest, node.token),
+    stale: s.stale || node.token < s.newest,
+  };
+  return withNode(accepted, i, { ...node, phase: 'wrote' });
+}

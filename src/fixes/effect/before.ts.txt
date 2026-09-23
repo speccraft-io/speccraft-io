@@ -1,0 +1,4 @@
+export const leaseRules: LeaseRules = {
+  renew: (table, owner, token, now) => [true, { ...table, lease: { owner, token, expiresAt: now + ttl } }],
+  release: (table) => ({ ...table, lease: null }),
+};

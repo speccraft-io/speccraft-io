@@ -7,6 +7,9 @@ adoption:
   npm: '@botiroff/pnueli'
   created: 2026-08-17
 ---
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/pnueli/before.ts.txt?raw';
+import after from '../../../fixes/pnueli/after.ts.txt?raw';
 
 [pnueli](https://github.com/BOTIROFF-D/pnueli) is an explicit-state model checker written in TypeScript, published
 on npm as `@botiroff/pnueli` in August 2026. A spec is a plain TypeScript object, and the checker walks every
@@ -179,6 +182,10 @@ prints canonical states, where the nodes are sorted after every step, so the nod
 up with the names in the actions.
 
 ### Fixing the bug
+
+The fix is one branch in the write rule: a fencing store rejects a write that carries an older token.
+
+<CodeFix before={before} after={after} title="lock.ts" />
 
 With `'fencing'` the invariant holds. States visited to prove it, with no reduction, with symmetry, and with symmetry
 plus partial-order reduction (`checkReduced`):

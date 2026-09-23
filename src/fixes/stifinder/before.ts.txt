@@ -1,0 +1,1 @@
+export const publishThenMark: Variant = { order: 'publish-then-mark', idempotencyKey: false };

@@ -7,6 +7,10 @@ adoption:
   npm: 'fast-check'
   created: 2017-10-30
 ---
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/fast-check/before.ts.txt?raw';
+import after from '../../../fixes/fast-check/after.ts.txt?raw';
+
 
 [fast-check](https://github.com/dubzzz/fast-check) is the property-based testing library for JavaScript and
 TypeScript: about 5,000 stars and about 140 million npm downloads a month in September 2026. It is not a model
@@ -112,16 +116,7 @@ replay the failure.
 The fix replaces the read with `claimOrder`, which sets `'charging'` only if the order is still `'unpaid'` and
 returns whether it did. Only the worker that got the claim charges:
 
-```ts
-// webhook.ts
-export async function handleOrderConfirmedFixed(orderId: string, deps: FixedDeps): Promise<void> {
-  const claimed = await deps.claimOrder(orderId);
-  if (claimed) {
-    await deps.chargeCard(orderId);
-    await deps.setStatus(orderId, 'paid');
-  }
-}
-```
+<CodeFix before={before} after={after} title="webhook.ts" />
 
 In the test, `claimOrder` is wrapped with `s.scheduleFunction` like the others, and the property runs under
 `fc.assert` with the same seed. It passes all 100 sampled runs:

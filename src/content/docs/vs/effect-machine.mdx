@@ -7,6 +7,9 @@ adoption:
   npm: '@typeonce/effect-machine'
   created: 2026-07-28
 ---
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/effect-machine/before.ts.txt?raw';
+import after from '../../../fixes/effect-machine/after.ts.txt?raw';
 
 [effect-machine](https://github.com/typeonce-dev/effect-machine) is a statechart library for
 [Effect](https://effect.website), published on npm as `@typeonce/effect-machine` since July 2026. Its testing module
@@ -228,7 +231,11 @@ step shows the configuration before and after, and the last line is the invarian
 
 ### Fixing the bug
 
-The simplest fix: Back is not allowed while the payment is pending, so `PaymentPending` handles only the two replies.
+The fix removes `Back` from `PaymentPending`:
+
+<CodeFix before={before} after={after} title="checkout.effect-machine.test.ts" />
+
+Back is no longer allowed while the payment is pending, so `PaymentPending` handles only the two replies.
 (Tagging each reply with a cart version and rejecting a stale one would also work.) The same exploration, with every
 reply still in flight, passes:
 

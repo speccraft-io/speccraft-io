@@ -1,0 +1,90 @@
+---
+// Shows a fix three ways: the code before, a line diff, and the code after. Opens on the diff.
+// The diff is computed at build time, so only the two versions are written by hand.
+import { Code } from '@astrojs/starlight/components';
+import { diffLines } from 'diff';
+
+interface Props {
+	before: string;
+	after: string;
+	lang?: string;
+	title?: string;
+}
+
+const { before, after, lang = 'ts', title } = Astro.props;
+
+const trimmed = (text: string) => text.replace(/\s+$/, '') + '\n';
+
+const diff = diffLines(trimmed(before), trimmed(after))
+	.flatMap((part) => {
+		const marker = part.added ? '+' : part.removed ? '-' : ' ';
+		return part.value.replace(/\n$/, '').split('\n').map((line) => marker + line);
+	})
+	.join('\n');
+
+const views = [
+	{ id: 'before', label: 'Before', code: trimmed(before), lang, meta: title ? `title="${title}"` : '' },
+	{ id: 'diff', label: 'Diff', code: diff, lang: 'diff', meta: `lang="${lang}"${title ? ` title="${title}"` : ''}` },
+	{ id: 'after', label: 'After', code: trimmed(after), lang, meta: title ? `title="${title}"` : '' },
+];
+---
+
+<div class="code-fix" data-code-fix>
+	<div class="code-fix-tabs" role="tablist" aria-label="Code before and after the fix">
+		{
+			views.map((view) => (
+				<button type="button" role="tab" data-view={view.id} aria-selected={view.id === 'diff' ? 'true' : 'false'}>
+					{view.label}
+				</button>
+			))
+		}
+	</div>
+	{
+		views.map((view) => (
+			<div class="code-fix-panel" role="tabpanel" data-panel={view.id} hidden={view.id !== 'diff'}>
+				<Code code={view.code} lang={view.lang} meta={view.meta} />
+			</div>
+		))
+	}
+</div>
+
+<script>
+	for (const box of document.querySelectorAll<HTMLElement>('[data-code-fix]')) {
+		const tabs = box.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+		const panels = box.querySelectorAll<HTMLElement>('[role="tabpanel"]');
+		for (const tab of tabs) {
+			tab.addEventListener('click', () => {
+				for (const other of tabs) other.setAttribute('aria-selected', String(other === tab));
+				for (const panel of panels) panel.hidden = panel.dataset['panel'] !== tab.dataset['view'];
+			});
+		}
+	}
+</script>
+
+<style>
+	.code-fix-tabs {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		margin-bottom: 0.5rem;
+	}
+	.code-fix-tabs button,
+	.code-fix-panel {
+		margin: 0;
+	}
+	.code-fix-tabs button {
+		font: inherit;
+		font-size: var(--sl-text-sm);
+		padding: 0.2rem 0.75rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 999px;
+		background: transparent;
+		color: var(--sl-color-gray-2);
+		cursor: pointer;
+	}
+	.code-fix-tabs button[aria-selected='true'] {
+		background: var(--sl-color-accent-low);
+		border-color: var(--sl-color-accent);
+		color: var(--sl-color-white);
+	}
+</style>
