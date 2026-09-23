@@ -48,15 +48,17 @@ export default defineConfig({
 				{ tag: 'link', attrs: { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96x96.png' } },
 				{ tag: 'link', attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' } },
 				{ tag: 'link', attrs: { rel: 'manifest', href: '/site.webmanifest' } },
-				// Google Tag Manager — injected as high in <head> as Starlight allows.
+				// Google Tag Manager — started after the page has loaded, so its scripts do not compete with the first paint.
 				{
 					tag: 'script',
 					content:
+						"window.addEventListener('load',function(){setTimeout(function(){" +
 						"(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':" +
 						"new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0]," +
 						"j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=" +
 						"'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);" +
-						"})(window,document,'script','dataLayer','GTM-N2BNSMZ6');",
+						"})(window,document,'script','dataLayer','GTM-N2BNSMZ6');" +
+						"},1000);});",
 				},
 			],
 			pagination: false,

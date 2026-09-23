@@ -27,8 +27,7 @@ export default function rehypeImageAttrs() {
 					node.properties.height ??= size.height;
 				}
 				node.properties.decoding = 'async';
-				if (first) node.properties.fetchpriority = 'high';
-				else node.properties.loading = 'lazy';
+				if (!first) node.properties.loading = 'lazy';
 			} else if ((node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') && node.name === 'img') {
 				const first = index++ === 0;
 				const attrs = node.attributes;
@@ -42,8 +41,7 @@ export default function rehypeImageAttrs() {
 					set('height', size.height);
 				}
 				set('decoding', 'async');
-				if (first) set('fetchpriority', 'high');
-				else set('loading', 'lazy');
+				if (!first) set('loading', 'lazy');
 			} else if (node.type === 'raw' && node.value.includes('<img')) {
 				node.value = node.value.replace(/<img\b([^>]*?)\s*(\/?)>/g, (tag, attrs, slash) => {
 					const first = index++ === 0;
@@ -57,8 +55,7 @@ export default function rehypeImageAttrs() {
 						add('height', size.height);
 					}
 					add('decoding', 'async');
-					if (first) add('fetchpriority', 'high');
-					else add('loading', 'lazy');
+					if (!first) add('loading', 'lazy');
 					return `<img${attrs}${slash ? ' /' : ''}>`;
 				});
 			}
