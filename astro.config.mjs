@@ -60,9 +60,9 @@ export default defineConfig({
 				{ label: 'Known methods', link: '/approaches-to-correctness' },
 				{ label: 'Config document workflow', link: '/case-study-config-document-workflow' },
 				{
-					label: 'SpecCraft vs ...',
+					label: 'SpecCraft vs TS tools',
 					items: [
-						{ label: 'All tools', link: '/how-speccraft-compares' },
+						{ label: 'Overview', link: '/how-speccraft-compares' },
 						{ label: 'LemmaScript', link: '/vs/lemmascript' },
 						{ label: 'stateproof', link: '/vs/stateproof' },
 						{ label: 'pnueli', link: '/vs/pnueli' },
@@ -75,8 +75,9 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Try the tools',
+					label: 'Non-TS tools',
 					items: [
+						{ label: 'SpecCraft vs non-TS tools', link: '/tools/speccraft-vs-non-ts-tools' },
 						{ label: 'Lean', link: '/tools/lean' },
 						{ label: 'Dafny', link: '/tools/dafny' },
 						{ label: 'Quint', link: '/tools/quint' },
