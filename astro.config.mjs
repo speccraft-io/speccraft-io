@@ -71,6 +71,7 @@ export default defineConfig({
 						{ label: 'stifinder', link: '/vs/stifinder' },
 						{ label: 'effect-machine', link: '/vs/effect-machine' },
 						{ label: 'Bombadil', link: '/vs/bombadil' },
+						{ label: 'fast-check', link: '/vs/fast-check' },
 					],
 				},
 				{
