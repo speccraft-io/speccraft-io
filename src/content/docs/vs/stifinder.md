@@ -1,6 +1,11 @@
 ---
 title: SpecCraft vs stifinder
 description: stifinder is a state-space explorer for JavaScript that finds the failure needing the fewest departures from the expected schedule. It is the closest new engine to SpecCraft's. SpecCraft adds a spec layer, conformance against real code, and inline specs.
+tableOfContents: true
+adoption:
+  github: andershessellund/stifinder
+  npm: 'stifinder'
+  created: 2026-09-13
 ---
 
 [stifinder](https://github.com/andershessellund/stifinder) is a state-space explorer for JavaScript and TypeScript,

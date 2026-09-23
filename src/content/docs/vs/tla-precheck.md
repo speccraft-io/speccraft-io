@@ -1,6 +1,11 @@
 ---
 title: SpecCraft vs tla-precheck
 description: tla-precheck compiles a restricted TypeScript DSL to both TLA+ and a TypeScript interpreter, proves the two state graphs identical, and generates the runtime code. SpecCraft runs a spec in full TypeScript and checks separate code against it.
+tableOfContents: true
+adoption:
+  github: kingbootoshi/tla-precheck
+  npm: 'tla-precheck'
+  created: 2026-03-15
 ---
 
 [tla-precheck](https://github.com/kingbootoshi/tla-precheck) is a TypeScript tool, published on npm as

@@ -1,6 +1,11 @@
 ---
 title: SpecCraft vs Polygraph
 description: Polygraph has an LLM derive a JavaScript spec from your code, checks the spec against real traces, then model-checks it exhaustively. SpecCraft starts from a spec you write and checks the code against it. Same goal, opposite starting points.
+tableOfContents: true
+adoption:
+  github: cognitive-fab/polygraph
+  npm: '@cognitive-fab/polygraph'
+  created: 2026-07-07
 ---
 
 [Polygraph](https://github.com/cognitive-fab/polygraph) is a Claude Code plugin and standalone CLI by Cognitive Fab

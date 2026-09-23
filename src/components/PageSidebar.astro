@@ -1,0 +1,81 @@
+---
+// Replaces the right-hand "On this page" column with an adoption box on pages that declare `adoption`
+// in their frontmatter. Other pages keep Starlight's table of contents off (see astro.config.mjs).
+const adoption = Astro.locals.starlightRoute.entry.data.adoption;
+
+const shield = (path: string, label: string) =>
+	`https://img.shields.io/${path}?style=flat&label=${encodeURIComponent(label)}`;
+
+const days = adoption ? Math.floor((Date.now() - adoption.created.getTime()) / (24 * 60 * 60 * 1000)) : 0;
+const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'}`;
+function ageOf(d: number): string {
+	if (d < 31) return plural(d, 'day');
+	if (d < 365) return plural(Math.round(d / 30.44), 'month');
+	return `${(d / 365.25).toFixed(1)} years`;
+}
+const age = ageOf(days);
+const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+---
+
+{
+	adoption && (
+		<div class="adoption">
+			<h2>Adoption</h2>
+			<a href={`https://github.com/${adoption.github}`} target="_blank" rel="noopener noreferrer">
+				<img src={shield(`github/stars/${adoption.github}`, 'GitHub stars')} alt="GitHub stars" />
+			</a>
+			{adoption.npm && (
+				<a href={`https://www.npmjs.com/package/${adoption.npm}`} target="_blank" rel="noopener noreferrer">
+					<img src={shield(`npm/dm/${adoption.npm}`, 'npm downloads')} alt="npm downloads per month" />
+				</a>
+			)}
+			<a href={`https://github.com/${adoption.github}/commits`} target="_blank" rel="noopener noreferrer">
+				<img src={shield(`github/last-commit/${adoption.github}`, 'last commit')} alt="Date of the last commit" />
+			</a>
+			<p>
+				Age: {age}, since {since}
+			</p>
+		</div>
+	)
+}
+
+<style>
+	.adoption {
+		padding: 1rem var(--sl-sidebar-pad-x);
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+	.adoption h2 {
+		color: var(--sl-color-white);
+		font-size: var(--sl-text-h5);
+		font-weight: 600;
+		margin: 0;
+	}
+	.adoption a {
+		line-height: 0;
+	}
+	.adoption a::after {
+		content: none;
+	}
+	.adoption img {
+		height: 20px;
+	}
+	.adoption p {
+		margin: 0;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+	}
+	@media (max-width: 71.99rem) {
+		.adoption {
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			padding: 0.75rem var(--sl-content-pad-x) 0;
+		}
+		.adoption h2 {
+			display: none;
+		}
+	}
+</style>

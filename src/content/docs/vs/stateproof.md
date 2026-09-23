@@ -1,6 +1,10 @@
 ---
 title: SpecCraft vs stateproof
 description: stateproof compiles a TypeScript-looking state machine to TLA+ and checks it with TLC. SpecCraft runs the spec as real TypeScript. The difference is the translator you have to trust.
+tableOfContents: true
+adoption:
+  github: HexaField/stateproof
+  created: 2026-03-15
 ---
 
 [stateproof](https://github.com/HexaField/stateproof) is the closest earlier attempt at what SpecCraft does: write a

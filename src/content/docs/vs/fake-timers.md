@@ -1,6 +1,11 @@
 ---
 title: SpecCraft vs fake timers
 description: Fake timers (@sinonjs/fake-timers, and the fake timers in Jest and Vitest built on it) make async code deterministic by fixing one order of events per test. SpecCraft tries every order the spec allows and returns the shortest one that breaks.
+tableOfContents: true
+adoption:
+  github: sinonjs/fake-timers
+  npm: '@sinonjs/fake-timers'
+  created: 2014-02-04
 ---
 
 Fake timers are what most TypeScript developers reach for when async code has to be deterministic in a test.

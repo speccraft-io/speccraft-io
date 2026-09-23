@@ -1,6 +1,11 @@
 ---
 title: SpecCraft vs Bombadil
 description: Bombadil, from Antithesis, is property-based testing for web and terminal UIs, with TypeScript specs of temporal properties and action generators. It explores real UIs by sampling; SpecCraft explores a spec exhaustively and checks code against it.
+tableOfContents: true
+adoption:
+  github: antithesishq/bombadil
+  npm: '@antithesishq/bombadil'
+  created: 2025-12-17
 ---
 
 [Bombadil](https://github.com/antithesishq/bombadil) is property-based testing for web and terminal user

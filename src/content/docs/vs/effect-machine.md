@@ -1,6 +1,11 @@
 ---
 title: SpecCraft vs effect-machine
 description: effect-machine is a schema-first statechart library for Effect with bounded breadth-first exploration, invariants and coverage in its testing module. SpecCraft works on free-form TypeScript state and checks real code, including async replies in every order.
+tableOfContents: true
+adoption:
+  github: typeonce-dev/effect-machine
+  npm: '@typeonce/effect-machine'
+  created: 2026-07-28
 ---
 
 [effect-machine](https://github.com/typeonce-dev/effect-machine) is a statechart library for

@@ -1,6 +1,11 @@
 ---
 title: SpecCraft vs fast-check
 description: fast-check is the standard property-based testing library for TypeScript, with model-based testing and a scheduler for async races. It samples randomly and shrinks; SpecCraft explores every reachable state of a spec and returns the shortest trace. They work well together.
+tableOfContents: true
+adoption:
+  github: dubzzz/fast-check
+  npm: 'fast-check'
+  created: 2017-10-30
 ---
 
 [fast-check](https://github.com/dubzzz/fast-check) is the property-based testing library for JavaScript and

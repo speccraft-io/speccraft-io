@@ -1,6 +1,11 @@
 ---
 title: SpecCraft vs Hegel
 description: Hegel brings Hypothesis-style property-based testing to TypeScript, with Hypothesis's generators and shrinking behind a cross-language protocol. It samples inputs; SpecCraft explores every reachable state of a spec.
+tableOfContents: true
+adoption:
+  github: hegeldev/hegel-typescript
+  npm: '@hegeldev/hegel'
+  created: 2026-01-14
 ---
 
 [Hegel](https://hegel.dev) is a property-based testing engine built on [Hypothesis](https://hypothesis.works), the

@@ -1,6 +1,11 @@
 ---
 title: SpecCraft vs Effect
 description: Effect makes async TypeScript safer by construction - typed errors, structured concurrency, a controllable test clock and property tests from schemas. It does not search the orders events can happen in. SpecCraft does, and the two fit together.
+tableOfContents: true
+adoption:
+  github: Effect-TS/effect
+  npm: 'effect'
+  created: 2019-11-13
 ---
 
 [Effect](https://effect.website) is the most popular answer in TypeScript to "how do I write async code that is

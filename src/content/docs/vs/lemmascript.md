@@ -1,6 +1,11 @@
 ---
 title: SpecCraft vs LemmaScript
 description: LemmaScript proves TypeScript functions correct for every input with Dafny or Lean. SpecCraft explores every ordering of events in a bounded model. Different questions, and they work well together.
+tableOfContents: true
+adoption:
+  github: midspiral/LemmaScript
+  npm: 'lemmascript'
+  created: 2026-03-30
 ---
 
 [LemmaScript](https://github.com/midspiral/LemmaScript) is a verification toolchain for TypeScript by

@@ -1,6 +1,11 @@
 ---
 title: SpecCraft vs pnueli
 description: pnueli is an explicit-state model checker in TypeScript with symmetry and partial-order reduction and liveness under weak fairness. It is the closest thing to SpecCraft's engine. SpecCraft adds conformance against real code and inline specs.
+tableOfContents: true
+adoption:
+  github: BOTIROFF-D/pnueli
+  npm: '@botiroff/pnueli'
+  created: 2026-08-17
 ---
 
 [pnueli](https://github.com/BOTIROFF-D/pnueli) is an explicit-state model checker written in TypeScript, published
