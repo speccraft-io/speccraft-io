@@ -70,3 +70,16 @@
 	max-height: 100%;
 	cursor: zoom-out;
 }
+/* With no right-hand table of contents, Starlight centers the content column
+   in the space right of the sidebar, so it sits visibly right of the screen's
+   middle. Center it on the viewport instead, never letting it slide under the
+   sidebar (the max() clamps the left margin at 0 on narrower screens). */
+@media (min-width: 72rem) {
+	:root[data-has-sidebar] {
+		--sl-content-margin-inline: max(
+				0px,
+				calc(50vw - var(--sl-sidebar-width) - var(--sl-content-pad-x) - var(--sl-content-width) / 2)
+			)
+			auto;
+	}
+}
