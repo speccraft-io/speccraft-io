@@ -101,7 +101,7 @@ REPL. `quint verify` needs Java 17 or newer, and downloads its checker the first
 
 What runs underneath each `quint` command:
 
-<a href="/assets/tools/quint/quint-architecture.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-architecture.png" alt="Architecture diagram. webhook.qnt goes into the quint CLI, an npm package that runs in Node, where typecheck happens. quint run goes to the Rust evaluator in ~/.quint, with no Java, which produces random runs as ITF JSON traces. quint verify goes into the TLA+ stack, apalache.jar in ~/.quint, which needs Java 17 or newer: the Apalache server on localhost:8822 compiles Quint to TLA+, SANY parses the generated webhook.tla, then either the Apalache checker with Z3 (the default backend, checking up to --max-steps, 10 by default) or TLC (--backend tlc, every reachable state) does the check."></a>
+<a href="/assets/tools/quint/quint-architecture.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-architecture.webp" alt="Architecture diagram. webhook.qnt goes into the quint CLI, an npm package that runs in Node, where typecheck happens. quint run goes to the Rust evaluator in ~/.quint, with no Java, which produces random runs as ITF JSON traces. quint verify goes into the TLA+ stack, apalache.jar in ~/.quint, which needs Java 17 or newer: the Apalache server on localhost:8822 compiles Quint to TLA+, SANY parses the generated webhook.tla, then either the Apalache checker with Z3 (the default backend, checking up to --max-steps, 10 by default) or TLC (--backend tlc, every reachable state) does the check."></a>
 
 - `quint typecheck` runs in Node, inside the npm package.
 - `quint run` uses a small Rust program that Quint downloads to `~/.quint` the first time. No Java.
@@ -208,18 +208,18 @@ How to read it:
 `quint run` makes random runs through the model and stops at the first state that breaks the rule. `--mbt` adds the
 name of each step to the output, and `--hide` leaves out variables to keep it short:
 
-<a href="/assets/tools/quint/quint-run-bug.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-run-bug.png" alt="quint run output: an example execution from State 0 to State 5. The steps are init, retry, readOrder by w2, readOrder by w1, chargeIfUnpaid by w2 with charges 1 and status paid, then chargeIfUnpaid by w1 with charges 2. Violation found in 9 ms. Error: invariant violated."></a>
+<a href="/assets/tools/quint/quint-run-bug.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-run-bug.webp" alt="quint run output: an example execution from State 0 to State 5. The steps are init, retry, readOrder by w2, readOrder by w1, chargeIfUnpaid by w2 with charges 1 and status paid, then chargeIfUnpaid by w1 with charges 2. Violation found in 9 ms. Error: invariant violated."></a>
 
 It took 9 ms. Here is the same trace as a timeline:
 
-<a href="/assets/tools/quint/quint-bug-timeline.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-bug-timeline.png" alt="Timeline with four lanes: webhook sender, worker 1, worker 2, database. 1: sender sends delivery 1. 2: no reply yet, sends delivery 2. 3: worker 2 reads status unpaid. 4: worker 1 reads status unpaid. 5: worker 2 charges the card and sets paid, charges 1. 6: worker 1 charges the card again, charges 2."></a>
+<a href="/assets/tools/quint/quint-bug-timeline.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-bug-timeline.webp" alt="Timeline with four lanes: webhook sender, worker 1, worker 2, database. 1: sender sends delivery 1. 2: no reply yet, sends delivery 2. 3: worker 2 reads status unpaid. 4: worker 1 reads status unpaid. 5: worker 2 charges the card and sets paid, charges 1. 6: worker 1 charges the card again, charges 2."></a>
 
 The first delivery is slow, so the sender retries. Both workers read `unpaid` before either one writes `paid`. The
 `if (status === 'unpaid')` check in the TS code does not help, because both workers pass it.
 
 `quint run` is random, so a clean run does not prove much. `quint verify` walks every reachable state:
 
-<a href="/assets/tools/quint/quint-verify-bug.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-verify-bug.png" alt="quint verify with the TLC backend: 26 states generated, 22 distinct states found, 0 states left on queue. Violation found in 597 ms. Error: found a counterexample."></a>
+<a href="/assets/tools/quint/quint-verify-bug.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-verify-bug.webp" alt="quint verify with the TLC backend: 26 states generated, 22 distinct states found, 0 states left on queue. Violation found in 597 ms. Error: found a counterexample."></a>
 
 With 2 workers and up to 2 deliveries, the model has only 22 distinct states. That is enough to hold this bug. Most
 concurrency bugs need only two or three actors to show up.
@@ -262,7 +262,7 @@ changed. In the model, the read-then-decide pair becomes one `claimOrder` step:
 `seen` is gone, since nothing reads first any more, and `step` now picks between `claimOrder(w)` and `charge(w)`.
 Check every state again:
 
-<a href="/assets/tools/quint/quint-verify-fixed.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-verify-fixed.png" alt="quint verify with the TLC backend: 18 states generated, 11 distinct states found, 0 states left on queue. No violation found in 626 ms."></a>
+<a href="/assets/tools/quint/quint-verify-fixed.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-verify-fixed.webp" alt="quint verify with the TLC backend: 18 states generated, 11 distinct states found, 0 states left on queue. No violation found in 626 ms."></a>
 
 No state breaks the rule. Raise the numbers to 3 workers and 3 deliveries and it still holds (27 distinct states),
 while the old model fails there too. Small numbers first, then bigger ones, is the normal way to work.
@@ -291,7 +291,7 @@ The model is fixed. Nothing yet says the TS code behaves like the model. The bri
 traces, and a vitest file plays each trace against the real handler, step by step, checking the state after every
 step.
 
-<a href="/assets/tools/quint/quint-workflow.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-workflow.png" alt="Workflow diagram: webhook.qnt, the model, goes to quint verify, which checks every reachable state, and to quint run --mbt --out-itf, which writes sample traces as JSON into traces/*.itf.json with the steps and the expected state. A vitest replay reads the traces and calls webhook.ts, the real code."></a>
+<a href="/assets/tools/quint/quint-workflow.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-workflow.webp" alt="Workflow diagram: webhook.qnt, the model, goes to quint verify, which checks every reachable state, and to quint run --mbt --out-itf, which writes sample traces as JSON into traces/*.itf.json with the steps and the expected state. A vitest replay reads the traces and calls webhook.ts, the real code."></a>
 
 Write the traces. `--out-itf` saves them in ITF, a JSON trace format. `--mbt` adds which action ran and which worker
 it picked:
@@ -391,14 +391,14 @@ What it does for each step of a trace:
 
 First, save the counterexample from Step 2 as a trace and replay it against the original handler:
 
-<a href="/assets/tools/quint/vitest-replay-fails.png" class="lightbox-trigger"><img src="/assets/tools/quint/vitest-replay-fails.png" alt="vitest output: bug.itf.json: the handler follows the model and never charges twice, failed with AssertionError expected 2 to be less than or equal to 1. 1 failed, 2 passed."></a>
+<a href="/assets/tools/quint/vitest-replay-fails.webp" class="lightbox-trigger"><img src="/assets/tools/quint/vitest-replay-fails.webp" alt="vitest output: bug.itf.json: the handler follows the model and never charges twice, failed with AssertionError expected 2 to be less than or equal to 1. 1 failed, 2 passed."></a>
 
 The real handler followed the model at every step, and then charged twice. The Quint counterexample is now a failing
 vitest on your real code, with the exact order that breaks it. That is a bug report nobody has to reproduce by hand.
 
 After the fix, replace the traces with 50 runs of the fixed model and replay them against the fixed handler:
 
-<a href="/assets/tools/quint/vitest-replay-ok.png" class="lightbox-trigger"><img src="/assets/tools/quint/vitest-replay-ok.png" alt="vitest output: 2 test files passed, 52 tests passed."></a>
+<a href="/assets/tools/quint/vitest-replay-ok.webp" class="lightbox-trigger"><img src="/assets/tools/quint/vitest-replay-ok.webp" alt="vitest output: 2 test files passed, 52 tests passed."></a>
 
 To check the replay is not passing by accident: the old bug trace against the fixed handler fails on the first read
 step. The model expected `status: "unpaid"`, the fixed code had already written `"charging"`. The replay notices when

@@ -113,7 +113,7 @@ How to read it:
 
 Run the verifier:
 
-<a href="/assets/tools/dafny/dafny-step1.png" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-step1.png" alt="dafny verify output with three errors: line 12, result of operation might violate newtype constraint for int53, at lo + hi; line 13, index out of range, at ids[mid]; line 21, a postcondition could not be proved on this return path, at return -1, with the related postcondition ensures index < 0 ==> target !in ids. 2 verified, 3 errors."></a>
+<a href="/assets/tools/dafny/dafny-step1.webp" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-step1.webp" alt="dafny verify output with three errors: line 12, result of operation might violate newtype constraint for int53, at lo + hi; line 13, index out of range, at ids[mid]; line 21, a postcondition could not be proved on this return path, at return -1, with the related postcondition ensures index < 0 ==> target !in ids. 2 verified, 3 errors."></a>
 
 Three errors. Each one points at a line:
 
@@ -144,7 +144,7 @@ a loop invariant. For binary search it is the same thing you would say to explai
 Dafny checks that each invariant is true before the loop and stays true after every pass. You do not have to prove
 that by hand; the verifier does it. Run it again:
 
-<a href="/assets/tools/dafny/dafny-step2.png" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-step2.png" alt="dafny verify output with one error: line 25, a postcondition could not be proved on this return path, at return -1, with the related postcondition ensures index < 0 ==> target !in ids. 2 verified, 1 error."></a>
+<a href="/assets/tools/dafny/dafny-step2.webp" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-step2.webp" alt="dafny verify output with one error: line 25, a postcondition could not be proved on this return path, at return -1, with the related postcondition ensures index < 0 ==> target !in ids. 2 verified, 1 error."></a>
 
 The range errors are gone. One error is left, and it is the real bug. When the loop ends, the invariants say
 "everything before `lo` is too small, everything after `hi` is too big". With `while lo < hi`, the loop can end with
@@ -159,19 +159,19 @@ Keep looping while there is still something to check:
   while lo <= hi
 ```
 
-<a href="/assets/tools/dafny/dafny-build.png" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-build.png" alt="npm run dafny output: Dafny program verifier finished with 3 verified, 0 errors. ls generated shows search-js.dtr and search.cjs."></a>
+<a href="/assets/tools/dafny/dafny-build.webp" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-build.webp" alt="npm run dafny output: Dafny program verifier finished with 3 verified, 0 errors. ls generated shows search-js.dtr and search.cjs."></a>
 
 `0 errors` means both promises hold for every sorted list and every target, of any length.
 
 Dafny also proves that the loop always ends. Change `lo := mid + 1` to `lo := mid`, a common slip, and it says so:
 
-<a href="/assets/tools/dafny/dafny-loop.png" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-loop.png" alt="dafny verify output: line 11, cannot prove termination; try supplying a decreases clause for the loop, at while lo <= hi. 2 verified, 1 error."></a>
+<a href="/assets/tools/dafny/dafny-loop.webp" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-loop.webp" alt="dafny verify output: line 11, cannot prove termination; try supplying a decreases clause for the loop, at while lo <= hi. 2 verified, 1 error."></a>
 
 In TS that version hangs forever for some inputs. Here it does not compile.
 
 ## Step 4: compile to JavaScript and use it from TS
 
-<a href="/assets/tools/dafny/dafny-workflow.png" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-workflow.png" alt="Workflow diagram: Search.dfy with code, requires and ensures goes into dafny translate js, which verifies first and then compiles. If proved, it writes search.cjs, generated JavaScript, which ids.ts wraps with types, and your app and vitest import indexOfId as usual. If not proved, it stops with an error and no JavaScript is written."></a>
+<a href="/assets/tools/dafny/dafny-workflow.webp" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-workflow.webp" alt="Workflow diagram: Search.dfy with code, requires and ensures goes into dafny translate js, which verifies first and then compiles. If proved, it writes search.cjs, generated JavaScript, which ids.ts wraps with types, and your app and vitest import indexOfId as usual. If not proved, it stops with an error and no JavaScript is written."></a>
 
 Add a script to `package.json`:
 
@@ -225,11 +225,11 @@ test('empty list', () => {
 
 Against the old TS function, the new test fails:
 
-<a href="/assets/tools/dafny/vitest-old-fails.png" class="lightbox-trigger"><img src="/assets/tools/dafny/vitest-old-fails.png" alt="vitest output against the old TS function: finds the first and the last id fails with AssertionError expected -1 to be +0. 1 failed, 3 passed."></a>
+<a href="/assets/tools/dafny/vitest-old-fails.webp" class="lightbox-trigger"><img src="/assets/tools/dafny/vitest-old-fails.webp" alt="vitest output against the old TS function: finds the first and the last id fails with AssertionError expected -1 to be +0. 1 failed, 3 passed."></a>
 
 Against the Dafny build, all pass:
 
-<a href="/assets/tools/dafny/vitest-ok.png" class="lightbox-trigger"><img src="/assets/tools/dafny/vitest-ok.png" alt="vitest output against the Dafny build: 1 test file passed, 4 tests passed."></a>
+<a href="/assets/tools/dafny/vitest-ok.webp" class="lightbox-trigger"><img src="/assets/tools/dafny/vitest-ok.webp" alt="vitest output against the Dafny build: 1 test file passed, 4 tests passed."></a>
 
 You still keep a few tests. They check the wiring (the wrapper, the export line, the import path), not the logic.
 

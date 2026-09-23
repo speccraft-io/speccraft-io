@@ -28,7 +28,7 @@ Coyote and the rest of the wider field, see [SpecCraft vs non-TS tools](/tools/s
 The TypeScript tools we have found, placed by how the spec is written and whether
 the checker explores every state or samples.
 
-<a href="/assets/positioning-ts.png" class="lightbox-trigger"><img src="/assets/positioning-ts.png" alt="A two-by-two map of TypeScript tools: new spec language vs. plain code on one axis, exhaustive checking vs. random sampling on the other. SpecCraft sits in the plain-code, exhaustive quadrant with stifinder, pnueli and Polygraph; tla-precheck and stateproof sit near the axis as TypeScript compiled to TLA+; modality-ts, effect-machine and XState graph are just above the sampling line. tla-checker and uneffect use a spec language from TypeScript; quint-connect-ts, tla-connect and @fizzbee/mbt replay spec traces; chronos, unflake, deja-dst, cloudfault, Bombadil, fast-check and formalizr sample real code."></a>
+<a href="/assets/positioning-ts.webp" class="lightbox-trigger"><img src="/assets/positioning-ts.webp" alt="A two-by-two map of TypeScript tools: new spec language vs. plain code on one axis, exhaustive checking vs. random sampling on the other. SpecCraft sits in the plain-code, exhaustive quadrant with stifinder, pnueli and Polygraph; tla-precheck and stateproof sit near the axis as TypeScript compiled to TLA+; modality-ts, effect-machine and XState graph are just above the sampling line. tla-checker and uneffect use a spec language from TypeScript; quint-connect-ts, tla-connect and @fizzbee/mbt replay spec traces; chronos, unflake, deja-dst, cloudfault, Bombadil, fast-check and formalizr sample real code."></a>
 
 *Click to enlarge.*
 

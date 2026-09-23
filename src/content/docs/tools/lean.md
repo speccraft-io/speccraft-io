@@ -116,7 +116,7 @@ How to read it:
 
 Run `lake build`:
 
-<a href="/assets/tools/lean/lean-proof-fails.png" class="lightbox-trigger"><img src="/assets/tools/lean/lean-proof-fails.png" alt="lake build output. The two #eval lines print 4000 and -2500. Then: error at line 11, omega could not prove the goal, with a possible counterexample where a is price, c is price * percent / 100, and a - c is at most -1. The build fails."></a>
+<a href="/assets/tools/lean/lean-proof-fails.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-proof-fails.webp" alt="lake build output. The two #eval lines print 4000 and -2500. Then: error at line 11, omega could not prove the goal, with a possible counterexample where a is price, c is price * percent / 100, and a - c is at most -1. The build fails."></a>
 
 This is the useful part. Lean does not just say "no". It shows the kind of input that breaks the claim:
 
@@ -175,7 +175,7 @@ assistant. Lean checks every step, so a wrong suggestion fails the build and can
 
 `#guard` is a plain test that runs during the build. It is handy for a few examples next to the proofs.
 
-<a href="/assets/tools/lean/lean-build-ok.png" class="lightbox-trigger"><img src="/assets/tools/lean/lean-build-ok.png" alt="lake build output: all 8 jobs built, build completed successfully."></a>
+<a href="/assets/tools/lean/lean-build-ok.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-build-ok.webp" alt="lake build output: all 8 jobs built, build completed successfully."></a>
 
 A green build means all three rules hold for every whole-number input, not just the tested ones.
 
@@ -183,7 +183,7 @@ A green build means all three rules hold for every whole-number input, not just 
 
 Look at `never_more_than_price`. It needs `hCap : 0 ≤ cap`. Remove it and build again:
 
-<a href="/assets/tools/lean/lean-missing-cap.png" class="lightbox-trigger"><img src="/assets/tools/lean/lean-missing-cap.png" alt="lake build output: omega could not prove the goal, with a counterexample where d := cap and d is at most -1. The build fails."></a>
+<a href="/assets/tools/lean/lean-missing-cap.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-missing-cap.webp" alt="lake build output: omega could not prove the goal, with a counterexample where d := cap and d is at most -1. The build fails."></a>
 
 `d := cap` and `d ≤ -1`: a negative cap makes the price go up. You now know a precondition the TS function has
 today and nobody wrote down. You can clamp the cap too, or check it where the cap comes in (for example, the admin
@@ -194,7 +194,7 @@ form). This is the most common way Lean pays off in practice: it forces every hi
 The proofs are about the Lean copy. Nothing yet checks that `pricing.ts` does the same thing. The simplest bridge:
 Lean computes answers for a grid of inputs, and vitest checks the TS function against them.
 
-<a href="/assets/tools/lean/lean-workflow.png" class="lightbox-trigger"><img src="/assets/tools/lean/lean-workflow.png" alt="Workflow diagram: pricing.ts is rewritten as Pricing.lean. lake build checks the proofs for every input. lake exe discount writes cases.json with Lean's answers. vitest checks that the TS function gives the same answers."></a>
+<a href="/assets/tools/lean/lean-workflow.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-workflow.webp" alt="Workflow diagram: pricing.ts is rewritten as Pricing.lean. lake build checks the proofs for every input. lake exe discount writes cases.json with Lean's answers. vitest checks that the TS function gives the same answers."></a>
 
 A small Lean program prints the grid as JSON. It includes the tricky values: 0, negatives, just over 100:
 
@@ -236,7 +236,7 @@ test.each(cases)('applyDiscount(%i, %i, %i) is %i, as in the Lean model', (price
 
 Against the original, unclamped TS function, 77 of the 350 cases fail:
 
-<a href="/assets/tools/lean/vitest-cross-check-fails.png" class="lightbox-trigger"><img src="/assets/tools/lean/vitest-cross-check-fails.png" alt="vitest output: several failures like applyDiscount(1, -50, 0) is 1, as in the Lean model, with AssertionError expected 2 to be 1. 77 failed, 275 passed, 352 total."></a>
+<a href="/assets/tools/lean/vitest-cross-check-fails.webp" class="lightbox-trigger"><img src="/assets/tools/lean/vitest-cross-check-fails.webp" alt="vitest output: several failures like applyDiscount(1, -50, 0) is 1, as in the Lean model, with AssertionError expected 2 to be 1. 77 failed, 275 passed, 352 total."></a>
 
 `applyDiscount(1, -50, 0)` returns `2` in TS: a 1-cent item with a -50% "discount" now costs 2 cents. Apply the same
 clamp in TS:
@@ -252,7 +252,7 @@ export function applyDiscount(priceCents: number, percent: number, capCents: num
 }
 ```
 
-<a href="/assets/tools/lean/vitest-ok.png" class="lightbox-trigger"><img src="/assets/tools/lean/vitest-ok.png" alt="vitest output: 2 test files passed, 352 tests passed."></a>
+<a href="/assets/tools/lean/vitest-ok.webp" class="lightbox-trigger"><img src="/assets/tools/lean/vitest-ok.webp" alt="vitest output: 2 test files passed, 352 tests passed."></a>
 
 Commit `cases.json`. The next section shows where everything lives and how CI keeps the three parts (the TS code,
 the Lean copy, the grid) in step.

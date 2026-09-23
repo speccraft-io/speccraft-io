@@ -40,3 +40,16 @@ done
 
 "$CHROME" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
   --screenshot=bluesky-avatar.png --window-size=1000,1000 "file://$PWD/bluesky-avatar.html"
+
+# Pages load the WebP copies. For each PNG with a WebP next to it, keep the smaller of lossy and lossless.
+find . -name '*.png' | while read -r png; do
+  webp="${png%.png}.webp"
+  [ -f "$webp" ] || continue
+  cwebp -quiet -q 85 "$png" -o /tmp/render-lossy.webp
+  cwebp -quiet -lossless -z 9 "$png" -o /tmp/render-lossless.webp
+  if [ "$(stat -f%z /tmp/render-lossy.webp)" -lt "$(stat -f%z /tmp/render-lossless.webp)" ]; then
+    mv /tmp/render-lossy.webp "$webp"
+  else
+    mv /tmp/render-lossless.webp "$webp"
+  fi
+done

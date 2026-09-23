@@ -13,7 +13,7 @@ TypeScript project, see [Lean](/tools/lean), [Dafny](/tools/dafny) and [Quint](/
 
 The wider landscape, in any language, with SpecCraft for reference.
 
-<a href="/assets/positioning.png" class="lightbox-trigger"><img src="/assets/positioning.png" alt="A two-by-two map across all languages: new spec language vs. plain code on one axis, exhaustive checking vs. random sampling on the other. TLA+, Quint, Alloy, FizzBee, P and SPIN are in the spec-language, exhaustive quadrant; SpecCraft sits in the plain-code, exhaustive quadrant with Stateright, Coyote, loom and shuttle, Java PathFinder and Concuerror, and GraphWalker; FoundationDB and TigerBeetle DST, Antithesis and QuickCheck and Hypothesis are in the sampling half; quint run is the simulator."></a>
+<a href="/assets/positioning.webp" class="lightbox-trigger"><img src="/assets/positioning.webp" alt="A two-by-two map across all languages: new spec language vs. plain code on one axis, exhaustive checking vs. random sampling on the other. TLA+, Quint, Alloy, FizzBee, P and SPIN are in the spec-language, exhaustive quadrant; SpecCraft sits in the plain-code, exhaustive quadrant with Stateright, Coyote, loom and shuttle, Java PathFinder and Concuerror, and GraphWalker; FoundationDB and TigerBeetle DST, Antithesis and QuickCheck and Hypothesis are in the sampling half; quint run is the simulator."></a>
 
 *Click to enlarge.*
 
@@ -49,7 +49,7 @@ SpecCraft, TLA+, Quint, and statechart tools all check a model of it instead.
 Property-based testing sits in between: it samples a model, then drives the real implementation
 with the sampled sequence.
 
-<a href="/assets/model-vs-real-code.png" class="lightbox-trigger"><img src="/assets/model-vs-real-code.png" alt="A spectrum from 'checks a model of the system' to 'exercises the real running code'. Dedicated spec languages, statechart tools (GraphWalker), Stateright, and SpecCraft sit at the model end; property-based testing (QuickCheck, Hypothesis, proptest) bridges the middle; concurrency testers (Coyote, loom, shuttle) and whole-system simulation (DST, Antithesis) sit at the real-code end. SpecCraft sits at the model end with an arrow toward real code: conformance and inline specs."></a>
+<a href="/assets/model-vs-real-code.webp" class="lightbox-trigger"><img src="/assets/model-vs-real-code.webp" alt="A spectrum from 'checks a model of the system' to 'exercises the real running code'. Dedicated spec languages, statechart tools (GraphWalker), Stateright, and SpecCraft sit at the model end; property-based testing (QuickCheck, Hypothesis, proptest) bridges the middle; concurrency testers (Coyote, loom, shuttle) and whole-system simulation (DST, Antithesis) sit at the real-code end. SpecCraft sits at the model end with an arrow toward real code: conformance and inline specs."></a>
 
 *Click to enlarge.*
 
