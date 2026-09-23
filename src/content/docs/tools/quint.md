@@ -97,7 +97,9 @@ That gives you the `quint` command: `typecheck`, `run` (random runs, fast), `ver
 REPL. `quint verify` needs Java 17 or newer, and downloads its checker the first time. For the editor, install the
 "Quint" extension in VS Code.
 
-What runs underneath:
+## Architecture
+
+What runs underneath each `quint` command:
 
 <a href="/assets/tools/quint/quint-architecture.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-architecture.png" alt="Architecture diagram. webhook.qnt goes into the quint CLI, an npm package that runs in Node, where typecheck happens. quint run goes to the Rust evaluator in ~/.quint, with no Java, which produces random runs as ITF JSON traces. quint verify goes into the TLA+ stack, apalache.jar in ~/.quint, which needs Java 17 or newer: the Apalache server on localhost:8822 compiles Quint to TLA+, SANY parses the generated webhook.tla, then either the Apalache checker with Z3 (the default backend, checking up to --max-steps, 10 by default) or TLC (--backend tlc, every reachable state) does the check."></a>
 
