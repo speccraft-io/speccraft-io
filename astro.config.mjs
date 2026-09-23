@@ -59,7 +59,7 @@ export default defineConfig({
 				{ label: 'Formal methods market', link: '/state-of-formal-methods-market' },
 			],
 			social: [
-				{ icon: 'github', label: 'GitHub', href: 'https://github.com/speccraft-io' },
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },
 				{ icon: 'npm', label: 'npm', href: 'https://www.npmjs.com/package/@speccraft-io/core' },
 			],
 			lastUpdated: true,
