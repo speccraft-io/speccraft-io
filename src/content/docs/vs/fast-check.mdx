@@ -113,8 +113,9 @@ replay the failure.
 
 ### Fixing the bug
 
-The fix replaces the read with `claimOrder`, which sets `'charging'` only if the order is still `'unpaid'` and
-returns whether it did. Only the worker that got the claim charges:
+The fixed handler is in `webhook.fixed.ts`, a copy of `webhook.ts` with only the lines of the fix changed. It
+replaces the read with `claimOrder`, which sets `'charging'` only if the order is still `'unpaid'` and returns
+whether it did. Only the worker that got the claim charges:
 
 <CodeFix before={before} after={after} title="webhook.ts" />
 

@@ -59,6 +59,9 @@ export function write(s: State, i: number): State | null {
   if (node?.phase !== 'holding' || node.token === null) {
     return null;
   }
+  if (node.token < s.newest) {
+    return withNode(s, i, { phase: 'idle', lease: false, token: null });
+  }
   const accepted = {
     ...s,
     newest: Math.max(s.newest, node.token),

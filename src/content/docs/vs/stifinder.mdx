@@ -30,14 +30,17 @@ message, so the relay retries.
 Two rules must hold: every committed order is published, and the consumer applies each order at most once. There are
 three relays to check:
 
-- **Mark, then publish.** The relay marks the row sent before it publishes. A crash in between loses the event.
-- **Publish, then mark, no idempotency key.** Nothing is lost, but a retry or a crash after publishing delivers the
-  event twice, and the consumer applies it twice.
-- **Publish, then mark, with an idempotency key.** The consumer drops a delivery it has already applied. This is the
-  fixed relay.
+- **Mark, then publish** (`outbox.mark-first.ts`). The relay marks the row sent before it publishes. A crash in
+  between loses the event.
+- **Publish, then mark, no idempotency key** (`outbox.ts`). Nothing is lost, but a retry or a crash after publishing
+  delivers the event twice, and the consumer applies it twice.
+- **Publish, then mark, with an idempotency key** (`outbox.fixed.ts`). The consumer drops a delivery it has already
+  applied. This is the fixed relay.
 
 The state is small: the outbox row (`none`, `pending`, `sent`), the relay's phase (`idle`, `read`, `published`,
-`marked`), and how many times the consumer applied the order.
+`marked`), and how many times the consumer applied the order. Each of the three files exports the same functions:
+`initial`, `consume` (the consumer), `publishing` and `marking` (when the relay publishes and marks), and `publish` and
+`mark` (what those steps do to the state).
 
 ### Install and set up
 
@@ -62,34 +65,36 @@ A model has an `initialState`, `getEvents(state)`, `applyEvent(state, event)`, a
 
 ```ts
 // stifinder-model.ts (shortened)
-function expected(v: Variant, s: State): EventDescriptor<Event>[] {
+export type Relay = typeof import('./outbox.js');
+
+function expected(relay: Relay, s: State): EventDescriptor<Event>[] {
   if (s.outbox === 'none') {
     return [{ event: 'order service commits order and outbox row' }];
   }
   if (s.relay === 'idle' && s.outbox === 'pending') {
     return [{ event: 'relay reads row' }];
   }
-  if (publishing(v, s)) {
+  if (relay.publishing(s)) {
     return [{ event: 'relay publishes' }];
   }
-  if (marking(v, s)) {
+  if (relay.marking(s)) {
     return [{ event: 'relay marks row sent' }];
   }
   return [];
 }
 
-function faults(v: Variant, s: State): EventDescriptor<Event>[] {
+function faults(relay: Relay, s: State): EventDescriptor<Event>[] {
   return [
-    ...(publishing(v, s) ? [{ event: 'broker times out after delivery' as const, cost: ['retry'] }] : []),
+    ...(relay.publishing(s) ? [{ event: 'broker times out after delivery' as const, cost: ['retry'] }] : []),
     ...(s.relay === 'idle' ? [] : [{ event: 'relay crashes' as const, cost: ['crash'] }]),
   ];
 }
 
-export function outboxModel(v: Variant): Model<State, Event> {
+export function outboxModel(relay: Relay): Model<State, Event> {
   return {
-    initialState: initial,
-    getEvents: (s) => [...expected(v, s), ...faults(v, s)],
-    applyEvent: (s, e) => ({ to: effects[e](v, s) }),
+    initialState: relay.initial,
+    getEvents: (s) => [...expected(relay, s), ...faults(relay, s)],
+    applyEvent: (s, e) => ({ to: effects[e](relay, s) }),
     invariant: (s) => (s.applied > 1 ? { error: new Error('the order was applied twice') } : undefined),
     terminalInvariant: (s) =>
       s.applied === 0 ? { error: new Error('the committed order was never published') } : undefined,
@@ -104,7 +109,8 @@ What each part does:
 - **Cost keys.** An event can carry `cost: ['crash']` or `cost: ['retry']`. So a fault costs one deviation plus one
   unit of its own key, and the run gets a separate budget per key.
 - **`applyEvent`** returns `{ to: nextState }`. `effects` is a plain table from event name to a function that builds
-  the next state.
+  the next state; "relay publishes" and "relay marks row sent" call the relay's `publish` and `mark`.
+- **`relay`** is one of the three modules, so the same model runs on every relay.
 - **`invariant`** is checked on every state. "Applied at most once" goes here.
 - **`terminalInvariant`** is checked only on states where `getEvents` returns nothing, which is how stifinder tells an
   acceptable ending from a stuck one. "The committed order was never published" goes here: it is only a failure once
@@ -120,9 +126,13 @@ up to two crashes and two retries:
 
 ```ts
 // outbox.stifinder.test.ts (shortened)
+import * as outbox from './outbox.js';
+import * as fixedOutbox from './outbox.fixed.js';
+import * as markFirstOutbox from './outbox.mark-first.js';
+
 const faults = { crash: 2, retry: 2 };
 
-const space = await exploreIteratively(outboxModel(markThenPublish), { baseBudget: faults });
+const space = await exploreIteratively(outboxModel(markFirstOutbox), { baseBudget: faults });
 expect(space.violation?.error).toEqual(new Error('the committed order was never published'));
 expect(space.violation?.steps.map((s) => [s.event, s.index])).toEqual([
   ['order service commits order and outbox row', 0],
@@ -135,7 +145,7 @@ expect(space.violation?.badState).toEqual({ outbox: 'sent', relay: 'idle', appli
 expect(space.maxDeviationsReached).toBe(1);
 expect(space.exhaustive).toBe(false);
 
-const duplicate = await exploreIteratively(outboxModel(publishThenMark), { baseBudget: faults });
+const duplicate = await exploreIteratively(outboxModel(outbox), { baseBudget: faults });
 expect(duplicate.violation?.steps.map((s) => [s.event, s.index])).toEqual([
   ['order service commits order and outbox row', 0],
   ['relay reads row', 0],
@@ -163,7 +173,8 @@ publish again, 6 steps, `{ crash: 1, __deviations__: 1 }`.
 
 ### Fixing the bug
 
-The duplicate goes away when the consumer checks an idempotency key:
+The duplicate goes away when the consumer checks an idempotency key and drops a delivery it has already applied.
+`outbox.fixed.ts` is a copy of `outbox.ts` with only that line changed:
 
 <CodeFix before={before} after={after} title="outbox.ts" />
 
@@ -171,7 +182,7 @@ The same exploration on the fixed relay, which publishes first, then marks:
 
 ```ts
 // outbox.stifinder.test.ts (shortened)
-const fixed = await exploreIteratively(outboxModel(publishThenMarkWithKey), { baseBudget: faults });
+const fixed = await exploreIteratively(outboxModel(fixedOutbox), { baseBudget: faults });
 expect(fixed.violation).toBeNull();
 expect(fixed.exhaustive).toBe(true);
 expect(fixed.costs.size).toBe(7);

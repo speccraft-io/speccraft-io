@@ -1,7 +1,8 @@
 import * as hegel from '@hegeldev/hegel';
 import * as gs from '@hegeldev/hegel/generators';
 import { describe, expect, it } from 'vitest';
-import { FixedInventory, Inventory } from './inventory.js';
+import { Inventory } from './inventory.js';
+import { Inventory as FixedInventory } from './inventory.fixed.js';
 import type { InventoryDeps } from './inventory.js';
 
 interface Reserves {

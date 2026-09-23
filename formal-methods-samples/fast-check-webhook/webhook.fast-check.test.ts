@@ -1,7 +1,9 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { handleOrderConfirmed, handleOrderConfirmedFixed } from './webhook.js';
-import type { Deps, FixedDeps, OrderStatus } from './webhook.js';
+import { handleOrderConfirmed } from './webhook.js';
+import type { Deps, OrderStatus } from './webhook.js';
+import { handleOrderConfirmed as handleOrderConfirmedFixed } from './webhook.fixed.js';
+import type { Deps as FixedDeps } from './webhook.fixed.js';
 
 interface Db {
   status: OrderStatus;

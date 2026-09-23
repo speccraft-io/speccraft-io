@@ -141,7 +141,8 @@ It finds the oversell too, shrunk to one mug and two reservations of one.
 
 ### Fixing the bug
 
-Reject a quantity that is not a whole number of at least 1, and take the units before the save:
+The fixed class is in `inventory.fixed.ts`, a copy of `inventory.ts` with only the lines of the fix changed. It
+rejects a quantity that is not a whole number of at least 1, and takes the units before the save:
 
 <CodeFix before={before} after={after} title="inventory.ts" />
 

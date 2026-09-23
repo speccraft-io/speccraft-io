@@ -1,4 +1,10 @@
-export async function handleOrderConfirmedFixed(orderId: string, deps: FixedDeps): Promise<void> {
+export interface Deps {
+  claimOrder: (orderId: string) => Promise<boolean>;
+  chargeCard: (orderId: string) => Promise<void>;
+  setStatus: (orderId: string, status: OrderStatus) => Promise<void>;
+}
+
+export async function handleOrderConfirmed(orderId: string, deps: Deps): Promise<void> {
   const claimed = await deps.claimOrder(orderId);
   if (claimed) {
     await deps.chargeCard(orderId);

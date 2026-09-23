@@ -34,8 +34,11 @@ export interface LeaseRules {
 }
 
 export const leaseRules: LeaseRules = {
-  renew: (table, owner, token, now) => [true, { ...table, lease: { owner, token, expiresAt: now + ttl } }],
-  release: (table) => ({ ...table, lease: null }),
+  renew: (table, owner, token, now) =>
+    live(table, now)?.token === token
+      ? [true, { ...table, lease: { owner, token, expiresAt: now + ttl } }]
+      : [false, table],
+  release: (table, token) => (table.lease?.token === token ? { ...table, lease: null } : table),
 };
 
 export type Call = 'acquire' | 'renew' | 'release';

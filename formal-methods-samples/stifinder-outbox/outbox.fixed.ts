@@ -7,7 +7,7 @@ export interface State {
 export const initial: State = { outbox: 'none', relay: 'idle', applied: 0 };
 
 export function consume(applied: number): number {
-  return applied + 1;
+  return applied > 0 ? applied : applied + 1;
 }
 
 export function publishing(s: State): boolean {

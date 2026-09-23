@@ -1,7 +1,8 @@
 import { install } from '@sinonjs/fake-timers';
 import type { Clock } from '@sinonjs/fake-timers';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { Autosave, AutosaveFixed, realDeps } from './autosave.js';
+import { Autosave, realDeps } from './autosave.js';
+import { Autosave as AutosaveFixed } from './autosave.fixed.js';
 import type { AutosaveDeps } from './autosave.js';
 
 interface FakeServer {

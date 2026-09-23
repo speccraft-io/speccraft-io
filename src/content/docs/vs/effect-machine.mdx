@@ -47,12 +47,12 @@ pnpm add -D @effect/vitest@4.0.0-rc.116
 
 ### Writing the machine
 
-States and events are declared from Effect schemas, then `Machine.make(...).handle(...)` says what each event does in
-each state:
+The machine is in `checkout.ts`. States and events are declared from Effect schemas, then
+`Machine.make(...).handle(...)` says what each event does in each state:
 
 ```ts
-// checkout.effect-machine.test.ts (shortened)
-const States = Machine.state({
+// checkout.ts (shortened)
+export const States = Machine.state({
   fields: { items: Schema.Number },
   states: {
     Cart: {},
@@ -61,9 +61,9 @@ const States = Machine.state({
     Failed: {},
   },
 });
-const targets = Machine.targets(States);
+export const targets = Machine.targets(States);
 
-const Events = Machine.events({
+export const Events = Machine.events({
   AddItem: {},
   RemoveItem: {},
   Checkout: {},
@@ -72,7 +72,7 @@ const Events = Machine.events({
   PaymentFailed: { amount: Schema.Number },
 });
 
-const cart = {
+export const cart = {
   on: {
     AddItem: { update: targets.root, data: ({ root }: { root: { items: number } }) => ({ items: root.items + 1 }) },
     // RemoveItem is the same, with items - 1
@@ -83,7 +83,7 @@ const cart = {
   },
 } as const;
 
-const buggyMachine = Machine.make({ root: States, events: Events }).handle({
+export const machine = Machine.make({ root: States, events: Events }).handle({
   root: () => ({ items: 1 }),
   initial: { target: targets.root.Cart },
   states: {
@@ -164,14 +164,14 @@ docs, the machine cancels the invoke when Back leaves `PaymentPending`, so the m
 the provider has already charged the card. The planner cannot show that either.
 
 **2. The reply as a public event, current reply only.** A provider that answers through a webhook sends its reply to
-the machine as an event, `PaymentSucceeded { amount }` or `PaymentFailed { amount }`. That is `buggyMachine` above.
+the machine as an event, `PaymentSucceeded { amount }` or `PaymentFailed { amount }`. That is `machine` above.
 The test first lists the reply to the current request:
 
 ```ts
-const explored = yield* MachineTest.explore(buggyMachine, {
+const explored = yield* MachineTest.explore(machine, {
   events: ({ snapshot }) => [...userEvents(snapshot), ...currentReply(snapshot)],
   stateKey: ({ snapshot }) => JSON.stringify(snapshot),
-  invariants: [buggyInvariant],
+  invariants: [invariant],
 });
 ```
 
@@ -202,10 +202,10 @@ function inFlight(steps: readonly Step[]): number[] {
 }
 
 const error = yield* Effect.flip(
-  MachineTest.explore(buggyMachine, {
+  MachineTest.explore(machine, {
     events: ({ snapshot, trace }) => [...userEvents(snapshot), ...inFlightReplies(trace.steps)],
     stateKey: ({ snapshot, trace }) => JSON.stringify([snapshot, inFlight(trace.steps)]),
-    invariants: [buggyInvariant],
+    invariants: [invariant],
   }),
 );
 console.log(MachineTest.formatTrace(error.trace));
@@ -231,9 +231,10 @@ step shows the configuration before and after, and the last line is the invarian
 
 ### Fixing the bug
 
-The fix removes `Back` from `PaymentPending`:
+The fix removes `Back` from `PaymentPending`. The fixed machine is `checkout.fixed.ts`, a copy of `checkout.ts` with
+only this line removed:
 
-<CodeFix before={before} after={after} title="checkout.effect-machine.test.ts" />
+<CodeFix before={before} after={after} title="checkout.ts" />
 
 Back is no longer allowed while the payment is pending, so `PaymentPending` handles only the two replies.
 (Tagging each reply with a cart version and rejecting a stale one would also work.) The same exploration, with every

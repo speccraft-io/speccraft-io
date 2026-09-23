@@ -1,6 +1,8 @@
 import { checkExhaustive, checkLiveness, checkReduced } from '@botiroff/pnueli';
 import type { Result, Step } from '@botiroff/pnueli';
 import { describe, expect, it } from 'vitest';
+import * as lock from './lock.js';
+import * as fixedLock from './lock.fixed.js';
 import type { State } from './lock.js';
 import { lockSpec, n0Writes, someNodeWrites } from './lock.pnueli.js';
 
@@ -31,8 +33,8 @@ function actions(steps: readonly Step<State>[]): (string | null)[] {
 
 describe('distributed lock under pnueli', () => {
   it('finds the stale write when the store accepts any write', () => {
-    const plain = checkExhaustive(lockSpec(3, 'accepts any write', false));
-    const symmetric = checkExhaustive(lockSpec(3, 'accepts any write', true));
+    const plain = checkExhaustive(lockSpec(3, 'accepts any write', lock, false));
+    const symmetric = checkExhaustive(lockSpec(3, 'accepts any write', lock, true));
     console.log(report(plain));
     console.log(report(symmetric));
     expect(plain.ok).toBe(false);
@@ -50,9 +52,9 @@ describe('distributed lock under pnueli', () => {
 
   it('proves the fenced store never takes a stale write, with and without reductions', () => {
     const rows = [2, 3, 4].map((n) => {
-      const full = checkExhaustive(lockSpec(n, 'fencing', false));
-      const symmetric = checkExhaustive(lockSpec(n, 'fencing', true));
-      const reduced = checkReduced(lockSpec(n, 'fencing', true));
+      const full = checkExhaustive(lockSpec(n, 'fencing', fixedLock, false));
+      const symmetric = checkExhaustive(lockSpec(n, 'fencing', fixedLock, true));
+      const reduced = checkReduced(lockSpec(n, 'fencing', fixedLock, true));
       expect([full.ok, symmetric.ok, reduced.ok]).toEqual([true, true, true]);
       return { nodes: n, none: full.states, symmetry: symmetric.states, symmetryAndPor: reduced.states };
     });
@@ -65,14 +67,14 @@ describe('distributed lock under pnueli', () => {
   });
 
   it('shows some node keeps getting writes in under weak fairness', () => {
-    const result = checkLiveness(lockSpec(3, 'fencing', true), someNodeWrites);
+    const result = checkLiveness(lockSpec(3, 'fencing', fixedLock, true), someNodeWrites);
     console.log(report(result));
     expect(result.ok).toBe(true);
     expect(result.states).toBe(51);
   });
 
   it('finds that n0 can be fenced out forever', () => {
-    const result = checkLiveness(lockSpec(2, 'fencing', false), n0Writes);
+    const result = checkLiveness(lockSpec(2, 'fencing', fixedLock, false), n0Writes);
     console.log(report(result));
     expect(result.ok).toBe(false);
     expect(result.violation?.kind).toBe('liveness');

@@ -1,43 +1,9 @@
 import { describe, expect, it } from '@effect/vitest';
 import { Machine } from '@typeonce/effect-machine';
 import { MachineTest } from '@typeonce/effect-machine/testing';
-import { Effect, Option, Schema } from 'effect';
-
-const price = 10;
-
-const States = Machine.state({
-  fields: { items: Schema.Number },
-  states: {
-    Cart: {},
-    PaymentPending: { fields: { amount: Schema.Number } },
-    Paid: { fields: { amount: Schema.Number } },
-    Failed: {},
-  },
-});
-const targets = Machine.targets(States);
-
-const Events = Machine.events({
-  AddItem: {},
-  RemoveItem: {},
-  Checkout: {},
-  Back: {},
-  PaymentSucceeded: { amount: Schema.Number },
-  PaymentFailed: { amount: Schema.Number },
-});
-
-const cart = {
-  on: {
-    AddItem: { update: targets.root, data: ({ root }: { root: { items: number } }) => ({ items: root.items + 1 }) },
-    RemoveItem: {
-      update: targets.root,
-      data: ({ root }: { root: { items: number } }) => ({ items: root.items - 1 }),
-    },
-    Checkout: {
-      target: targets.root.PaymentPending,
-      data: ({ root }: { root: { items: number } }) => ({ amount: root.items * price }),
-    },
-  },
-} as const;
+import { Effect, Option } from 'effect';
+import { cart, Events, machine, price, States, targets } from './checkout.js';
+import { machine as fixedMachine } from './checkout.fixed.js';
 
 const invokeMachine = Machine.make({
   root: States,
@@ -61,41 +27,8 @@ const invokeMachine = Machine.make({
   },
 });
 
-const buggyMachine = Machine.make({ root: States, events: Events }).handle({
-  root: () => ({ items: 1 }),
-  initial: { target: targets.root.Cart },
-  states: {
-    Cart: cart,
-    PaymentPending: {
-      on: {
-        Back: { target: targets.root.Cart },
-        PaymentSucceeded: { target: targets.root.Paid, data: ({ event }) => ({ amount: event.amount }) },
-        PaymentFailed: { target: targets.root.Failed },
-      },
-    },
-    Paid: {},
-    Failed: {},
-  },
-});
-
-const fixedMachine = Machine.make({ root: States, events: Events }).handle({
-  root: () => ({ items: 1 }),
-  initial: { target: targets.root.Cart },
-  states: {
-    Cart: cart,
-    PaymentPending: {
-      on: {
-        PaymentSucceeded: { target: targets.root.Paid, data: ({ event }) => ({ amount: event.amount }) },
-        PaymentFailed: { target: targets.root.Failed },
-      },
-    },
-    Paid: {},
-    Failed: {},
-  },
-});
-
 type Snapshot = Machine.Snapshot<typeof States>;
-type Event = Machine.Machine.InputEvent<typeof buggyMachine>;
+type Event = Machine.Machine.InputEvent<typeof machine>;
 
 interface Step {
   readonly event: Event;
@@ -155,7 +88,7 @@ function inFlightReplies(steps: readonly Step[]): Event[] {
 const invokeInvariant = MachineTest.invariants(invokeMachine).state('the paid amount matches the cart', ({ snapshot }) =>
   paidMatchesCart(snapshot),
 );
-const buggyInvariant = MachineTest.invariants(buggyMachine).state('the paid amount matches the cart', ({ snapshot }) =>
+const invariant = MachineTest.invariants(machine).state('the paid amount matches the cart', ({ snapshot }) =>
   paidMatchesCart(snapshot),
 );
 const fixedInvariant = MachineTest.invariants(fixedMachine).state('the paid amount matches the cart', ({ snapshot }) =>
@@ -182,10 +115,10 @@ describe('checkout under effect-machine', () => {
 
   it.effect('passes when only the reply to the current request is sent', () =>
     Effect.gen(function* () {
-      const explored = yield* MachineTest.explore(buggyMachine, {
+      const explored = yield* MachineTest.explore(machine, {
         events: ({ snapshot }) => [...userEvents(snapshot), ...currentReply(snapshot)],
         stateKey: ({ snapshot }) => JSON.stringify(snapshot),
-        invariants: [buggyInvariant],
+        invariants: [invariant],
       });
       console.log(explored.stats, explored.completeness._tag);
       console.log(explored.transitionCoverage.definitions.hit, '/', explored.transitionCoverage.definitions.total);
@@ -197,10 +130,10 @@ describe('checkout under effect-machine', () => {
   it.effect('finds the stale reply when every reply still in flight is sent', () =>
     Effect.gen(function* () {
       const error = yield* Effect.flip(
-        MachineTest.explore(buggyMachine, {
+        MachineTest.explore(machine, {
           events: ({ snapshot, trace }) => [...userEvents(snapshot), ...inFlightReplies(trace.steps)],
           stateKey: ({ snapshot, trace }) => JSON.stringify([snapshot, inFlight(trace.steps)]),
-          invariants: [buggyInvariant],
+          invariants: [invariant],
         }),
       );
       expect(error._tag).toBe('MachineTestInvariantError');

@@ -1,12 +1,14 @@
+export type OrderStatus = 'unpaid' | 'charging' | 'paid';
+
 export interface Deps {
-  getStatus: (orderId: string) => Promise<OrderStatus>;
+  claimOrder: (orderId: string) => Promise<boolean>;
   chargeCard: (orderId: string) => Promise<void>;
   setStatus: (orderId: string, status: OrderStatus) => Promise<void>;
 }
 
 export async function handleOrderConfirmed(orderId: string, deps: Deps): Promise<void> {
-  const status = await deps.getStatus(orderId);
-  if (status === 'unpaid') {
+  const claimed = await deps.claimOrder(orderId);
+  if (claimed) {
     await deps.chargeCard(orderId);
     await deps.setStatus(orderId, 'paid');
   }

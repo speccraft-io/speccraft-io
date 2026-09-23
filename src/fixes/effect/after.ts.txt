@@ -1,7 +1,7 @@
 export const leaseRules: LeaseRules = {
-  renew: (table, _owner, token, now) => {
-    const lease = live(table, now);
-    return lease?.token === token ? [true, { ...table, lease: { ...lease, expiresAt: now + ttl } }] : [false, table];
-  },
+  renew: (table, owner, token, now) =>
+    live(table, now)?.token === token
+      ? [true, { ...table, lease: { owner, token, expiresAt: now + ttl } }]
+      : [false, table],
   release: (table, token) => (table.lease?.token === token ? { ...table, lease: null } : table),
 };

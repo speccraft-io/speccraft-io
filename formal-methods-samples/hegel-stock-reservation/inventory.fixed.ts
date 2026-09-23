@@ -17,11 +17,11 @@ export class Inventory {
   }
 
   async reserve(sku: string, quantity: number): Promise<string | null> {
-    if (quantity > (this.stock[sku] ?? 0)) {
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > (this.stock[sku] ?? 0)) {
       return null;
     }
-    const id = await this.deps.saveReservation({ sku, quantity });
     this.stock[sku] = (this.stock[sku] ?? 0) - quantity;
+    const id = await this.deps.saveReservation({ sku, quantity });
     return id;
   }
 }

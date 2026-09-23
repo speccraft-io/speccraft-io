@@ -27,6 +27,7 @@ export class Autosave {
   savedText = '';
   status: SaveStatus = 'saved';
   private cancelTimer: (() => void) | undefined;
+  private inFlight = false;
   private readonly deps: AutosaveDeps;
 
   constructor(deps: AutosaveDeps = realDeps) {
@@ -44,7 +45,11 @@ export class Autosave {
   }
 
   flush(): void {
+    if (this.inFlight) {
+      return;
+    }
     const text = this.text;
+    this.inFlight = true;
     this.status = 'saving';
     this.deps.save(text).then(
       () => {
@@ -52,13 +57,18 @@ export class Autosave {
       },
       (error: unknown) => {
         console.error(error);
+        this.inFlight = false;
         this.status = 'unsaved';
       },
     );
   }
 
   onSaved(text: string): void {
+    this.inFlight = false;
     this.savedText = text;
     this.status = this.text === text ? 'saved' : 'unsaved';
+    if (this.text !== text && this.cancelTimer === undefined) {
+      this.flush();
+    }
   }
 }

@@ -1,41 +1,42 @@
 import { stateKey } from '@botiroff/pnueli';
 import type { Action, Invariant, Spec } from '@botiroff/pnueli';
-import { acquire, expire, init, release, write } from './lock.js';
-import type { State, Store } from './lock.js';
+import type { State } from './lock.js';
+
+export type Lock = typeof import('./lock.js');
 
 function step(next: State | null): State[] {
   return next === null ? [] : [next];
 }
 
-function nodeActions(i: number, n: number, store: Store): Action<State>[] {
+function nodeActions(i: number, n: number, lock: Lock): Action<State>[] {
   return [
     {
       name: `n${i} acquires lock`,
       process: i,
       reads: ['nodes', 'epoch'],
       writes: ['nodes', 'epoch'],
-      step: (s) => step(acquire(s, i)),
+      step: (s) => step(lock.acquire(s, i)),
     },
     {
       name: `n${i} writes`,
       process: i,
       reads: ['nodes', 'newest', 'stale'],
       writes: ['nodes', 'newest', 'stale'],
-      step: (s) => step(write(s, i, store)),
+      step: (s) => step(lock.write(s, i)),
     },
     {
       name: `n${i} releases lock`,
       process: i,
       reads: ['nodes'],
       writes: ['nodes'],
-      step: (s) => step(release(s, i)),
+      step: (s) => step(lock.release(s, i)),
     },
     {
       name: `lease of n${i} expires`,
       process: n,
       reads: ['nodes'],
       writes: ['nodes'],
-      step: (s) => step(expire(s, i)),
+      step: (s) => step(lock.expire(s, i)),
     },
   ];
 }
@@ -62,12 +63,12 @@ export const someNodeWrites: Invariant<State> = {
   holds: (s) => s.nodes.some((node) => node.phase === 'wrote'),
 };
 
-export function lockSpec(n: number, store: Store, symmetry: boolean): Spec<State> {
+export function lockSpec(n: number, store: string, lock: Lock, symmetry: boolean): Spec<State> {
   return {
     name: `lock, ${n} nodes, store ${store}${symmetry ? ', symmetry' : ''}`,
     processes: n + 1,
-    init: [init(n)],
-    actions: Array.from({ length: n }, (_, i) => nodeActions(i, n, store)).flat(),
+    init: [lock.init(n)],
+    actions: Array.from({ length: n }, (_, i) => nodeActions(i, n, lock)).flat(),
     invariants: [noStaleWrite],
     ...(symmetry ? { symmetry: sortNodes } : {}),
   };

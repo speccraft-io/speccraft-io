@@ -1,4 +1,4 @@
-export function write(s: State, i: number, store: Store): State | null {
+export function write(s: State, i: number): State | null {
   const node = s.nodes[i];
   if (node?.phase !== 'holding' || node.token === null) {
     return null;

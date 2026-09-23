@@ -54,7 +54,7 @@ plain Redis lock: renew sets the lease to the caller, release deletes it.
 
 ```ts
 // lease.ts (shortened)
-export const setAndDelete: LeaseRules = {
+export const leaseRules: LeaseRules = {
   renew: (table, owner, token, now) => [true, { ...table, lease: { owner, token, expiresAt: now + ttl } }],
   release: (table) => ({ ...table, lease: null }),
 };
@@ -131,7 +131,7 @@ const sameLatency = (): Duration.Input => '100 millis';
 
 it.effect('cancelling while a renewal is in flight releases the lease', () =>
   Effect.gen(function* () {
-    expect(yield* leaseAfterCancel(setAndDelete, sameLatency, '20250 millis')).toBeNull();
+    expect(yield* leaseAfterCancel(leaseRules, sameLatency, '20250 millis')).toBeNull();
   }),
 );
 ```
@@ -141,8 +141,8 @@ it.effect('cancelling while a renewal is in flight releases the lease', () =>
 The real output, against the buggy server:
 
 ```text
- ✓ examples/job-lease/lease.effect.test.ts > job lease under Effect > cancelling the job releases its lease 5ms
- ✓ examples/job-lease/lease.effect.test.ts > job lease under Effect > cancelling while a renewal is in flight releases the lease 1ms
+ ✓ lease.effect.test.ts > job lease under Effect > cancelling the job releases its lease 4ms
+ ✓ lease.effect.test.ts > job lease under Effect > cancelling while a renewal is in flight releases the lease 1ms
 ```
 
 It passes, and the bug is there. At 20.25 seconds a renewal sent at 20.2 is in flight; it lands at 20.3 and the
@@ -158,7 +158,7 @@ const slowRenewal = (call: Call): Duration.Input => (call === 'renew' ? '2 secon
 Written with `toBeNull()`, that test gives, shortened:
 
 ```text
- FAIL  examples/job-lease/lease.effect.test.ts > job lease under Effect > a renewal slower than the release revives the lease
+ FAIL  lease.effect.test.ts > job lease under Effect > a renewal slower than the release revives the lease
 AssertionError: expected { owner: 'w1', token: 1, …(1) } to be null
 
 - Expected:
@@ -179,17 +179,17 @@ the revived lease.
 ### Fixing the bug
 
 The fix is on the server side, a token: acquire hands one out, and renew and release act only if the lease still
-carries it.
+carries it. The fixed server is `lease.fixed.ts`, a copy of `lease.ts` with only these lines changed:
 
 <CodeFix before={before} after={after} title="lease.ts" />
 
-The same slow-renewal test with `tokenChecked` expects `toBeNull()`, and the whole file passes:
+The same slow-renewal test against `lease.fixed.ts` expects `toBeNull()`, and the whole file passes:
 
 ```text
- ✓ examples/job-lease/lease.effect.test.ts > job lease under Effect > cancelling the job releases its lease 4ms
- ✓ examples/job-lease/lease.effect.test.ts > job lease under Effect > cancelling while a renewal is in flight releases the lease 1ms
- ✓ examples/job-lease/lease.effect.test.ts > job lease under Effect > a renewal slower than the release revives the lease 1ms
- ✓ examples/job-lease/lease.effect.test.ts > job lease under Effect > with token checks the slow renewal is rejected 1ms
+ ✓ lease.effect.test.ts > job lease under Effect > cancelling the job releases its lease 4ms
+ ✓ lease.effect.test.ts > job lease under Effect > cancelling while a renewal is in flight releases the lease 1ms
+ ✓ lease.effect.test.ts > job lease under Effect > a renewal slower than the release revives the lease 1ms
+ ✓ lease.effect.test.ts > job lease under Effect > with token checks the slow renewal is rejected 1ms
 ```
 
 No test was written for the expiry case, where the late renewal takes the lease from a second worker.

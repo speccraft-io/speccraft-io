@@ -2,7 +2,8 @@ import { describe, expect, it } from '@effect/vitest';
 import { Effect, Fiber, Ref } from 'effect';
 import type { Duration } from 'effect';
 import { TestClock } from 'effect/testing';
-import { emptyTable, leaseClient, runJob, setAndDelete, tokenChecked } from './lease.js';
+import { emptyTable, leaseClient, leaseRules, runJob } from './lease.js';
+import { leaseRules as fixedLeaseRules } from './lease.fixed.js';
 import type { Call, Lease, LeaseRules } from './lease.js';
 
 function leaseAfterCancel(
@@ -27,19 +28,19 @@ const slowRenewal = (call: Call): Duration.Input => (call === 'renew' ? '2 secon
 describe('job lease under Effect', () => {
   it.effect('cancelling the job releases its lease', () =>
     Effect.gen(function* () {
-      expect(yield* leaseAfterCancel(setAndDelete, sameLatency, '25 seconds')).toBeNull();
+      expect(yield* leaseAfterCancel(leaseRules, sameLatency, '25 seconds')).toBeNull();
     }),
   );
 
   it.effect('cancelling while a renewal is in flight releases the lease', () =>
     Effect.gen(function* () {
-      expect(yield* leaseAfterCancel(setAndDelete, sameLatency, '20250 millis')).toBeNull();
+      expect(yield* leaseAfterCancel(leaseRules, sameLatency, '20250 millis')).toBeNull();
     }),
   );
 
   it.effect('a renewal slower than the release revives the lease', () =>
     Effect.gen(function* () {
-      expect(yield* leaseAfterCancel(setAndDelete, slowRenewal, '23 seconds')).toEqual({
+      expect(yield* leaseAfterCancel(leaseRules, slowRenewal, '23 seconds')).toEqual({
         owner: 'w1',
         token: 1,
         expiresAt: 54_100,
@@ -49,7 +50,7 @@ describe('job lease under Effect', () => {
 
   it.effect('with token checks the slow renewal is rejected', () =>
     Effect.gen(function* () {
-      expect(yield* leaseAfterCancel(tokenChecked, slowRenewal, '23 seconds')).toBeNull();
+      expect(yield* leaseAfterCancel(fixedLeaseRules, slowRenewal, '23 seconds')).toBeNull();
     }),
   );
 });

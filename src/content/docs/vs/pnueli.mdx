@@ -46,17 +46,15 @@ Everything comes from one entry point: the `Spec`, `Action` and `Invariant` type
 ### Writing the spec
 
 The transitions live in a plain file, `lock.ts`. Each function takes a state and returns the next one, or `null`
-when the step does not apply. The write step is the whole bug and the whole fix:
+when the step does not apply. The write step is where the bug is: the storage accepts every write, whatever its
+token:
 
 ```ts
 // lock.ts (shortened)
-export function write(s: State, i: number, store: Store): State | null {
+export function write(s: State, i: number): State | null {
   const node = s.nodes[i];
   if (node?.phase !== 'holding' || node.token === null) {
     return null;
-  }
-  if (store === 'fencing' && node.token < s.newest) {
-    return withNode(s, i, { phase: 'idle', lease: false, token: null });
   }
   const accepted = {
     ...s,
@@ -73,29 +71,32 @@ after the check. The lease expiring is its own action, so it can happen at any p
 space finite even though nodes take the lock again and again. So `t0` is the oldest token still in play, not a fixed
 number.
 
-The pnueli spec wraps these functions in actions:
+The pnueli spec wraps these functions in actions. It takes the module as an argument, so the same spec runs on
+`lock.ts` and on the fixed copy, `lock.fixed.ts`:
 
 ```ts
 // lock.pnueli.ts (shortened)
+export type Lock = typeof import('./lock.js');
+
 function step(next: State | null): State[] {
   return next === null ? [] : [next];
 }
 
-function nodeActions(i: number, n: number, store: Store): Action<State>[] {
+function nodeActions(i: number, n: number, lock: Lock): Action<State>[] {
   return [
     {
       name: `n${i} acquires lock`,
       process: i,
       reads: ['nodes', 'epoch'],
       writes: ['nodes', 'epoch'],
-      step: (s) => step(acquire(s, i)),
+      step: (s) => step(lock.acquire(s, i)),
     },
     {
       name: `n${i} writes`,
       process: i,
       reads: ['nodes', 'newest', 'stale'],
       writes: ['nodes', 'newest', 'stale'],
-      step: (s) => step(write(s, i, store)),
+      step: (s) => step(lock.write(s, i)),
     },
     // n${i} releases lock, on process i
     // lease of n${i} expires, on process n (the clock)
@@ -112,12 +113,12 @@ export const noStaleWrite: Invariant<State> = {
   holds: (s) => !s.stale,
 };
 
-export function lockSpec(n: number, store: Store, symmetry: boolean): Spec<State> {
+export function lockSpec(n: number, store: string, lock: Lock, symmetry: boolean): Spec<State> {
   return {
     name: `lock, ${n} nodes, store ${store}${symmetry ? ', symmetry' : ''}`,
     processes: n + 1,
-    init: [init(n)],
-    actions: Array.from({ length: n }, (_, i) => nodeActions(i, n, store)).flat(),
+    init: [lock.init(n)],
+    actions: Array.from({ length: n }, (_, i) => nodeActions(i, n, lock)).flat(),
     invariants: [noStaleWrite],
     ...(symmetry ? { symmetry: sortNodes } : {}),
   };
@@ -136,6 +137,8 @@ What each part does:
   wrong without any error.
 - **`symmetry`** maps a state to a canonical one. The nodes are interchangeable, so `sortNodes` sorts them by
   `stateKey`, and two states that differ only by which node is which count as one.
+- **`lock`** is the module with the transitions, `lock.ts` or `lock.fixed.ts`. `store` is only a label for the
+  output.
 - **Invariants** have a `name`, their own `reads`, and `holds`. The same shape is used for the liveness goals below:
   "n0 gets a write in" and "some node gets a write in".
 
@@ -147,10 +150,13 @@ under weak fairness.
 
 ```ts
 // lock.pnueli.test.ts (shortened)
-checkExhaustive(lockSpec(3, 'accepts any write', false));
-checkExhaustive(lockSpec(3, 'accepts any write', true));
-checkLiveness(lockSpec(3, 'fencing', true), someNodeWrites);
-checkLiveness(lockSpec(2, 'fencing', false), n0Writes);
+import * as lock from './lock.js';
+import * as fixedLock from './lock.fixed.js';
+
+checkExhaustive(lockSpec(3, 'accepts any write', lock, false));
+checkExhaustive(lockSpec(3, 'accepts any write', lock, true));
+checkLiveness(lockSpec(3, 'fencing', fixedLock, true), someNodeWrites);
+checkLiveness(lockSpec(2, 'fencing', fixedLock, false), n0Writes);
 ```
 
 Each call returns a result with `ok`, `states`, and a `violation` with a `trace` (and a `cycle` for liveness). The
@@ -183,11 +189,12 @@ up with the names in the actions.
 
 ### Fixing the bug
 
-The fix is one branch in the write rule: a fencing store rejects a write that carries an older token.
+The fix is one branch in the write rule: the storage rejects a write that carries an older token than the newest one
+it took. `lock.fixed.ts` is a copy of `lock.ts` with only that branch added.
 
 <CodeFix before={before} after={after} title="lock.ts" />
 
-With `'fencing'` the invariant holds. States visited to prove it, with no reduction, with symmetry, and with symmetry
+With `lock.fixed.ts` the invariant holds. States visited to prove it, with no reduction, with symmetry, and with symmetry
 plus partial-order reduction (`checkReduced`):
 
 ```text
