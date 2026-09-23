@@ -125,8 +125,8 @@ invariant holds in every one of them.
 
 ### What each run tells you
 
-- **Both find this bug.** fast-check finds it on its first run, because every order of these calls breaks the rule.
-  A bug that needs one rare order is where sampling and full search start to differ.
+- **fast-check finds this bug just as easily as SpecCraft does.** It fails on the first run, because every order of
+  these calls breaks the rule. This example does not show where full search beats sampling.
 - **fast-check tested the real handler.** The SpecCraft check above covers the design, written as a spec. To check
   the real handler's `await`s, SpecCraft uses an inline spec on the real class, where the explorer delivers each async
   reply in every order (see the cart example in the
@@ -135,6 +135,11 @@ invariant holds in every one of them.
   all 12 reachable states were checked.
 - **The trace reads differently.** fast-check reports the order in which calls resolved; SpecCraft reports steps
   named in the spec.
+
+:::note[To do]
+A second example with a bug that only one rare order triggers, where sampling can miss it, and the SpecCraft side run
+on the real handler with an inline spec instead of a separate model.
+:::
 
 ### How to start
 
