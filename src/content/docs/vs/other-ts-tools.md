@@ -13,6 +13,7 @@ Tools that check something SpecCraft does not, and fit into the same test suite.
 
 | Tool | What it checks | Traction | With SpecCraft |
 |---|---|---|---|
+| [Fake timers](https://github.com/sinonjs/fake-timers) (`@sinonjs/fake-timers`, behind `vi.useFakeTimers` and `jest.useFakeTimers`) | Replace timers and `Date` with a clock the test moves, so async code runs the same way every time | 249M/mo | One order of events per test, picked by its author. In the [autosave example](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/autosave), three fake-timer tests pass on the buggy code; SpecCraft finds a stale save in 6 steps. A SpecCraft trace can be pinned as a fake-timer test |
 | [Stryker](https://github.com/stryker-mutator/stryker-js) | Mutation testing: whether your tests catch small injected bugs | 9.1M/mo | Measures the strength of any suite, including a conformance run |
 | [Pact](https://github.com/pact-foundation/pact-js) | Consumer-driven contracts: request and response pairs between services | 2.1M/mo | Pact checks each interaction at a boundary; SpecCraft checks the order of interactions |
 | [msw](https://github.com/mswjs/msw) | Network mocking with scripted responses | 75M/mo | A natural way to hand the explorer control of replies in real code |

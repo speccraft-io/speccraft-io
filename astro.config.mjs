@@ -8,6 +8,7 @@ export default defineConfig({
 	site: 'https://speccraft.io',
 	redirects: {
 		'/state-of-formal-methods-market': '/market/',
+		'/vs/fake-timers': '/vs/other-ts-tools',
 	},
 	markdown: {
 		// External links (anything with a protocol, e.g. https://) open in a new tab;
@@ -64,7 +65,6 @@ export default defineConfig({
 					label: 'Other TypeScript Tools',
 					items: [
 						{ label: 'Overview', link: '/how-speccraft-compares' },
-						{ label: 'Fake timers', link: '/vs/fake-timers' },
 						{ label: 'fast-check', link: '/vs/fast-check' },
 						{ label: 'Effect', link: '/vs/effect' },
 						{ label: 'Bombadil', link: '/vs/bombadil' },
