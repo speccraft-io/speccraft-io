@@ -72,6 +72,10 @@ export default defineConfig({
 						{ label: 'effect-machine', link: '/vs/effect-machine' },
 						{ label: 'Bombadil', link: '/vs/bombadil' },
 						{ label: 'fast-check', link: '/vs/fast-check' },
+						{ label: 'Hegel', link: '/vs/hegel' },
+						{ label: 'Effect', link: '/vs/effect' },
+						{ label: 'Fake timers', link: '/vs/fake-timers' },
+						{ label: 'Other TS tools', link: '/vs/other-ts-tools' },
 					],
 				},
 				{
