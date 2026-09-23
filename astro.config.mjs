@@ -68,6 +68,17 @@ export default defineConfig({
 						{ label: 'pnueli', link: '/vs/pnueli' },
 						{ label: 'Polygraph', link: '/vs/polygraph' },
 						{ label: 'tla-precheck', link: '/vs/tla-precheck' },
+						{ label: 'stifinder', link: '/vs/stifinder' },
+						{ label: 'effect-machine', link: '/vs/effect-machine' },
+						{ label: 'Bombadil', link: '/vs/bombadil' },
+					],
+				},
+				{
+					label: 'Try the tools',
+					items: [
+						{ label: 'Lean', link: '/tools/lean' },
+						{ label: 'Dafny', link: '/tools/dafny' },
+						{ label: 'Quint', link: '/tools/quint' },
 					],
 				},
 				{ label: 'Formal methods market', link: '/state-of-formal-methods-market' },

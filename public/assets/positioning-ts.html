@@ -23,16 +23,16 @@
   <rect width="1200" height="900" fill="url(#glow)"/>
 
   <!-- title -->
-  <text x="80" y="64" font-size="30" font-weight="700" fill="#ffffff">All languages</text>
-  <text x="80" y="94" font-size="16" fill="#9a94ad">The wider landscape, in any language</text>
+  <text x="80" y="64" font-size="30" font-weight="700" fill="#ffffff">TypeScript tools</text>
+  <text x="80" y="94" font-size="16" fill="#9a94ad">Where SpecCraft sits among the tools a TypeScript team can use</text>
 
   <!-- plot area: x 140..1120, y 140..790 -->
 
   <!-- quadrant zone labels -->
-  <text x="170" y="180" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1">SPEC LANGUAGES + INDUSTRIAL CHECKERS</text>
+  <text x="170" y="180" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1">SPEC LANGUAGES, USED FROM TS</text>
   <text x="1090" y="180" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1" text-anchor="end">MODEL CHECKER AS A LIBRARY</text>
-  <text x="1090" y="760" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1" text-anchor="end">PROPERTY-BASED TESTING</text>
-  <text x="170" y="760" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1">SIMULATORS</text>
+  <text x="1090" y="760" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1" text-anchor="end">SAMPLING, REAL CODE</text>
+  <text x="170" y="760" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1">SPEC-TRACE REPLAY</text>
 
   <!-- axes -->
   <line x1="140" y1="465" x2="1120" y2="465" stroke="#332e47" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
@@ -46,37 +46,43 @@
 
   <!-- competitor dots: neutral ink, labels in text tokens -->
   <g fill="#8b86a0">
-    <circle cx="235" cy="235" r="8"/>
-    <circle cx="470" cy="200" r="8"/>
-    <circle cx="215" cy="320" r="8"/>
-    <circle cx="368" cy="300" r="8"/>
-    <circle cx="425" cy="345" r="8"/>
-    <circle cx="188" cy="378" r="8"/>
-    <circle cx="760" cy="225" r="8"/>
+    <circle cx="760" cy="240" r="8"/>
+    <circle cx="672" cy="290" r="8"/>
+    <circle cx="672" cy="335" r="8"/>
     <circle cx="1060" cy="345" r="8"/>
-    <circle cx="700" cy="385" r="8"/>
-    <circle cx="912" cy="655" r="8"/>
-    <circle cx="1035" cy="600" r="8"/>
+    <circle cx="880" cy="375" r="8"/>
+    <circle cx="730" cy="395" r="8"/>
+    <circle cx="715" cy="423" r="8"/>
+    <circle cx="700" cy="451" r="8"/>
+    <circle cx="235" cy="250" r="8"/>
+    <circle cx="290" cy="330" r="8"/>
+    <circle cx="250" cy="590" r="8"/>
+    <circle cx="290" cy="650" r="8"/>
     <circle cx="1060" cy="545" r="8"/>
-    <circle cx="330" cy="640" r="8"/>
-    <circle cx="720" cy="430" r="8"/>
+    <circle cx="1035" cy="600" r="8"/>
+    <circle cx="700" cy="610" r="8"/>
+    <circle cx="912" cy="655" r="8"/>
+    <circle cx="780" cy="705" r="8"/>
   </g>
 
   <g font-size="16" fill="#d6d2e0">
-    <text x="252" y="240">TLA+ / TLC / Apalache</text>
-    <text x="487" y="205">Quint</text>
-    <text x="232" y="325">Alloy</text>
-    <text x="385" y="305">FizzBee</text>
-    <text x="442" y="350">P (AWS)</text>
-    <text x="205" y="383">SPIN</text>
-    <text x="777" y="230">Stateright (Rust)</text>
-    <text x="1043" y="350" text-anchor="end">Coyote / loom / shuttle</text>
-    <text x="717" y="390">Java PathFinder / Concuerror</text>
-    <text x="929" y="660">QuickCheck / Hypothesis</text>
-    <text x="1052" y="605">Antithesis (closed)</text>
-    <text x="1043" y="550" text-anchor="end">FoundationDB / TigerBeetle DST</text>
-    <text x="347" y="645">quint run (simulator)</text>
-    <text x="737" y="435">GraphWalker (statecharts)</text>
+    <text x="777" y="245">stifinder</text>
+    <text x="689" y="295">tla-precheck (TS DSL to TLA+)</text>
+    <text x="689" y="340" fill="#79738c">stateproof (TS to TLA+)</text>
+    <text x="1043" y="350" text-anchor="end">pnueli</text>
+    <text x="897" y="380">Polygraph (spec by LLM)</text>
+    <text x="747" y="400">modality-ts (React)</text>
+    <text x="732" y="428">effect-machine</text>
+    <text x="717" y="456">XState graph</text>
+    <text x="252" y="255">tla-checker (TLC in Wasm)</text>
+    <text x="307" y="335">uneffect (TS comments to Quint)</text>
+    <text x="267" y="595">quint-connect-ts</text>
+    <text x="307" y="655">tla-connect / @fizzbee/mbt</text>
+    <text x="1043" y="550" text-anchor="end">chronos / unflake / deja-dst</text>
+    <text x="1052" y="605">cloudfault</text>
+    <text x="717" y="615">Bombadil (real UIs)</text>
+    <text x="929" y="660">fast-check</text>
+    <text x="797" y="710">formalizr (model vs code)</text>
   </g>
 
   <!-- SpecCraft -->
