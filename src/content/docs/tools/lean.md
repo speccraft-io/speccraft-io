@@ -411,3 +411,5 @@ You do not get:
 - [Functional Programming in Lean](https://lean-lang.org/functional_programming_in_lean/): the book for programmers,
   not mathematicians.
 - [Theorem Proving in Lean 4](https://lean-lang.org/theorem_proving_in_lean4/)
+- [Lean4 and the Curry-Howard Isomorphism](https://www.youtube.com/watch?v=Sy_4z751YWI), a talk by Luis Wirth: why a
+  proof in Lean is a program, and a rule is a type.
