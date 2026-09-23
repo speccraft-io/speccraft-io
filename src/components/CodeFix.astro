@@ -1,6 +1,7 @@
 ---
-// Shows a fix three ways: the code before, a line diff, and the code after. Opens on the diff.
-// The diff is computed at build time, so only the two versions are written by hand.
+// Shows a fix three ways: the code before, a diff, and the code after. Opens on the diff.
+// The diff has three styles the reader can pick, remembered across pages:
+// side by side (Mergely), unified (Expressive Code, computed at build time), and VS Code (Monaco, loaded on demand).
 import { Code } from '@astrojs/starlight/components';
 import { diffLines } from 'diff';
 
@@ -15,61 +16,231 @@ const { before, after, lang = 'ts', title } = Astro.props;
 
 const trimmed = (text: string) => text.replace(/\s+$/, '') + '\n';
 
-const diff = diffLines(trimmed(before), trimmed(after))
+const unified = diffLines(trimmed(before), trimmed(after))
 	.flatMap((part) => {
 		const marker = part.added ? '+' : part.removed ? '-' : ' ';
 		return part.value.replace(/\n$/, '').split('\n').map((line) => marker + line);
 	})
 	.join('\n');
 
-const views = [
-	{ id: 'before', label: 'Before', code: trimmed(before), lang, meta: title ? `title="${title}"` : '' },
-	{ id: 'diff', label: 'Diff', code: diff, lang: 'diff', meta: `lang="${lang}"${title ? ` title="${title}"` : ''}` },
-	{ id: 'after', label: 'After', code: trimmed(after), lang, meta: title ? `title="${title}"` : '' },
-];
+const titleMeta = title ? ` title="${title}"` : '';
+const lines = Math.max(trimmed(before).split('\n').length, trimmed(after).split('\n').length);
+const height = `${Math.min(40, lines) * 19 + 16}px`;
 ---
 
 <div class="code-fix" data-code-fix>
-	<div class="code-fix-tabs" role="tablist" aria-label="Code before and after the fix">
-		{
-			views.map((view) => (
-				<button type="button" role="tab" data-view={view.id} aria-selected={view.id === 'diff' ? 'true' : 'false'}>
-					{view.label}
-				</button>
-			))
-		}
+	<div class="code-fix-bar">
+		<div class="code-fix-tabs" role="tablist" aria-label="Code before and after the fix">
+			<button type="button" role="tab" data-view="before" aria-selected="false">Before</button>
+			<button type="button" role="tab" data-view="diff" aria-selected="true">Diff</button>
+			<button type="button" role="tab" data-view="after" aria-selected="false">After</button>
+		</div>
+		<label class="code-fix-style">
+			Diff style
+			<select data-style-select>
+				<option value="split">Side by side</option>
+				<option value="unified">Unified</option>
+				<option value="vscode">VS Code</option>
+			</select>
+		</label>
 	</div>
-	{
-		views.map((view) => (
-			<div class="code-fix-panel" role="tabpanel" data-panel={view.id} hidden={view.id !== 'diff'}>
-				<Code code={view.code} lang={view.lang} meta={view.meta} />
-			</div>
-		))
-	}
+
+	<div class="code-fix-panel" data-panel="before" hidden>
+		<Code code={trimmed(before)} lang={lang} meta={titleMeta.trim()} />
+	</div>
+
+	<div class="code-fix-panel" data-panel="diff">
+		<div data-style="split">
+			<div class="code-fix-split not-content" style={`height: ${height}`}></div>
+			<p class="code-fix-credit">
+				Side-by-side view by <a href="https://mergely.com" target="_blank" rel="noopener noreferrer">Mergely</a>, used
+				under the <a href="https://www.gnu.org/licenses/lgpl-3.0.html" target="_blank" rel="noopener noreferrer">LGPL-3.0</a>.
+			</p>
+		</div>
+		<div data-style="unified" hidden>
+			<Code code={unified} lang="diff" meta={`lang="${lang}"${titleMeta}`} />
+		</div>
+		<div data-style="vscode" class="code-fix-vscode not-content" style={`height: ${height}`} hidden></div>
+	</div>
+
+	<div class="code-fix-panel" data-panel="after" hidden>
+		<Code code={trimmed(after)} lang={lang} meta={titleMeta.trim()} />
+	</div>
+
+	<script type="application/json" data-sources set:html={JSON.stringify({ before: trimmed(before).trimEnd(), after: trimmed(after).trimEnd(), lang })} />
 </div>
 
 <script>
+	import Mergely from 'mergely';
+	import 'mergely/lib/mergely.css';
+
+	type Style = 'split' | 'unified' | 'vscode';
+	interface Sources {
+		before: string;
+		after: string;
+		lang: string;
+	}
+
+	const storageKey = 'code-fix-style';
+	const monacoBase = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min';
+
+	function savedStyle(): Style {
+		try {
+			const value = localStorage.getItem(storageKey);
+			if (value === 'split' || value === 'unified' || value === 'vscode') return value;
+		} catch {
+			// Storage can be blocked; fall back to the default.
+		}
+		return 'split';
+	}
+
+	function saveStyle(style: Style): void {
+		try {
+			localStorage.setItem(storageKey, style);
+		} catch {
+			// Not remembered this time; the choice still applies on this page.
+		}
+	}
+
+	function isDark(): boolean {
+		return document.documentElement.dataset['theme'] === 'dark';
+	}
+
+	let monaco: Promise<any> | undefined;
+
+	function loadMonaco(): Promise<any> {
+		monaco ??= new Promise((resolve, reject) => {
+			const script = document.createElement('script');
+			script.src = `${monacoBase}/vs/loader.js`;
+			script.onload = () => {
+				const amd = (window as any).require;
+				amd.config({ paths: { vs: `${monacoBase}/vs` } });
+				amd(['vs/editor/editor.main'], () => resolve((window as any).monaco), reject);
+			};
+			script.onerror = reject;
+			document.head.appendChild(script);
+		});
+		return monaco;
+	}
+
+	const rendered = new WeakMap<HTMLElement, true>();
+
+	async function renderStyle(box: HTMLElement, style: Style): Promise<void> {
+		const target = box.querySelector<HTMLElement>(
+			style === 'split' ? '[data-style="split"] .code-fix-split' : `[data-style="${style}"]`,
+		);
+		if (target === null || rendered.has(target) || style === 'unified') return;
+		const sources = JSON.parse(box.querySelector('[data-sources]')?.textContent ?? '{}') as Sources;
+		rendered.set(target, true);
+		if (style === 'split') {
+			target.id ||= `code-fix-${Math.random().toString(36).slice(2)}`;
+			const doc = new Mergely(`#${target.id}`, {
+				license: 'lgpl-separate-notice',
+				lhs: sources.before,
+				rhs: sources.after,
+				cmsettings: { readOnly: true, lineNumbers: true },
+				wrap_lines: true,
+				lcs: false,
+				sidebar: false,
+				bgcolor: 'transparent',
+			});
+			doc.once('updated', () => {
+				const tallest = Math.max(
+					doc.cm('lhs').getScrollInfo().height,
+					doc.cm('rhs').getScrollInfo().height,
+				);
+				target.style.height = `${Math.ceil(tallest) + 8}px`;
+				doc.resize();
+			});
+			return;
+		}
+		try {
+			const m = await loadMonaco();
+			const editor = m.editor.createDiffEditor(target, {
+				readOnly: true,
+				originalEditable: false,
+				renderSideBySide: true,
+				useInlineViewWhenSpaceIsLimited: false,
+				renderOverviewRuler: false,
+				wordWrap: 'on',
+				automaticLayout: true,
+				scrollBeyondLastLine: false,
+				minimap: { enabled: false },
+				fontSize: 13,
+				theme: isDark() ? 'vs-dark' : 'vs',
+			});
+			const language = sources.lang === 'ts' ? 'typescript' : sources.lang;
+			editor.setModel({
+				original: m.editor.createModel(sources.before, language),
+				modified: m.editor.createModel(sources.after, language),
+			});
+			const fit = () => {
+				const tallest = Math.max(
+					editor.getOriginalEditor().getContentHeight(),
+					editor.getModifiedEditor().getContentHeight(),
+				);
+				target.style.height = `${tallest + 4}px`;
+			};
+			editor.getModifiedEditor().onDidContentSizeChange(fit);
+			editor.getOriginalEditor().onDidContentSizeChange(fit);
+			fit();
+		} catch {
+			rendered.delete(target);
+			target.textContent = 'The VS Code view could not be loaded. Try Side by side or Unified.';
+		}
+	}
+
+	function applyStyle(style: Style): void {
+		for (const box of document.querySelectorAll<HTMLElement>('[data-code-fix]')) {
+			const select = box.querySelector<HTMLSelectElement>('[data-style-select]');
+			if (select !== null) select.value = style;
+			for (const view of box.querySelectorAll<HTMLElement>('[data-style]')) {
+				view.hidden = view.dataset['style'] !== style;
+			}
+			const diffPanel = box.querySelector<HTMLElement>('[data-panel="diff"]');
+			if (diffPanel !== null && !diffPanel.hidden) renderStyle(box, style);
+		}
+	}
+
 	for (const box of document.querySelectorAll<HTMLElement>('[data-code-fix]')) {
 		const tabs = box.querySelectorAll<HTMLButtonElement>('[role="tab"]');
-		const panels = box.querySelectorAll<HTMLElement>('[role="tabpanel"]');
+		const panels = box.querySelectorAll<HTMLElement>('[data-panel]');
+		const select = box.querySelector<HTMLSelectElement>('[data-style-select]');
 		for (const tab of tabs) {
 			tab.addEventListener('click', () => {
 				for (const other of tabs) other.setAttribute('aria-selected', String(other === tab));
 				for (const panel of panels) panel.hidden = panel.dataset['panel'] !== tab.dataset['view'];
+				if (select !== null) select.disabled = tab.dataset['view'] !== 'diff';
+				if (tab.dataset['view'] === 'diff' && select !== null) renderStyle(box, select.value as Style);
 			});
 		}
+		select?.addEventListener('change', () => {
+			const style = select.value as Style;
+			saveStyle(style);
+			applyStyle(style);
+		});
 	}
+
+	applyStyle(savedStyle());
 </script>
 
 <style>
+	.code-fix-bar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
 	.code-fix-tabs {
 		display: flex;
 		align-items: center;
 		gap: 0.25rem;
-		margin-bottom: 0.5rem;
 	}
-	.code-fix-tabs button,
-	.code-fix-panel {
+	.code-fix-bar *,
+	.code-fix-panel,
+	.code-fix-panel > * {
 		margin: 0;
 	}
 	.code-fix-tabs button {
@@ -86,5 +257,78 @@ const views = [
 		background: var(--sl-color-accent-low);
 		border-color: var(--sl-color-accent);
 		color: var(--sl-color-white);
+	}
+	.code-fix-style {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+	}
+	.code-fix-style select {
+		font: inherit;
+		padding: 0.15rem 0.4rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.3rem;
+		background: var(--sl-color-bg);
+		color: var(--sl-color-white);
+	}
+	.code-fix-style select:disabled {
+		opacity: 0.5;
+	}
+	.code-fix-split,
+	.code-fix-vscode {
+		border: 1px solid var(--sl-color-gray-5);
+		overflow: hidden;
+	}
+	.code-fix-credit {
+		margin-top: 0.25rem !important;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+	}
+	.code-fix-split :global(.CodeMirror) {
+		font-family: var(--__sl-font-mono, monospace);
+		font-size: 0.8125rem;
+		height: 100%;
+	}
+</style>
+
+<style is:global>
+	/* Mergely colors: red for the old side, green for the new side, on the site's own background. */
+	.code-fix-split .mergely-editor .CodeMirror {
+		background: var(--sl-color-bg);
+		color: var(--sl-color-white);
+	}
+	.code-fix-split .mergely-editor .CodeMirror-gutters {
+		background: var(--sl-color-bg-nav);
+		border-right: 1px solid var(--sl-color-hairline);
+	}
+	.code-fix-split .mergely-editor .CodeMirror-linenumber {
+		color: var(--sl-color-gray-4);
+	}
+	.code-fix-split .mergely-editor .mergely.lhs.d.CodeMirror-linebackground,
+	.code-fix-split .mergely-editor .mergely.lhs.c.CodeMirror-linebackground {
+		background-color: rgba(229, 83, 75, 0.16);
+		border-color: #e5534b;
+	}
+	.code-fix-split .mergely-editor .mergely.rhs.a.CodeMirror-linebackground,
+	.code-fix-split .mergely-editor .mergely.rhs.c.CodeMirror-linebackground {
+		background-color: rgba(63, 185, 80, 0.16);
+		border-color: #3fb950;
+	}
+	.code-fix-split .mergely-editor .mergely.start.CodeMirror-linebackground,
+	.code-fix-split .mergely-editor .mergely.end.CodeMirror-linebackground {
+		border-color: inherit;
+	}
+	.code-fix-split .mergely-editor .mergely.ch.d.lhs,
+	.code-fix-split .mergely-editor .mergely.ch.ind.lhs {
+		background-color: rgba(229, 83, 75, 0.35);
+		color: inherit;
+		text-decoration: none;
+	}
+	.code-fix-split .mergely-editor .mergely.ch.a.rhs,
+	.code-fix-split .mergely-editor .mergely.ch.ina.rhs {
+		background-color: rgba(63, 185, 80, 0.35);
+		color: inherit;
 	}
 </style>
