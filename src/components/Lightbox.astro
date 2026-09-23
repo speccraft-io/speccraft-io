@@ -1,0 +1,33 @@
+---
+// Opens images wrapped in <a class="lightbox-trigger"> in an overlay instead of navigating to the file.
+---
+
+<script>
+	const overlay = document.createElement('div');
+	overlay.className = 'js-lightbox-overlay';
+	overlay.hidden = true;
+	const img = document.createElement('img');
+	overlay.appendChild(img);
+	document.body.appendChild(overlay);
+
+	function close() {
+		overlay.hidden = true;
+		img.src = '';
+	}
+
+	overlay.addEventListener('click', close);
+	document.addEventListener('keydown', (e) => {
+		if (e.key === 'Escape' && !overlay.hidden) close();
+	});
+
+	document.querySelectorAll<HTMLAnchorElement>('.lightbox-trigger').forEach((trigger) => {
+		trigger.addEventListener('click', (e) => {
+			const triggerImg = trigger.querySelector('img');
+			if (!triggerImg) return;
+			e.preventDefault();
+			img.src = trigger.href;
+			img.alt = triggerImg.alt;
+			overlay.hidden = false;
+		});
+	});
+</script>

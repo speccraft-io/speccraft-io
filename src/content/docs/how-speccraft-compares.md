@@ -82,34 +82,3 @@ tool most teams use today is [fake timers](/vs/other-ts-tools), which fix one or
 The popular tools that sit next to SpecCraft without competing with it (Stryker, Pact, msw,
 schema libraries, SMT solvers and others) are on [SpecCraft and other TS tools](/vs/other-ts-tools).
 
-<script>
-  (() => {
-    const overlay = document.createElement('div');
-    overlay.className = 'js-lightbox-overlay';
-    overlay.hidden = true;
-    const img = document.createElement('img');
-    overlay.appendChild(img);
-    document.body.appendChild(overlay);
-
-    function close() {
-      overlay.hidden = true;
-      img.src = '';
-    }
-
-    overlay.addEventListener('click', close);
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !overlay.hidden) close();
-    });
-
-    document.querySelectorAll('.lightbox-trigger').forEach((trigger) => {
-      trigger.addEventListener('click', (e) => {
-        const triggerImg = trigger.querySelector('img');
-        if (!triggerImg) return;
-        e.preventDefault();
-        img.src = triggerImg.src;
-        img.alt = triggerImg.alt;
-        overlay.hidden = false;
-      });
-    });
-  })();
-</script>

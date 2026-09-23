@@ -57,34 +57,3 @@ SpecCraft now covers both ends for the same spec. The spec stays the oracle, and
 `checkConformance` (or an inline spec next to the real class) checks the code that ships
 against it, without collapsing the two into the same artifact.
 
-<script>
-  (() => {
-    const overlay = document.createElement('div');
-    overlay.className = 'js-lightbox-overlay';
-    overlay.hidden = true;
-    const img = document.createElement('img');
-    overlay.appendChild(img);
-    document.body.appendChild(overlay);
-
-    function close() {
-      overlay.hidden = true;
-      img.src = '';
-    }
-
-    overlay.addEventListener('click', close);
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !overlay.hidden) close();
-    });
-
-    document.querySelectorAll('.lightbox-trigger').forEach((trigger) => {
-      trigger.addEventListener('click', (e) => {
-        const triggerImg = trigger.querySelector('img');
-        if (!triggerImg) return;
-        e.preventDefault();
-        img.src = triggerImg.src;
-        img.alt = triggerImg.alt;
-        overlay.hidden = false;
-      });
-    });
-  })();
-</script>
