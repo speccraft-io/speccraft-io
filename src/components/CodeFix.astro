@@ -1,9 +1,10 @@
 ---
 // Shows a fix three ways: the code before, a diff, and the code after. Opens on the diff.
-// The diff has three styles the reader can pick, remembered across pages:
-// side by side (Mergely), unified (Expressive Code, computed at build time), and VS Code (Monaco, loaded on demand).
+// The diff has five styles the reader can pick, remembered across pages: side by side with ribbons (Mergely),
+// split columns and inline words (both rendered here at build time), unified (Expressive Code), and VS Code
+// (Monaco, loaded on demand).
 import { Code } from '@astrojs/starlight/components';
-import { diffLines } from 'diff';
+import { diffLines, diffWordsWithSpace } from 'diff';
 
 interface Props {
 	before: string;
@@ -23,6 +24,99 @@ const unified = diffLines(trimmed(before), trimmed(after))
 	})
 	.join('\n');
 
+interface Segment {
+	text: string;
+	changed: boolean;
+}
+interface Cell {
+	number: number | null;
+	segments: Segment[];
+	kind: 'same' | 'removed' | 'added' | 'empty';
+}
+
+const similar = (a: string, b: string) => {
+	const same = diffWordsWithSpace(a, b)
+		.filter((w) => !w.added && !w.removed && w.value.trim() !== '')
+		.reduce((n, w) => n + w.value.trim().length, 0);
+	return same / Math.max(a.trim().length, b.trim().length, 1) >= 0.5;
+};
+const splitLines = (value: string) => value.replace(/\n$/, '').split('\n');
+const parts = diffLines(trimmed(before), trimmed(after));
+const rows: [Cell, Cell][] = [];
+let leftNumber = 0;
+let rightNumber = 0;
+let removals = 0;
+let additions = 0;
+for (let i = 0; i < parts.length; i++) {
+	const part = parts[i]!;
+	if (!part.added && !part.removed) {
+		for (const line of splitLines(part.value)) {
+			const segments = [{ text: line, changed: false }];
+			rows.push([
+				{ number: ++leftNumber, segments, kind: 'same' },
+				{ number: ++rightNumber, segments, kind: 'same' },
+			]);
+		}
+		continue;
+	}
+	const removed = part.removed ? splitLines(part.value) : [];
+	const next = parts[i + 1];
+	const added = part.added ? splitLines(part.value) : next?.added ? splitLines(next.value) : [];
+	if (part.removed && next?.added) i++;
+	removals += removed.length;
+	additions += added.length;
+	for (let row = 0; row < Math.max(removed.length, added.length); row++) {
+		const left = removed[row];
+		const right = added[row];
+		const paired = left !== undefined && right !== undefined && similar(left, right);
+		const words = paired ? diffWordsWithSpace(left, right) : [];
+		rows.push([
+			left === undefined
+				? { number: null, segments: [], kind: 'empty' }
+				: {
+						number: ++leftNumber,
+						kind: 'removed',
+						segments:
+							!paired
+								? [{ text: left, changed: false }]
+								: words.filter((w) => !w.added).map((w) => ({ text: w.value, changed: w.removed === true })),
+					},
+			right === undefined
+				? { number: null, segments: [], kind: 'empty' }
+				: {
+						number: ++rightNumber,
+						kind: 'added',
+						segments:
+							!paired
+								? [{ text: right, changed: false }]
+								: words.filter((w) => !w.removed).map((w) => ({ text: w.value, changed: w.added === true })),
+					},
+		]);
+	}
+}
+const beforeLineCount = trimmed(before).trimEnd().split('\n').length;
+const afterLineCount = trimmed(after).trimEnd().split('\n').length;
+type WordLine = { kind: 'same' | 'removed' | 'added' | 'mixed'; parts: { text: string; mark: 'del' | 'ins' | null }[] };
+const wordLines: WordLine[] = [];
+for (const [left, right] of rows) {
+	const text = (cell: Cell) => cell.segments.map((segment) => segment.text).join('');
+	if (left.kind === 'same') {
+		wordLines.push({ kind: 'same', parts: [{ text: text(left), mark: null }] });
+	} else if (left.kind === 'removed' && right.kind === 'added' && similar(text(left), text(right))) {
+		wordLines.push({
+			kind: 'mixed',
+			parts: diffWordsWithSpace(text(left), text(right)).map((w) => ({
+				text: w.value,
+				mark: w.added ? 'ins' : w.removed ? 'del' : null,
+			})),
+		});
+	} else {
+		if (left.kind === 'removed') wordLines.push({ kind: 'removed', parts: [{ text: text(left), mark: 'del' }] });
+		if (right.kind === 'added') wordLines.push({ kind: 'added', parts: [{ text: text(right), mark: 'ins' }] });
+	}
+}
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
 const titleMeta = title ? ` title="${title}"` : '';
 const lines = Math.max(trimmed(before).split('\n').length, trimmed(after).split('\n').length);
 const height = `${Math.min(40, lines) * 19 + 16}px`;
@@ -39,7 +133,9 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 			Diff style
 			<select data-style-select>
 				<option value="split">Side by side</option>
+				<option value="columns">Split</option>
 				<option value="unified">Unified</option>
+				<option value="words">Inline words</option>
 				<option value="vscode">VS Code</option>
 			</select>
 		</label>
@@ -60,6 +156,37 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 		<div data-style="unified" hidden>
 			<Code code={unified} lang="diff" meta={`lang="${lang}"${titleMeta}`} />
 		</div>
+		<div data-style="columns" class="code-fix-columns not-content" hidden>
+			<div class="code-fix-columns-head">
+				<div class="side removed-side">
+					<span class="count"><span class="dot">&minus;</span>{plural(removals, 'removal')}</span>
+					<span class="meta">{plural(beforeLineCount, 'line')}</span>
+					<button type="button" data-copy="before">Copy</button>
+				</div>
+				<div class="side added-side">
+					<span class="count"><span class="dot">+</span>{plural(additions, 'addition')}</span>
+					<span class="meta">{plural(afterLineCount, 'line')}</span>
+					<button type="button" data-copy="after">Copy</button>
+				</div>
+			</div>
+			<div class="code-fix-columns-body">
+				{
+					rows.map(([left, right]) => (
+						<div class="row">
+							{[left, right].map((cell) => (
+								<div class={`cell ${cell.kind}`}>
+									<span class="number">{cell.number ?? ''}</span>
+									<span class="text">{cell.segments.map((segment) => (segment.changed ? <mark>{segment.text}</mark> : segment.text))}</span>
+								</div>
+							))}
+						</div>
+					))
+				}
+			</div>
+		</div>
+		<div data-style="words" class="code-fix-words not-content" hidden>
+			<pre>{wordLines.map((line) => <div class={`line ${line.kind}`}>{line.parts.map((part) => (part.mark === 'ins' ? <ins>{part.text}</ins> : part.mark === 'del' ? <del>{part.text}</del> : part.text))}</div>)}</pre>
+		</div>
 		<div data-style="vscode" class="code-fix-vscode not-content" style={`height: ${height}`} hidden></div>
 	</div>
 
@@ -74,7 +201,8 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 	import Mergely from 'mergely';
 	import 'mergely/lib/mergely.css';
 
-	type Style = 'split' | 'unified' | 'vscode';
+	type Style = 'split' | 'columns' | 'unified' | 'words' | 'vscode';
+	const styles: readonly string[] = ['split', 'columns', 'unified', 'words', 'vscode'];
 	interface Sources {
 		before: string;
 		after: string;
@@ -87,7 +215,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 	function savedStyle(): Style {
 		try {
 			const value = localStorage.getItem(storageKey);
-			if (value === 'split' || value === 'unified' || value === 'vscode') return value;
+			if (value !== null && styles.includes(value)) return value as Style;
 		} catch {
 			// Storage can be blocked; fall back to the default.
 		}
@@ -129,7 +257,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 		const target = box.querySelector<HTMLElement>(
 			style === 'split' ? '[data-style="split"] .code-fix-split' : `[data-style="${style}"]`,
 		);
-		if (target === null || rendered.has(target) || style === 'unified') return;
+		if (target === null || rendered.has(target) || style === 'unified' || style === 'columns' || style === 'words') return;
 		const sources = JSON.parse(box.querySelector('[data-sources]')?.textContent ?? '{}') as Sources;
 		rendered.set(target, true);
 		if (style === 'split') {
@@ -214,6 +342,20 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 				if (tab.dataset['view'] === 'diff' && select !== null) renderStyle(box, select.value as Style);
 			});
 		}
+		const sources = JSON.parse(box.querySelector('[data-sources]')?.textContent ?? '{}') as Sources;
+		for (const button of box.querySelectorAll<HTMLButtonElement>('[data-copy]')) {
+			button.addEventListener('click', async () => {
+				try {
+					await navigator.clipboard.writeText(button.dataset['copy'] === 'before' ? sources.before : sources.after);
+					button.textContent = 'Copied';
+				} catch {
+					button.textContent = 'Copy failed';
+				}
+				setTimeout(() => {
+					button.textContent = 'Copy';
+				}, 1500);
+			});
+		}
 		select?.addEventListener('change', () => {
 			const style = select.value as Style;
 			saveStyle(style);
@@ -290,6 +432,141 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 		font-family: var(--__sl-font-mono, monospace);
 		font-size: 0.8125rem;
 		height: 100%;
+	}
+
+	.code-fix-columns {
+		--removed-bg: rgba(229, 83, 75, 0.12);
+		--removed-mark: rgba(229, 83, 75, 0.32);
+		--added-bg: rgba(46, 170, 120, 0.12);
+		--added-mark: rgba(46, 170, 120, 0.32);
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: 0.75rem;
+		padding: 0.5rem 0.75rem 0.75rem;
+		font-family: var(--__sl-font-mono, monospace);
+		font-size: 0.8125rem;
+		line-height: 1.6;
+		overflow-x: auto;
+	}
+	.code-fix-columns-head,
+	.code-fix-columns .row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		column-gap: 1rem;
+	}
+	.code-fix-columns-head {
+		font-family: var(--__sl-font, system-ui);
+		font-size: var(--sl-text-sm);
+		padding-bottom: 0.5rem;
+		margin-bottom: 0.5rem;
+		border-bottom: 1px solid var(--sl-color-hairline);
+	}
+	.code-fix-columns-head .side {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+	.code-fix-columns-head .count {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-weight: 600;
+		margin-right: auto;
+	}
+	.code-fix-columns-head .removed-side .count {
+		color: #d1453b;
+	}
+	.code-fix-columns-head .added-side .count {
+		color: #1f9d6b;
+	}
+	.code-fix-columns-head .dot {
+		display: inline-grid;
+		place-items: center;
+		width: 1.1rem;
+		height: 1.1rem;
+		border: 1.5px solid currentColor;
+		border-radius: 999px;
+		font-size: 0.8rem;
+		line-height: 1;
+	}
+	.code-fix-columns-head .meta {
+		color: var(--sl-color-gray-3);
+	}
+	.code-fix-columns-head button {
+		font: inherit;
+		border: 0;
+		background: none;
+		color: var(--sl-color-white);
+		cursor: pointer;
+		padding: 0;
+	}
+	.code-fix-columns .cell {
+		display: grid;
+		grid-template-columns: 2.25rem 1fr;
+		border-radius: 0.3rem;
+		margin: 1px 0;
+	}
+	.code-fix-columns .cell.removed {
+		background: var(--removed-bg);
+	}
+	.code-fix-columns .cell.added {
+		background: var(--added-bg);
+	}
+	.code-fix-columns .cell.empty {
+		background: repeating-linear-gradient(-45deg, transparent 0 6px, var(--sl-color-gray-6) 6px 7px);
+	}
+	.code-fix-columns .number {
+		text-align: right;
+		padding-right: 0.75rem;
+		color: var(--sl-color-gray-4);
+		user-select: none;
+	}
+	.code-fix-columns .text {
+		white-space: pre-wrap;
+		word-break: break-word;
+		color: var(--sl-color-white);
+	}
+	.code-fix-columns .removed mark {
+		background: var(--removed-mark);
+		color: inherit;
+		border-radius: 0.15rem;
+	}
+	.code-fix-columns .added mark {
+		background: var(--added-mark);
+		color: inherit;
+		border-radius: 0.15rem;
+	}
+	.code-fix-words pre {
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: 0.75rem;
+		padding: 0.9rem 1rem;
+		font-size: 0.8125rem;
+		line-height: 1.7;
+		white-space: pre-wrap;
+		word-break: break-word;
+		background: var(--sl-color-bg);
+		color: var(--sl-color-white);
+		margin: 0;
+	}
+	.code-fix-words .line {
+		min-height: 1.7em;
+	}
+	.code-fix-words .line.removed {
+		background: rgba(229, 83, 75, 0.08);
+	}
+	.code-fix-words .line.added {
+		background: rgba(250, 204, 21, 0.12);
+	}
+	.code-fix-words del {
+		background: rgba(229, 83, 75, 0.18);
+		color: #d1453b;
+		text-decoration: line-through;
+		border-radius: 0.15rem;
+	}
+	.code-fix-words ins {
+		background: rgba(250, 204, 21, 0.35);
+		color: inherit;
+		text-decoration: none;
+		border-radius: 0.15rem;
 	}
 </style>
 
