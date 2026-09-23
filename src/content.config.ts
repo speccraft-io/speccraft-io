@@ -10,6 +10,10 @@ export const collections = {
 			extend: z.object({
 				// Adds a Full / Code only switch under the title (see src/components/PageTitle.astro).
 				views: z.boolean().optional(),
+				// Job mentions (from /market/jobs) and a Google Trends graph (public/trends/<google>.svg), shown in the right sidebar.
+				trend: z
+					.object({ jobs: z.number(), google: z.string().optional(), googleUrl: z.string().optional() })
+					.optional(),
 				// What a tool is applicable to, shown in the right sidebar above Dependencies.
 				useCases: z.array(z.string()).optional(),
 				// What a tool needs beyond Node and npm, shown in the right sidebar.

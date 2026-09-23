@@ -3,9 +3,9 @@
 // in their frontmatter. Other pages keep Starlight's table of contents off (see astro.config.mjs).
 import { similarTools } from '../tool-kinds';
 
-const { adoption, requires, useCases } = Astro.locals.starlightRoute.entry.data;
+const { adoption, requires, useCases, trend } = Astro.locals.starlightRoute.entry.data;
 const similar = adoption ? similarTools(Astro.url.pathname) : undefined;
-const toggleLabel = adoption ? 'Adoption, dependencies and similar tools' : useCases ? 'Applicable to and dependencies' : 'Dependencies';
+const toggleLabel = adoption ? 'Adoption, dependencies and similar tools' : useCases || trend ? 'Details' : 'Dependencies';
 
 const shield = (path: string, label: string) =>
 	`https://img.shields.io/${path}?style=flat&label=${encodeURIComponent(label)}`;
@@ -22,7 +22,7 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 ---
 
 {
-	(adoption || requires || useCases) && (
+	(adoption || requires || useCases || trend) && (
 		<button type="button" class="tool-info-toggle" aria-expanded="false" aria-controls="tool-info">
 			{toggleLabel}
 		</button>
@@ -48,6 +48,25 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 			<p class="last-commit" data-repo={adoption.github} hidden>
 				Last commit: <a href={`https://github.com/${adoption.github}/commits`} target="_blank" rel="noopener noreferrer"></a>
 			</p>
+		</div>
+	)
+}
+
+{
+	trend && (
+		<div class="adoption similar trend">
+			<h2>Trend</h2>
+			<p>
+				Job market: <a href="/market/jobs">{trend.jobs === 1 ? '1 posting' : `${trend.jobs} postings`}</a> naming it
+			</p>
+			{trend.google ? (
+				<a class="trend-graph" href={trend.googleUrl} target="_blank" rel="noopener noreferrer">
+					<img src={`/trends/${trend.google}.svg`} alt="Google search interest, last 12 months" />
+				</a>
+			) : (
+				<p>Google: no reliable trend, the name is too ambiguous</p>
+			)}
+			{trend.google && <p>Google search interest, 12 months</p>}
 		</div>
 	)
 }
@@ -183,6 +202,13 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 	}
 	.similar li + li {
 		margin-top: 0.25rem;
+	}
+	.trend .trend-graph {
+		line-height: 0;
+	}
+	.trend img {
+		height: 32px;
+		width: auto;
 	}
 	.tool-info-toggle {
 		display: none;
