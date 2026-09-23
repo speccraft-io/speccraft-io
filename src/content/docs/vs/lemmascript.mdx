@@ -6,6 +6,9 @@ adoption:
   github: midspiral/LemmaScript
   npm: 'lemmascript'
   created: 2026-03-30
+  requires:
+    - 'Dafny 4 (with .NET and Z3), or Lean 4 with forks of Loom and Velvet'
+    - 'LLM: writes proof steps the solver cannot find (not needed in our example)'
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/lemmascript/before.ts.txt?raw';

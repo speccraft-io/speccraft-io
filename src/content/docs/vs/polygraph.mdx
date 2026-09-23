@@ -6,6 +6,10 @@ adoption:
   github: cognitive-fab/polygraph
   npm: '@cognitive-fab/polygraph'
   created: 2026-07-07
+  requires:
+    - 'LLM: an Anthropic API key to derive specs from code and author code'
+    - 'Claude Code plugin (optional; a CLI works too)'
+    - 'TLA+ tools, only for the --tla escalation'
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/polygraph/before.ts.txt?raw';

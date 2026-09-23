@@ -58,6 +58,19 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 	)
 }
 
+{
+	adoption?.requires && (
+		<div class="adoption similar">
+			<h2>Dependencies</h2>
+			<ul>
+				{adoption.requires.map((item) => (
+					<li class={item.startsWith('LLM') ? 'llm' : undefined}>{item}</li>
+				))}
+			</ul>
+		</div>
+	)
+}
+
 <script>
 	// The last commit date comes from the GitHub API in the browser, so it is current on every visit.
 	const units: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -136,6 +149,9 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 	}
 	.similar li + li {
 		margin-top: 0.25rem;
+	}
+	.similar li.llm {
+		font-weight: 600;
 	}
 	@media (max-width: 71.99rem) {
 		.similar ul {

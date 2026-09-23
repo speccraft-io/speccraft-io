@@ -14,6 +14,7 @@ export const collections = {
 						github: z.string(),
 						npm: z.string().optional(),
 						created: z.coerce.date(),
+						requires: z.array(z.string()).optional(),
 					})
 					.optional(),
 			}),
