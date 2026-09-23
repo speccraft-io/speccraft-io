@@ -59,6 +59,27 @@ SpecCraft has no translator. The model that is explored is the model you wrote.
 - **Async replies** can be delivered by the explorer in every order, so a stale reply landing late is found by the
   search, not by luck.
 
+## Who builds it
+
+stateproof is a side project of HexaField (Josh Field), an experienced TypeScript and web engineer whose main work
+is elsewhere:
+
+- **npm:** 61 packages, mostly from years of work on an open source WebXR engine (XREngine, later Ethereal Engine and
+  IR Engine) plus three.js and PhysX tooling. stateproof itself is not published on npm.
+- **GitHub:** over 200 public repositories. Recent activity is about agent orchestration and "living web" work:
+  personal semantic graphs, decentralized identity, P2P sync, and W3C proposals around them.
+- **X:** posts about the semantic web and AD4M, a personal agent runtime.
+
+So stateproof reads as a well-built experiment by a strong engineer rather than a product with a roadmap: one
+contributor, a burst of commits, and no activity since March 2026.
+
+## Links
+
+- stateproof on GitHub: https://github.com/HexaField/stateproof
+- HexaField on npm: https://www.npmjs.com/~hexafield
+- HexaField on StackBlitz: https://stackblitz.com/@HexaField
+- HexaField on X: https://x.com/HexaField
+
 ## In one line
 
 stateproof translates your spec into another language and asks you to trust the translator. SpecCraft runs your spec.

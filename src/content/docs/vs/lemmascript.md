@@ -72,3 +72,9 @@ ordering, and check the real code against it.
   regeneration never destroys human or LLM work.
 - **The agent-harness framing.** An AI agent may change the code, but its pull request only counts once the checks
   pass. That framing fits SpecCraft as well as it fits LemmaScript.
+
+## Links
+
+- LemmaScript on GitHub: https://github.com/midspiral/LemmaScript
+- LemmaScript blog: https://lemmascript.org/blog/
+- Midspiral on LinkedIn: https://www.linkedin.com/company/midspiral/posts/
