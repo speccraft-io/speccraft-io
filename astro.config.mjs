@@ -59,7 +59,7 @@ export default defineConfig({
 			sidebar: [
 				{ label: 'Home', link: '/' },
 				{
-					label: 'SpecCraft vs TS tools',
+					label: 'Other TypeScript Tools',
 					items: [
 						{ label: 'Overview', link: '/how-speccraft-compares' },
 						{ label: 'LemmaScript', link: '/vs/lemmascript' },
@@ -78,7 +78,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Non-TS tools',
+					label: 'Other non-TypeScript Tools',
 					items: [
 						{ label: 'Overview', link: '/tools/speccraft-vs-non-ts-tools' },
 						{ label: 'Lean', link: '/tools/lean' },
