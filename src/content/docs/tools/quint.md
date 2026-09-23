@@ -7,7 +7,7 @@ description: A practical first look at Quint from a TypeScript project. Model a 
 check every order in which those moves can happen. It is built on TLA+, the method AWS and Microsoft use for
 distributed systems, but with a syntax that reads more like TypeScript.
 
-Of the three tools here, Quint is the closest to SpecCraft in intent. Both describe a system as state, steps and
+Quint is close to SpecCraft in intent. Both describe a system as state, steps and
 "must never happen" rules, and both check every order in which the steps can run. The difference is in how: Quint
 has its own language and checks the model, while SpecCraft writes the model in TypeScript and checks the real code
 against it. See [SpecCraft vs non-TS tools](/tools/speccraft-vs-non-ts-tools).
