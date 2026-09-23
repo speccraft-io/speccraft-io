@@ -132,10 +132,10 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 		<label class="code-fix-style">
 			Diff style
 			<select data-style-select>
+				<option value="words">Inline words</option>
 				<option value="split">Side by side</option>
 				<option value="columns">Split</option>
 				<option value="unified">Unified</option>
-				<option value="words">Inline words</option>
 				<option value="vscode">VS Code</option>
 			</select>
 		</label>
@@ -146,7 +146,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 	</div>
 
 	<div class="code-fix-panel" data-panel="diff">
-		<div data-style="split">
+		<div data-style="split" hidden>
 			<div class="code-fix-split not-content" style={`height: ${height}`}></div>
 			<p class="code-fix-credit">
 				Side-by-side view by <a href="https://mergely.com" target="_blank" rel="noopener noreferrer">Mergely</a>, used
@@ -184,7 +184,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 				}
 			</div>
 		</div>
-		<div data-style="words" class="code-fix-words not-content" hidden>
+		<div data-style="words" class="code-fix-words not-content">
 			<pre>{wordLines.map((line) => <div class={`line ${line.kind}`}>{line.parts.map((part) => (part.mark === 'ins' ? <ins>{part.text}</ins> : part.mark === 'del' ? <del>{part.text}</del> : part.text))}</div>)}</pre>
 		</div>
 		<div data-style="vscode" class="code-fix-vscode not-content" style={`height: ${height}`} hidden></div>
@@ -219,7 +219,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 		} catch {
 			// Storage can be blocked; fall back to the default.
 		}
-		return 'split';
+		return 'words';
 	}
 
 	function saveStyle(style: Style): void {
