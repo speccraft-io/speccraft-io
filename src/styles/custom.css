@@ -103,6 +103,7 @@
 	display: block;
 }
 [data-view='code'] .view-full,
+[data-view='code'] .sl-markdown-content .starlight-aside,
 [data-view='code']
 	.sl-markdown-content
 	:is(p, ul, ol, blockquote, table):not(:has(img)):not(.code-fix *):not(.view-short, .view-short *) {
