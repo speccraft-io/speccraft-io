@@ -1,0 +1,226 @@
+---
+title: LemmaScript vs SpecCraft
+description: LemmaScript proves TypeScript functions correct for every input with Dafny or Lean. This page walks through using it on a bill split with a rounding bug, then compares it with SpecCraft, which explores every ordering of events in a bounded model.
+tableOfContents: true
+adoption:
+  github: midspiral/LemmaScript
+  npm: 'lemmascript'
+  created: 2026-03-30
+---
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/lemmascript/before.ts.txt?raw';
+import after from '../../../fixes/lemmascript/after.ts.txt?raw';
+
+[LemmaScript](https://github.com/midspiral/LemmaScript) is a verification toolchain for TypeScript by
+[Midspiral](https://www.linkedin.com/company/midspiral/), currently a tech preview. It is the most serious
+"formal methods for Type## Using LemmaScript
+
+The code below is in
+[formal-methods-samples/lemmascript-split-bill](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/lemmascript-split-bill) and
+runs on its own with `npm install && npm test`, once Dafny is installed. We ran it with `lsc` 0.6.4 and Dafny 4.11.0.
+The output is from our run.
+
+### The problem
+
+A bill in cents is split between people. Everyone pays the same share, rounded up so nobody underpays, and the last
+person pays what is left:
+
+```ts
+// splitBill.ts (shortened)
+export function splitBill(total: number, people: number): Split {
+  const each = Math.ceil(total / people);
+  const last = total - each * (people - 1);
+  return { each, last };
+}
+```
+
+For 1,000 cents between 3 people it gives 334, 334 and 332, and the shares add up. But when the shares are small
+and there are many people, rounding up takes more than the whole bill before the last person is reached.
+
+### Install and set up
+
+```sh
+npm install -D lemmascript
+```
+
+- **Node 18 or newer** for `lsc`, the LemmaScript compiler.
+- **Dafny 4 or newer** for the Dafny backend. `lsc` generates Dafny and calls `dafny verify`.
+- **The Lean 4 backend** needs elan plus forks of Loom and Velvet cloned next to the project. This page uses Dafny
+  only.
+- **An existing codebase** opts in per function: once any function in a file has `//@ verify`, `lsc` skips every
+  function in that file that is not marked.
+
+### Writing the contract
+
+A contract is a set of `//@` comments inside the ordinary TypeScript. `tsc` and the bundler ignore them.
+
+```ts
+// splitBill.ts
+//@ verify
+export function splitBill(total: number, people: number): Split {
+  //@ requires total >= 0
+  //@ requires people >= 1
+  //@ ensures \result.each * (people - 1) + \result.last === total
+  //@ ensures \result.last >= 0
+  //@ ensures \result.each >= 0
+  const each = Math.ceil(total / people);
+  const last = total - each * (people - 1);
+  return { each, last };
+}
+```
+
+What each annotation does:
+
+- **`//@ verify`** marks the function for LemmaScript.
+- **`//@ requires`** is a precondition: callers must pass a total that is not negative and at least one person.
+- **`//@ ensures`** is a postcondition, and `\result` is the return value. The three lines say: the shares add up to
+  the total, and nobody pays a negative amount.
+- **Loops take more** (not needed here): `//@ invariant` for what holds on every pass, `//@ decreases` to prove the
+  loop ends, and `//@ type i nat` to make a counter a natural number.
+
+### Running it
+
+`lsc gen` translates the file, and `lsc check` regenerates it and runs Dafny:
+
+```sh
+lsc gen --backend=dafny src/splitBill.ts
+lsc check --backend=dafny src/splitBill.ts
+```
+
+The generated Dafny follows the TypeScript: the interface becomes a datatype, `Math.ceil` a helper over real
+numbers, and each `//@` line a Dafny clause:
+
+```text
+// splitBill.dfy (shortened)
+function splitBill(total: int, people: int): Split
+  requires (total >= 0)
+  requires (people >= 1)
+{
+  var each := CeilReal(((total as real) / (people as real)));
+  var last := (total - (each * (people - 1)));
+  Split(each, last)
+}
+
+lemma splitBill_ensures(total: int, people: int)
+  requires (total >= 0)
+  requires (people >= 1)
+  ensures (((splitBill(total, people).each * (people - 1)) + splitBill(total, people).last) == total)
+  ensures (splitBill(total, people).last >= 0)
+  ensures (splitBill(total, people).each >= 0)
+{
+}
+```
+
+Real output (paths shortened):
+
+```text
+Generated: .../src/splitBill.dfy.gen
+Running dafny verify...
+splitBill.dfy(26,0): Error: a postcondition could not be proved on this return path
+   |
+26 | {
+   | ^
+
+splitBill.dfy(24,41): Related location: this is the postcondition that could not be proved
+   |
+24 |   ensures (splitBill(total, people).last >= 0)
+   |                                          ^^
+
+
+Dafny program verifier finished with 2 verified, 1 error
+```
+
+The exit code is 1, so the same command fails a CI job. The shares always add up (that holds by construction), but
+the last share can be negative. Dafny does not say for which input. One is 20 people splitting 3.41: each share is
+0.18, and the last person is owed 0.01.
+
+### Fixing the bug
+
+The fixed function is in `splitBill.fixed.ts`, a copy of `splitBill.ts` with only the line of the fix changed.
+Rounding down leaves the remainder for the last person, which is never negative:
+
+<CodeFix before={before} after={after} title="splitBill.ts" />
+
+```text
+Running dafny verify...
+
+Dafny program verifier finished with 4 verified, 0 errors
+```
+
+Dafny proved it with no help: the contract now holds for every total and every number of people, not for sampled
+ones.
+
+### Tips
+
+- **Read which promise failed, then find the input.** A failure names the clause and its line in the generated
+  Dafny, not an input that breaks it.
+- **Two Dafny files per source.** `foo.dfy.gen` is always regenerated; `foo.dfy` starts as a copy and is where helper
+  lemmas and asserts go. The diff between them must be additions only, and `lsc check` enforces that. The sample
+  commits `foo.dfy` and ignores `foo.dfy.gen`.
+- **When a proof needs help,** tighten a `requires`, weaken an `ensures`, add an `invariant` or `decreases` in the
+  TypeScript, or add a helper lemma or an `assert` to `foo.dfy`. After editing the TypeScript, `lsc regen` three-way
+  merges the new translation into `foo.dfy` and keeps the proof additions.
+- **Never delete `foo.dfy` and run `gen` again** (from the guide). That throws away every proof addition; use `regen`.
+- **Narrow a hard proof** with `dafny verify --filter-symbol=<name>` or `--isolate-assertions`.
+- **Do not let an agent use `//@ assume`.** It tells Dafny to trust an obligation without proof, so the proof stops
+  meaning anything.
+- **CI.** `lsc check` with no file checks every file listed in `LemmaScript-files.txt`, and the reusable GitHub
+  Actions workflow `midspiral/LemmaScript/.github/workflows/verify.yml` runs the same list.
+
+### Limits
+
+- **Tech preview.** Unsupported TypeScript methods and narrowing patterns still come up; the guide expects you to fix
+  some of them in LemmaScript itself.
+- **The translation has a model.** Numbers become ideal integers, and some TypeScript unions cannot be translated.
+  `total / people` becomes exact division over reals, where JavaScript uses floating point, and `Math.ceil` and
+  `Math.floor` become helpers over it.
+- **I/O is the trust boundary.** The case studies prove the pure core and name the UI, network, Durable Objects and
+  WebSockets as unverified.
+
+s cannot be translated.
+- **I/O is the trust boundary.** The case studies prove the pure core and name the UI, network, Durable Objects and
+  WebSockets as unverified.
+
+## What LemmaScript is
+
+- A translator from annotated TypeScript to Dafny, or to Lean 4 via Velvet, construct for construct. Their
+  [blog post on shallow embedding](https://lemmascript.org/blog/shallow-embedding/) explains why: the output stays
+  close to human-written Dafny, which is what LLMs are good at.
+- An LLM writes the proof steps the solver cannot find on its own. The human is not meant to touch anything formal.
+- Over twenty case studies, from greenfield apps to in-place verification of real projects (hono's security
+  middleware, node-casbin, opencode's permission system and patch parser, balanced-match).
+
+## Compared with SpecCraft
+
+| | LemmaScript | SpecCraft |
+|---|---|---|
+| Question it answers | Is this function correct for every input? | Can some order of events break a rule? |
+| Technique | Deductive proof (Dafny / Lean) | Exhaustive state exploration (explicit-state model checking) |
+| Sweet spot | A pure domain core: reducers, splitters, permission checks, parsers | Coordination: handlers, async jobs, timers, replies arriving in any order |
+| What you get back | A proof, or a failed proof obligation | A verdict, or the shortest trace that breaks the rule |
+| Bounds | None: all inputs | Small bounded model (small scope) |
+| Toolchain | TypeScript plus Dafny or Lean, and an LLM for the proofs | TypeScript only, runs in-process |
+
+- **LemmaScript covers all inputs, and data.** Money that never leaks, sums, rankings, graph reachability: properties
+  over real-sized values are what a proof handles and a bounded search cannot. It is also further along, with many
+  case studies, a VS Code extension and a CI workflow.
+- **SpecCraft covers the order of events.** Dafny proves sequential code; it has no notion of three async jobs in
+  flight or a reply landing between a check and its write. That is the boundary LemmaScript's case studies draw, and
+  it is where SpecCraft works.
+- **SpecCraft has nothing in between.** The spec runs as TypeScript, so there is no translation to trust, no Dafny
+  or Lean to install, no proof to write, and a failure comes back as a concrete trace.
+- **They fit together.** Prove the pure core with LemmaScript and check the coordination around it with SpecCraft.
+  SpecCraft takes from it contracts as comments, one file list for local runs and CI, and generated files that may
+  only gain additions.
+
+## Who builds it
+
+[Midspiral](https://midspiral.com), whose stated aim is tools "that prove your AI code is correct". Almost all
+commits are by Nada Amin, an associate professor of computer science at Harvard. In September 2026 the repo had 99
+stars, MIT licensed, and the npm package about 7,200 downloads a month.
+
+## Links
+
+- LemmaScript on GitHub: https://github.com/midspiral/LemmaScript
+- LemmaScript blog: https://lemmascript.org/blog/
+- Midspiral on LinkedIn: https://www.linkedin.com/company/midspiral/posts/

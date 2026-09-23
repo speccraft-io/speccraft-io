@@ -1,0 +1,13 @@
+{
+  "name": "lemmascript-split-bill",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "lsc check --backend=dafny src/splitBill.ts",
+    "check:fixed": "lsc check --backend=dafny src/splitBill.fixed.ts",
+    "test": "node test.ts"
+  },
+  "devDependencies": {
+    "lemmascript": "0.6.4"
+  }
+}
