@@ -81,7 +81,7 @@ export default defineConfig({
 			sidebar: [
 				{ label: 'Home', link: '/' },
 				{
-					label: 'Formal TS tools',
+					label: 'Formal TypeScript tools',
 					items: [
 						{ label: 'Overview', link: '/how-speccraft-compares' },
 						{ label: 'fast-check', link: '/vs/fast-check' },
@@ -98,7 +98,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Formal non-TS tools',
+					label: 'Formal non-TypeScript tools',
 					items: [
 						{ label: 'Overview', link: '/tools/speccraft-vs-non-ts-tools' },
 						{ label: 'Lean', link: '/tools/lean' },
