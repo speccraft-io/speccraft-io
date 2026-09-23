@@ -26,6 +26,8 @@ This page shows how to use it inside a normal TypeScript project, with one small
 
 Here is a normal binary search over sorted ids, and two normal tests:
 
+<small>Note: `indexOfId` is pure from the outside (same inputs, same output, no side effects), but it loops over mutable local variables inside. Dafny proves that as written.</small>
+
 ```ts
 // src/ids.ts
 export function indexOfId(ids: readonly number[], target: number): number {
