@@ -12,6 +12,7 @@ Small, self-contained case studies used on [speccraft.io](https://speccraft.io).
 - [tla-precheck-tickets](tla-precheck-tickets): A ticket shop where a customer can buy a seat and then hold a second one. Checked with tla-precheck.
 - [lemmascript-split-bill](lemmascript-split-bill): A bill split where rounding every share up can leave the last person paying a negative amount. Checked with LemmaScript and Dafny.
 - [stateproof-subscription](stateproof-subscription): A subscription where a renewal reactivates a plan the customer canceled. Checked with stateproof.
+- [bombadil-checkout](bombadil-checkout): A checkout page where a second click before the first reply places a second order. Checked with Bombadil.
 - [effect-machine-checkout](effect-machine-checkout): A checkout statechart where a late payment reply marks a changed cart paid. Checked with effect-machine.
 
 Each one runs on its own:

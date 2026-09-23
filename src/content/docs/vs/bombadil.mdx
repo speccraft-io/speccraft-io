@@ -1,0 +1,226 @@
+---
+title: Bombadil vs SpecCraft
+description: Bombadil, from Antithesis, is property-based testing for web and terminal UIs, with TypeScript specs of temporal properties and action generators. This page walks through using it on a checkout page that places an order twice, then compares it with SpecCraft.
+tableOfContents: true
+adoption:
+  github: antithesishq/bombadil
+  npm: '@antithesishq/bombadil'
+  created: 2025-12-17
+---
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/bombadil/before.ts.txt?raw';
+import after from '../../../fixes/bombadil/after.ts.txt?raw';
+
+[Bombadil](https://github.com/antithesishq/bombadil) is property-based testing for web and terminal user
+interfaces, built by [Antithesis](https://antithesis.com) and open source since December 2025. Its specs are
+TypeScript modules, which makes it the best-known tool where TypeScript developers write temporal properties today.
+It is the too## Using Bombadil
+
+The code below is in
+[formal-methods-samples/bombadil-checkout](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/bombadil-checkout) and
+runs on its own with `npm install && npm test`, with Chrome installed. We ran it with Bombadil 0.7.7 and Chrome 153
+on macOS. The output is from our run.
+
+### The problem
+
+A checkout page has a "Place order" button. The click handler posts the order, waits for the server, then shows the
+confirmation and hides the button:
+
+```js
+// checkout.js (shortened)
+button.addEventListener('click', async () => {
+  status.textContent = 'Placing your order...';
+  const response = await fetch('/orders', { method: 'POST' });
+  const { id } = await response.json();
+  // ... show "Order <id> confirmed"
+  button.hidden = true;
+});
+```
+
+The button stays clickable while the request is in flight, which takes 500 ms in the sample's server. A second click
+in that window places a second order. Clicking once and waiting, the way a manual test does, never shows it.
+
+### Install and set up
+
+```sh
+npm install --save-dev @antithesishq/bombadil
+```
+
+- **One package, two things.** The npm package installs the `bombadil` command and the TypeScript types for writing
+  specs. There are also standalone binaries for macOS and Linux, a Nix flake, a Docker image, and a GitHub Action.
+- **macOS or Linux.** The browser driver runs Chrome or Chromium; the terminal driver runs any program that reads
+  stdin and writes to a terminal.
+- **Your app must be running.** Bombadil tests a URL. The sample starts a small Node server on port 4500.
+- **A first smoke test** needs no spec at all. `bombadil browser test https://en.wikipedia.org --output-path my-test`
+  runs Bombadil's default properties and actions until you press Ctrl+C.
+
+### Writing the check
+
+A spec is a plain ES module. Every property and every action generator it exports is used, and the export name is
+the name in error reports:
+
+```ts
+// spec.ts
+import { extract, always } from "@antithesishq/bombadil";
+export * from "@antithesishq/bombadil/browser/defaults";
+
+const confirmations = extract((state) =>
+  state.document.body.querySelectorAll(".order").length,
+);
+
+export const at_most_one_order = always(() => confirmations.current <= 1);
+```
+
+What each part does:
+
+- **`export * from ".../browser/defaults"`** keeps the built-in properties (no uncaught exceptions, no unhandled
+  promise rejections, no error logs, no HTTP 4xx or 5xx responses) and the built-in actions (navigation, clicks on
+  semantic HTML elements). You can re-export only some of them by name.
+- **`extract`** runs a function inside the browser on every state Bombadil captures. It gets `document` and `window`
+  and returns JSON-serializable data. The result is a `Cell`, a value that changes over time; `.current` reads it.
+- **`always`** takes a thunk, not a boolean, because it is evaluated again in every state.
+
+No action generator is needed here: the default clicks find the button.
+
+### Running it
+
+```sh
+bombadil browser test http://localhost:4500 spec.ts --time-limit=30s --exit-on-violation --output-path out \
+  --chrome-grant-permissions=geolocation
+```
+
+- **`--time-limit`** stops the run; reaching the limit counts as normal completion. Without it the run goes on until
+  Ctrl+C.
+- **`--exit-on-violation`** stops at the first failing property, which is what you want in CI.
+- **`--output-path`** keeps the trace (`trace.jsonl`) and screenshots for later.
+- **`--chrome-grant-permissions`** is there because of our Chrome: by default Bombadil grants `local-network-access`,
+  and Chrome 153 refused it with `Invalid PermissionDescriptor name: local-network-access`. Granting any permission
+  it knows avoids the default.
+
+The last lines of the log, and the report:
+
+```text
+00:03.259 Clicking <button> (x: 328.5, y: 126.1, content: "Place order")
+00:03.292 Clicking <button> (x: 328.5, y: 126.1, content: "Place order")
+00:03.330 Clicking <button> (x: 328.5, y: 126.1, content: "Place order")
+00:03.363 Clicking <a> (x: 68.7, y: 228.6, content: "Continue shopping")
+
+at_most_one_order was violated:
+
+as of 00:00.000, it should always be the case that () => confirmations.current <= 1, however at 00:03.389, confirmations = 2
+
+
+Test finished, finding 1 violation!
+
+Inspect the test results using:
+
+  bombadil browser inspect out
+
+Reproduce this test using:
+
+  bombadil browser test http://localhost:4500/ spec.ts --reproduce out
+```
+
+The exit code was 2. Bombadil clicks about every 35 ms, so repeated clicks inside the 500 ms window come naturally.
+In five runs it found the double order in all five, after 0.9, 1.2, 2.3, 3.4 and 8.7 seconds.
+
+### Fixing the bug
+
+The fixed handler is in `checkout.fixed.js`, a copy of `checkout.js` with only the line of the fix changed. The
+button is disabled as soon as it is clicked:
+
+<CodeFix before={before} after={after} title="checkout.js" />
+
+Against the fixed page, two 30-second runs finished with "Test finished after time limit!" and exit code 0. Both
+reached a confirmed order, and none showed a second one. That is evidence, not proof: a clean run means nothing was
+found in this run.
+
+### Tips
+
+- **Give every state something to do.** Our first fixed page had nothing clickable while the order was pending (the
+  button disabled, the link hidden), and a ticked checkbox did not count either. Each run then stopped with
+  "Error: no actions available" and exit code 1. Two delivery radio buttons, one always unticked, fixed that.
+- **Watch what the defaults click.** A "Continue shopping" link that was visible from the start got about half of
+  the clicks and reloaded the page, cancelling the pending order each time. Three 30-second runs then found nothing. The
+  sample shows the link only after an order is confirmed.
+- **Inspect and replay.** `bombadil browser inspect out` opens a web app over the recorded run: the actions, a
+  timeline you can scrub, the state before and after each action, and a mark for each violation. `--reproduce=out`
+  runs the same actions again to check a fix.
+- **Rules over time** use `eventually` and `next`, joined with `now`, `.and`, `.or`, `.implies` and `not`; for
+  example, an error message always disappears within five seconds:
+
+```ts
+// (shortened) from the manual's examples
+export const errorDisappears = always(
+    now(() => errorMessage.current !== null).implies(
+        eventually(() => errorMessage.current === null)
+            .within(5, "seconds"),
+    ),
+);
+```
+
+- **Your own actions** are exported the same way: `actions(() => [...])` returns the actions possible in the current
+  state, and `weighted([[10, back], [1, reload]])` sets how often each is picked. In the browser,
+  `registerCustomAction` handles steps such as a login form.
+- **Exit codes:** 0 for a normal finish (including the time limit), 2 when a property was violated, 1 for any other
+  error. In CI, the `antithesishq/bombadil-action` GitHub Action takes the same inputs.
+
+### Limits
+
+From the manual:
+
+- **Replays can diverge.** A reproduction is not guaranteed, and it needs the same options as the original run.
+- **The spec runtime is limited.** npm packages that import Node modules may not work inside a spec.
+- **The terminal driver is experimental.** It has no `inspect` view yet and does not support custom actions.
+- **Still 0.x.** The API may change between versions.
+
+From our runs:
+
+- **Found by sampling.** Whether the bug shows up depends on the page layout and on timing, as the two tips above show.
+- **It needs a browser that starts.** Inside a sandbox that blocked Chrome, every run stopped with "timed out while
+  waiting for chrome/chromium".
+
+ot work inside a spec.
+- **The terminal driver is experimental.** It has no `inspect` view yet and does not support custom actions.
+- **Still 0.x.** The API may change between versions.
+
+## What Bombadil is
+
+- A loop against the real app: extract the current state, check every property, choose and perform the next action,
+  wait for the next event, repeat.
+- The search is random and guided by the action generators. The manual describes it as looking for unexpected action
+  sequences, odd timings and strange inputs.
+- Properties are a flavor of linear temporal logic, written as TypeScript function calls.
+- The engine is written in Rust. It runs locally, in CI, and inside the Antithesis platform.
+
+## Compared with SpecCraft
+
+| | Bombadil | SpecCraft |
+|---|---|---|
+| Spec | TypeScript module: temporal properties and action generators | Plain TypeScript object, or inline next to a real class |
+| What is explored | The real running web or terminal UI | The spec, and real code checked against it |
+| Search | Random, guided by action generators | Exhaustive BFS |
+| Properties | `always`, `eventually`, `next` | Invariants; liveness not yet |
+| A clean run means | Not found in this run | No reachable state breaks an invariant, within the spec's bounds |
+| Counterexample | A recorded run you can inspect and replay | The shortest trace |
+
+- **Bombadil tests the UI that ships.** It needs no model of the app to start, its defaults find bugs before you
+  write a property, and `eventually` and `next` are there today.
+- **SpecCraft is exhaustive, with shortest traces.** A Bombadil run samples; a SpecCraft run covers every reachable
+  state of the spec and returns the shortest failing trace.
+- **SpecCraft checks the logic underneath.** Which reply may arrive when, what a retry does, which endings are
+  possible. Its explorer delivers async replies in every order, where Bombadil sees whatever timing the run produced.
+- **What SpecCraft takes from it:** temporal operators with small names for its liveness work, default properties
+  that apply to any spec (no stuck states, no unreachable actions), and a spec file the CLI runs directly.
+
+## Who builds it
+
+Antithesis, the company behind the deterministic simulation platform of the same name. Bombadil is open source and
+also runs inside their commercial product. In September 2026 it had about 1,500 stars and about 200,000 npm
+downloads a month.
+
+## Links
+
+- Bombadil on GitHub: https://github.com/antithesishq/bombadil
+- The Bombadil manual: https://antithesishq.github.io/bombadil/
+- Bombadil on npm: https://www.npmjs.com/package/@antithesishq/bombadil

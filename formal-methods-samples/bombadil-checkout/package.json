@@ -1,0 +1,13 @@
+{
+  "name": "bombadil-checkout",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node server.ts",
+    "serve:fixed": "node server.ts --fixed",
+    "test": "node test.ts"
+  },
+  "devDependencies": {
+    "@antithesishq/bombadil": "0.7.7"
+  }
+}
