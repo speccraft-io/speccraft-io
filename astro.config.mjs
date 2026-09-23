@@ -3,6 +3,8 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import rehypeExternalLinks from 'rehype-external-links';
 import rehypeImageAttrs from './src/plugins/rehype-image-attrs.mjs';
+import sitemap from '@astrojs/sitemap';
+import { lastModified } from './src/plugins/last-modified.mjs';
 
 // https://astro.build/config
 export default defineConfig({
@@ -19,6 +21,13 @@ export default defineConfig({
 		rehypePlugins: [[rehypeExternalLinks, { target: '_blank', rel: ['noopener', 'noreferrer'] }], rehypeImageAttrs],
 	},
 	integrations: [
+		// Added here (Starlight then skips its own copy) so every URL gets a <lastmod> date.
+		sitemap({
+			serialize(item) {
+				const date = lastModified(item.url);
+				return date ? { ...item, lastmod: date.toISOString() } : item;
+			},
+		}),
 		starlight({
 			// No site search: hides the header search bar and skips the Pagefind index.
 			pagefind: false,
