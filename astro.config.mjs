@@ -13,6 +13,7 @@ export default defineConfig({
 	redirects: {
 		'/state-of-formal-methods-market': '/market/',
 		'/vs/fake-timers': '/vs/other-ts-tools',
+		'/vs/effect': '/vs/other-ts-tools',
 	},
 	markdown: {
 		// External links (anything with a protocol, e.g. https://) open in a new tab;
@@ -80,7 +81,6 @@ export default defineConfig({
 					items: [
 						{ label: 'Overview', link: '/how-speccraft-compares' },
 						{ label: 'fast-check', link: '/vs/fast-check' },
-						{ label: 'Effect', link: '/vs/effect' },
 						{ label: 'Bombadil', link: '/vs/bombadil' },
 						{ label: 'effect-machine', link: '/vs/effect-machine' },
 						{ label: 'Hegel', link: '/vs/hegel' },
