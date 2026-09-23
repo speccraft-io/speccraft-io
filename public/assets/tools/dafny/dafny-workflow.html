@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { width: 1200px; height: 440px; overflow: hidden; }
+  text { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; }
+</style>
+</head>
+<body>
+<svg width="1200" height="440" viewBox="0 0 1200 440" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="45%" r="85%">
+      <stop offset="0%" stop-color="#171225"/>
+      <stop offset="100%" stop-color="#0b0812"/>
+    </radialGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#5c5675"/>
+    </marker>
+    <marker id="arrowPink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#f0439c"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="440" fill="url(#glow)"/>
+
+  <text x="60" y="58" font-size="28" font-weight="700" fill="#ffffff">Dafny inside a TypeScript project</text>
+  <text x="60" y="88" font-size="16" fill="#9a94ad">Write the function once in Dafny. The verified code is the code that ships.</text>
+
+  <rect x="60" y="150" width="240" height="96" rx="10" fill="#120e1c" stroke="#f0439c"/>
+  <text x="180" y="188" font-size="19" font-weight="600" fill="#ffffff" text-anchor="middle">Search.dfy</text>
+  <text x="180" y="216" font-size="15" fill="#8b86a0" text-anchor="middle">code + requires + ensures</text>
+
+  <rect x="380" y="150" width="240" height="96" rx="10" fill="#120e1c" stroke="#57e07a"/>
+  <text x="500" y="188" font-size="19" font-weight="600" fill="#ffffff" text-anchor="middle">dafny translate js</text>
+  <text x="500" y="216" font-size="15" fill="#8b86a0" text-anchor="middle">verifies first, then compiles</text>
+
+  <rect x="700" y="150" width="200" height="96" rx="10" fill="#120e1c" stroke="#5c5675"/>
+  <text x="800" y="188" font-size="19" font-weight="600" fill="#ffffff" text-anchor="middle">search.cjs</text>
+  <text x="800" y="216" font-size="15" fill="#8b86a0" text-anchor="middle">generated JavaScript</text>
+
+  <rect x="980" y="150" width="170" height="96" rx="10" fill="#120e1c" stroke="#5c5675"/>
+  <text x="1065" y="188" font-size="19" font-weight="600" fill="#ffffff" text-anchor="middle">ids.ts</text>
+  <text x="1065" y="216" font-size="15" fill="#8b86a0" text-anchor="middle">typed wrapper</text>
+
+  <rect x="380" y="320" width="240" height="70" rx="10" fill="#120e1c" stroke="#f0439c"/>
+  <text x="500" y="352" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">an error</text>
+  <text x="500" y="376" font-size="15" fill="#8b86a0" text-anchor="middle">no JavaScript is written</text>
+
+  <rect x="840" y="320" width="310" height="70" rx="10" fill="#120e1c" stroke="#5c5675"/>
+  <text x="995" y="352" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">your app and vitest</text>
+  <text x="995" y="376" font-size="15" fill="#8b86a0" text-anchor="middle">import indexOfId as usual</text>
+
+  <path d="M 300 198 L 372 198" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 620 198 L 692 198" stroke="#57e07a" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="656" y="186" font-size="13" fill="#57e07a" text-anchor="middle">proved</text>
+  <path d="M 900 198 L 972 198" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 500 246 L 500 312" stroke="#f0439c" stroke-width="2" fill="none" marker-end="url(#arrowPink)"/>
+  <text x="512" y="284" font-size="13" fill="#f0439c">not proved</text>
+  <path d="M 1065 246 L 1020 312" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+</svg>
+</body>
+</html>
+

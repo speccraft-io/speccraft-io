@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+html,body{margin:0;padding:0;background:#0b0812}
+body{width:1000px;height:642px;overflow:hidden}
+.win{margin:16px;border:1px solid #332e47;border-radius:10px;background:#120e1c;height:608px;box-sizing:border-box}
+.bar{height:32px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #332e47;font:13px -apple-system,Helvetica,Arial,sans-serif;color:#8b86a0}
+.dot{width:11px;height:11px;border-radius:50%;background:#332e47}
+.bar span.t{margin-left:10px}
+pre{margin:0;padding:14px 18px;font:15px/24px Menlo,Monaco,monospace;color:#d6d2e0;white-space:pre}
+.cmd{color:#ffffff;font-weight:600} .bad{color:#f0439c} .ok{color:#57e07a} .info{color:#8b86a0}
+</style></head><body><div class="win"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="t">ts-ids - dafny verify</span></div><pre><span class="cmd">$ dafny verify dafny/Search.dfy</span>
+<span class="bad">Search.dfy(12,19): Error: result of operation might violate newtype constraint for &#x27;int53&#x27;</span>
+   |
+12 |     var mid := (lo + hi) / 2;
+   |                    ^
+
+<span class="bad">Search.dfy(13,10): Error: index out of range</span>
+   |
+13 |     if ids[mid] &lt; target {
+   |           ^
+
+<span class="bad">Search.dfy(21,2): Error: a postcondition could not be proved on this return path</span>
+   |
+21 |   return -1;
+   |   ^^^^^^^^^^
+
+Search.dfy(7,31): Related location: this is the postcondition that could not be proved
+  |
+7 |   ensures index &lt; 0 ==&gt; target !in ids
+  |                                ^^^
+
+
+Dafny program verifier finished with 2 verified, 3 errors</pre></div></body></html>

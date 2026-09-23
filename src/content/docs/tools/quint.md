@@ -1,0 +1,400 @@
+---
+title: Quint for TypeScript developers
+description: A practical first look at Quint from a TypeScript project. Model a webhook handler with retries and two workers, let Quint find the double charge, then replay its traces against the real TS code in vitest.
+---
+
+[Quint](https://quint-lang.org) is a language for describing how a system moves from state to state, plus tools that
+check every order in which those moves can happen. It is built on TLA+, the method AWS and Microsoft use for
+distributed systems, but with a syntax that reads more like TypeScript.
+
+Lean and Dafny prove that one function is right for every input. Quint answers a different question: what happens when
+several things run at the same time, in every possible order? This page shows how to use it next to a normal
+TypeScript project, with one small example. No math background needed.
+
+## Why you would want this
+
+A service receives an `order.confirmed` webhook and charges the customer's card. The sender retries when it does not
+get a reply in time. The handler checks the order first, so a retry should not charge twice:
+
+```ts
+// src/webhook.ts
+export type OrderStatus = 'unpaid' | 'charging' | 'paid';
+
+export interface Deps {
+  getStatus(orderId: string): Promise<OrderStatus>;
+  chargeCard(orderId: string): Promise<void>;
+  setStatus(orderId: string, status: OrderStatus): Promise<void>;
+}
+
+export async function handleOrderConfirmed(orderId: string, deps: Deps): Promise<void> {
+  const status = await deps.getStatus(orderId);
+  if (status === 'unpaid') {
+    await deps.chargeCard(orderId);
+    await deps.setStatus(orderId, 'paid');
+  }
+}
+```
+
+```ts
+// src/webhook.test.ts
+test('charges an unpaid order once', async () => {
+  const { db, deps } = fakeDeps();
+  await handleOrderConfirmed('o1', deps);
+  expect(db).toEqual({ status: 'paid', charges: 1 });
+});
+
+test('a retried delivery does not charge again', async () => {
+  const { db, deps } = fakeDeps();
+  await handleOrderConfirmed('o1', deps);
+  await handleOrderConfirmed('o1', deps);
+  expect(db.charges).toBe(1);
+});
+```
+
+Both tests pass. The retry test runs the two deliveries one after the other. In production they run on two workers at
+the same time, and each `await` is a point where the other worker can run. The tests never try that order. Quint
+tries all of them.
+
+## When Quint fits
+
+- Several actors change shared state: workers, retries, queues, webhooks, timeouts, locks, leader election, sagas.
+- The bug you fear is about order: "what if B happens between A's read and A's write?"
+- The rule can be said as "this must never happen": never charged twice, never two leaders, never a lost message.
+
+Quint is not the tool for proving one function's math right for every input. See the [Lean](/tools/lean) and
+[Dafny](/tools/dafny) pages for that.
+
+## Install
+
+```sh
+npm i -g @informalsystems/quint
+```
+
+That gives you the `quint` command: `typecheck`, `run` (random runs, fast), `verify` (every reachable state), and a
+REPL. `quint verify` needs Java 17 or newer, and downloads its checker the first time. For the editor, install the
+"Quint" extension in VS Code.
+
+## Step 1: describe the system as state and steps
+
+A Quint model has two parts: variables (the state) and actions (the steps that change it). Each action has a
+condition for when it can happen, and says what the variables become. `x'` means "the value of `x` after this step".
+
+```text
+// quint/webhook.qnt
+module webhook {
+  type Phase = Idle | Read
+
+  pure val WORKERS = Set("w1", "w2")
+  pure val MAX_DELIVERIES = 2
+
+  var status: str
+  var charges: int
+  var sent: int
+  var queued: int
+  var acked: bool
+  var phase: str -> Phase
+  var seen: str -> str
+
+  action init = all {
+    status' = "unpaid",
+    charges' = 0,
+    sent' = 1,
+    queued' = 1,
+    acked' = false,
+    phase' = WORKERS.mapBy(_ => Idle),
+    seen' = WORKERS.mapBy(_ => ""),
+  }
+
+  action retry = all {
+    not(acked),
+    sent < MAX_DELIVERIES,
+    sent' = sent + 1,
+    queued' = queued + 1,
+    status' = status, charges' = charges, acked' = acked, phase' = phase, seen' = seen,
+  }
+
+  action readOrder(w: str): bool = all {
+    phase.get(w) == Idle,
+    queued > 0,
+    queued' = queued - 1,
+    phase' = phase.set(w, Read),
+    seen' = seen.set(w, status),
+    status' = status, charges' = charges, sent' = sent, acked' = acked,
+  }
+
+  action chargeIfUnpaid(w: str): bool = all {
+    phase.get(w) == Read,
+    if (seen.get(w) == "unpaid") all {
+      charges' = charges + 1,
+      status' = "paid",
+    } else all {
+      charges' = charges,
+      status' = status,
+    },
+    phase' = phase.set(w, Idle),
+    acked' = true,
+    seen' = seen, sent' = sent, queued' = queued,
+  }
+
+  action step = any {
+    retry,
+    nondet w = oneOf(WORKERS)
+    any { readOrder(w), chargeIfUnpaid(w) },
+  }
+
+  val chargedAtMostOnce = charges <= 1
+}
+```
+
+How to read it:
+
+- The variables are the whole world, not just the database: `status` and `charges` (the order and the card), `sent`
+  and `queued` (deliveries from the sender), `acked` (did the sender get a reply), `phase` and `seen` (what each
+  worker is doing, and the status it read).
+- `str -> Phase` is a map, like `Record<string, Phase>`. `phase.get(w)` reads it, `phase.set(w, Read)` returns an
+  updated copy.
+- `all { ... }` means every line must hold. A line without `'` is a condition: if it is false, the action cannot
+  happen now. Lines with `'` set the new values. Every variable must get a new value, which is why unchanged ones are
+  listed as `x' = x`.
+- `retry`: the sender sends another delivery if it has had no reply yet.
+- The handler is split into two steps, exactly where the TS code has an `await` between reading and writing:
+  `readOrder` (the `getStatus` call) and `chargeIfUnpaid` (the charge and the `setStatus`).
+- `step` is what can happen next: a retry, or any worker taking its next step. `nondet w = oneOf(WORKERS)` means
+  "any worker". The checker tries each choice.
+- `chargedAtMostOnce` is the rule: an invariant that must be true in every state.
+
+## Step 2: let Quint find the bad order
+
+`quint run` makes random runs through the model and stops at the first state that breaks the rule. `--mbt` adds the
+name of each step to the output, and `--hide` leaves out variables to keep it short:
+
+<a href="/assets/tools/quint/quint-run-bug.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-run-bug.png" alt="quint run output: an example execution from State 0 to State 5. The steps are init, retry, readOrder by w2, readOrder by w1, chargeIfUnpaid by w2 with charges 1 and status paid, then chargeIfUnpaid by w1 with charges 2. Violation found in 9 ms. Error: invariant violated."></a>
+
+It took 9 ms. Here is the same trace as a timeline:
+
+<a href="/assets/tools/quint/quint-bug-timeline.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-bug-timeline.png" alt="Timeline with four lanes: webhook sender, worker 1, worker 2, database. 1: sender sends delivery 1. 2: no reply yet, sends delivery 2. 3: worker 2 reads status unpaid. 4: worker 1 reads status unpaid. 5: worker 2 charges the card and sets paid, charges 1. 6: worker 1 charges the card again, charges 2."></a>
+
+The first delivery is slow, so the sender retries. Both workers read `unpaid` before either one writes `paid`. The
+`if (status === 'unpaid')` check in the TS code does not help, because both workers pass it.
+
+`quint run` is random, so a clean run does not prove much. `quint verify` walks every reachable state:
+
+<a href="/assets/tools/quint/quint-verify-bug.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-verify-bug.png" alt="quint verify with the TLC backend: 26 states generated, 22 distinct states found, 0 states left on queue. Violation found in 597 ms. Error: found a counterexample."></a>
+
+With 2 workers and up to 2 deliveries, the model has only 22 distinct states. That is enough to hold this bug. Most
+concurrency bugs need only two or three actors to show up.
+
+## Step 3: fix the model
+
+The read and the write must be one step that nobody can get in between. In a database that is a conditional update:
+`UPDATE orders SET status = 'charging' WHERE id = $1 AND status = 'unpaid'`, and the worker charges only if one row
+changed. In the model, the read-then-decide pair becomes one `claimOrder` step:
+
+```text
+  type Phase = Idle | Claimed
+
+  action claimOrder(w: str): bool = all {
+    phase.get(w) == Idle,
+    queued > 0,
+    queued' = queued - 1,
+    if (status == "unpaid") all {
+      status' = "charging",
+      phase' = phase.set(w, Claimed),
+      acked' = acked,
+    } else all {
+      status' = status,
+      phase' = phase,
+      acked' = true,
+    },
+    charges' = charges, sent' = sent,
+  }
+
+  action charge(w: str): bool = all {
+    phase.get(w) == Claimed,
+    charges' = charges + 1,
+    status' = "paid",
+    phase' = phase.set(w, Idle),
+    acked' = true,
+    sent' = sent, queued' = queued,
+  }
+```
+
+`seen` is gone, since nothing reads first any more, and `step` now picks between `claimOrder(w)` and `charge(w)`.
+Check every state again:
+
+<a href="/assets/tools/quint/quint-verify-fixed.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-verify-fixed.png" alt="quint verify with the TLC backend: 18 states generated, 11 distinct states found, 0 states left on queue. No violation found in 626 ms."></a>
+
+No state breaks the rule. Raise the numbers to 3 workers and 3 deliveries and it still holds (27 distinct states),
+while the old model fails there too. Small numbers first, then bigger ones, is the normal way to work.
+
+The matching TS change:
+
+```ts
+export interface Deps {
+  claimOrder(orderId: string): Promise<boolean>;
+  chargeCard(orderId: string): Promise<void>;
+  setStatus(orderId: string, status: OrderStatus): Promise<void>;
+}
+
+export async function handleOrderConfirmed(orderId: string, deps: Deps): Promise<void> {
+  const claimed = await deps.claimOrder(orderId);
+  if (claimed) {
+    await deps.chargeCard(orderId);
+    await deps.setStatus(orderId, 'paid');
+  }
+}
+```
+
+## Step 4: replay Quint's traces against the real TS code
+
+The model is fixed. Nothing yet says the TS code behaves like the model. The bridge: Quint writes its runs as JSON
+traces, and a vitest file plays each trace against the real handler, step by step, checking the state after every
+step.
+
+<a href="/assets/tools/quint/quint-workflow.png" class="lightbox-trigger"><img src="/assets/tools/quint/quint-workflow.png" alt="Workflow diagram: webhook.qnt, the model, goes to quint verify, which checks every reachable state, and to quint run --mbt --out-itf, which writes sample traces as JSON into traces/*.itf.json with the steps and the expected state. A vitest replay reads the traces and calls webhook.ts, the real code."></a>
+
+Write the traces. `--out-itf` saves them in ITF, a JSON trace format. `--mbt` adds which action ran and which worker
+it picked:
+
+```sh
+quint run quint/webhook.qnt --invariant chargedAtMostOnce --mbt \
+  --n-traces 50 --out-itf 'quint/traces/run_{seq}.itf.json'
+```
+
+The replay test gives each worker its own fake deps over one shared fake database. `chargeCard` does not finish until
+the trace says that worker's charge step happens, which is how the test controls the order of the `await`s:
+
+```ts
+// src/webhook.quint.test.ts
+import { readdirSync, readFileSync } from 'node:fs';
+import { expect, test } from 'vitest';
+import { handleOrderConfirmed, type OrderStatus } from './webhook';
+
+interface ItfState {
+  'mbt::actionTaken': string;
+  'mbt::nondetPicks': { w?: { tag: 'Some' | 'None'; value?: string } };
+  status: OrderStatus;
+  charges: { '#bigint': string };
+}
+
+const dir = new URL('../quint/traces/', import.meta.url);
+const files = readdirSync(dir).filter((f) => f.endsWith('.itf.json'));
+
+function world() {
+  const db = { status: 'unpaid' as OrderStatus, charges: 0 };
+  const gates = new Map<string, () => void>();
+  const depsFor = (worker: string) => ({
+    getStatus: async () => db.status,
+    claimOrder: async () => {
+      if (db.status !== 'unpaid') return false;
+      db.status = 'charging';
+      return true;
+    },
+    chargeCard: () =>
+      new Promise<void>((resolve) => {
+        gates.set(worker, () => {
+          db.charges += 1;
+          resolve();
+        });
+      }),
+    setStatus: async (_id: string, status: OrderStatus) => {
+      db.status = status;
+    },
+  });
+  return { db, gates, depsFor };
+}
+
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+test.each(files)('%s: the handler follows the model and never charges twice', async (file) => {
+  const states: ItfState[] = JSON.parse(readFileSync(new URL(file, dir), 'utf8')).states;
+  const { db, gates, depsFor } = world();
+
+  for (const state of states.slice(1)) {
+    const action = state['mbt::actionTaken'];
+    const worker = state['mbt::nondetPicks'].w?.value ?? '';
+
+    if (action === 'readOrder' || action === 'claimOrder') {
+      handleOrderConfirmed('o1', depsFor(worker)).then(
+        () => {},
+        () => {},
+      );
+    } else if (action === 'chargeIfUnpaid' || action === 'charge') {
+      gates.get(worker)?.();
+      gates.delete(worker);
+    }
+    await settle();
+
+    expect({ action, worker, status: db.status, charges: db.charges }).toEqual({
+      action,
+      worker,
+      status: state.status,
+      charges: Number(state.charges['#bigint']),
+    });
+    expect(db.charges).toBeLessThanOrEqual(1);
+  }
+});
+```
+
+What it does for each step of a trace:
+
+- A read or claim step starts the real `handleOrderConfirmed` for that worker. It runs until it waits on
+  `chargeCard`.
+- A charge step lets that worker's `chargeCard` finish, so the handler goes on to `setStatus`.
+- A `retry` step changes nothing on our side; it is the sender's move.
+- After each step, the fake database must match the model's `status` and `charges`, and the card must not be charged
+  twice.
+
+First, save the counterexample from Step 2 as a trace and replay it against the original handler:
+
+<a href="/assets/tools/quint/vitest-replay-fails.png" class="lightbox-trigger"><img src="/assets/tools/quint/vitest-replay-fails.png" alt="vitest output: bug.itf.json: the handler follows the model and never charges twice, failed with AssertionError expected 2 to be less than or equal to 1. 1 failed, 2 passed."></a>
+
+The real handler followed the model at every step, and then charged twice. The Quint counterexample is now a failing
+vitest on your real code, with the exact order that breaks it. That is a bug report nobody has to reproduce by hand.
+
+After the fix, replace the traces with 50 runs of the fixed model and replay them against the fixed handler:
+
+<a href="/assets/tools/quint/vitest-replay-ok.png" class="lightbox-trigger"><img src="/assets/tools/quint/vitest-replay-ok.png" alt="vitest output: 2 test files passed, 52 tests passed."></a>
+
+To check the replay is not passing by accident: the old bug trace against the fixed handler fails on the first read
+step. The model expected `status: "unpaid"`, the fixed code had already written `"charging"`. The replay notices when
+the code and the model differ, not just when the rule breaks.
+
+## What you get, and what you do not
+
+You get:
+
+- Every order of steps checked, in the model, in under a second at this size.
+- A shortest failing order, as a readable trace, instead of a flaky test that fails once a week.
+- A fix you can check before you write it in TS.
+- Traces that become ordinary vitest cases for the real code.
+
+You do not get:
+
+- A proof about the TS code. `quint verify` checks the model. The replay checks the code only on the traces you
+  replay: 50 random runs here, not every path. The model and the code can still differ on a path no trace took.
+- A free model. You choose where the steps split. This model splits the handler at the one `await` that matters. If
+  you merge steps that the real code keeps apart, the model hides the bug.
+- Anything the model leaves out. Here: a worker that crashes after `claimOrder` leaves the order in `"charging"`
+  forever. The model has no crash step, so Quint says nothing about it. Adding one is the next exercise.
+- Big numbers. Checking every state works for a few workers and a few messages. That is usually enough to find the
+  bug, but it is not a load test.
+
+## How to start in your own project
+
+1. Pick one flow where order matters: a webhook, a job queue, a retry loop, a lock.
+2. Write the rule as "this must never happen".
+3. List the variables, including the ones outside your code: messages in flight, retries, what each worker has seen.
+4. Make one action per step between two `await`s in the real code.
+5. Run `quint run` first (fast), then `quint verify` (every state), with 2 or 3 actors.
+6. Export traces with `--mbt --out-itf`, and replay them against the real code with controlled fakes.
+
+## Related
+
+- [How SpecCraft compares](/how-speccraft-compares): SpecCraft does the same kind of checking with the model written
+  in TypeScript, and checks the real code against the model over every state, not a sample of traces.
+- [Quint getting started](https://quint-lang.org/docs/getting-started)
+- [Summary of the Quint language](https://quint-lang.org/docs/lang)
+- [Model-based testing with Quint](https://quint-lang.org/docs/model-based-testing)
+- [Quint on GitHub](https://github.com/informalsystems/quint)
+- [TLA+](https://lamport.azurewebsites.net/tla/tla.html), the method underneath.

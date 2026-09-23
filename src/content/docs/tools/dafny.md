@@ -1,0 +1,272 @@
+---
+title: Dafny for TypeScript developers
+description: A practical first look at Dafny from a TypeScript project. Write a binary search with its rules, let the verifier find the bug, then compile the proven code to JavaScript and import it from TS.
+---
+
+[Dafny](https://dafny.org) is a programming language with a checker built in. Next to the code you write what the
+function needs (`requires`) and what it promises (`ensures`). Dafny proves the promise holds for every input, and
+only then compiles the code. It can compile to JavaScript, so the code you proved is the code you ship.
+
+This page shows how to use it inside a normal TypeScript project, with one small example. No math background needed.
+
+## Why you would want this
+
+Here is a normal binary search over sorted ids, and two normal tests:
+
+```ts
+// src/ids.ts
+export function indexOfId(ids: readonly number[], target: number): number {
+  let lo = 0;
+  let hi = ids.length - 1;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (ids[mid] < target) lo = mid + 1;
+    else if (ids[mid] > target) hi = mid - 1;
+    else return mid;
+  }
+  return -1;
+}
+```
+
+```ts
+// src/ids.test.ts
+test('finds an id', () => {
+  expect(indexOfId([10, 20, 30], 20)).toBe(1);
+});
+
+test('returns -1 for a missing id', () => {
+  expect(indexOfId([10, 20, 30], 25)).toBe(-1);
+});
+```
+
+Both tests pass. The function still has a bug: `indexOfId([10, 20, 30], 10)` returns `-1`, and so does
+`indexOfId([10, 20, 30], 30)`. When the search narrows down to one last element, the loop stops before looking at it.
+Binary search is famous for bugs like this. They hide at the edges, where tests rarely look.
+
+## When Dafny fits
+
+- Code with loops and indexes, where off-by-one mistakes are easy: search, merge, pagination, ring buffers, parsers,
+  diffing.
+- Code where "it returns the right thing" can be said precisely: "if it returns an index, the id is there; if it
+  returns -1, the id is nowhere in the list".
+- You want the checked code to be the shipped code, not a copy of it.
+
+Dafny is not the tool for "what happens when two requests arrive at the same time". That is about the order of
+events, not one function. See the Quint page for that.
+
+## Install
+
+```sh
+brew install dafny
+```
+
+This installs Dafny 4 with its two dependencies: .NET 8 (Dafny runs on it) and Z3 (the solver that does the proving).
+On Linux and Windows, see the [install page](https://dafny.org/latest/Installation). For the editor, install the
+"Dafny" extension in VS Code. It shows errors as you type, like the TypeScript server does.
+
+The generated JavaScript needs one npm package at runtime:
+
+```sh
+npm i bignumber.js
+```
+
+## Step 1: write the function in Dafny, with its rules
+
+The Dafny version looks a lot like TS. The new parts are the lines between the signature and the body:
+
+```dafny
+// dafny/Search.dfy
+newtype int53 = x: int | -0x20_0000_0000_0000 < x < 0x20_0000_0000_0000
+
+method IndexOf(ids: seq<int53>, target: int53) returns (index: int53)
+  requires |ids| < 0x20_0000_0000_0000
+  requires forall i, j :: 0 <= i < j < |ids| ==> ids[i] < ids[j]
+  ensures 0 <= index ==> index as int < |ids| && ids[index] == target
+  ensures index < 0 ==> target !in ids
+{
+  var lo: int53 := 0;
+  var hi: int53 := |ids| as int53 - 1;
+  while lo < hi {
+    var mid := (lo + hi) / 2;
+    if ids[mid] < target {
+      lo := mid + 1;
+    } else if ids[mid] > target {
+      hi := mid - 1;
+    } else {
+      return mid;
+    }
+  }
+  return -1;
+}
+```
+
+How to read it:
+
+- `int53` is a whole number in JavaScript's safe integer range. Dafny's plain `int` has no limit and would compile to
+  a BigNumber. A limited type like this one compiles to a normal JS `number`.
+- `seq<int53>` is a read-only list. `|ids|` is its length.
+- `requires` is what the caller must promise. Here: the list is sorted and has no duplicates ("for any two positions
+  `i` before `j`, `ids[i]` is smaller").
+- `ensures` is what the function promises back. If it returns an index, the id is at that index. If it returns a
+  negative number, the id is not in the list at all.
+- `==>` means "if ... then ...". `!in` means "is not in".
+
+Run the verifier:
+
+<a href="/assets/tools/dafny/dafny-step1.png" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-step1.png" alt="dafny verify output with three errors: line 12, result of operation might violate newtype constraint for int53, at lo + hi; line 13, index out of range, at ids[mid]; line 21, a postcondition could not be proved on this return path, at return -1, with the related postcondition ensures index < 0 ==> target !in ids. 2 verified, 3 errors."></a>
+
+Three errors. Each one points at a line:
+
+1. `lo + hi` might go past the `int53` range. In JS this means going past `Number.MAX_SAFE_INTEGER`, where numbers
+   silently lose precision. The standard fix is `lo + (hi - lo) / 2`, which can never be bigger than `hi`.
+2. `ids[mid]` might be out of range. Dafny does not know yet that `mid` stays inside the list.
+3. `return -1` might break the promise "the id is not in the list".
+
+## Step 2: tell Dafny what stays true in the loop
+
+Dafny checks a loop one pass at a time. To do that it needs to know what is true at the start of every pass. That is
+a loop invariant. For binary search it is the same thing you would say to explain the code to a colleague:
+
+- `lo` and `hi` stay within the list.
+- Everything before `lo` is smaller than the target.
+- Everything after `hi` is bigger than the target.
+
+```dafny
+  while lo < hi
+    invariant 0 <= lo as int <= |ids| && -1 <= hi as int < |ids|
+    invariant forall i :: 0 <= i < lo as int ==> ids[i] < target
+    invariant forall i :: hi as int < i < |ids| ==> ids[i] > target
+  {
+    var mid := lo + (hi - lo) / 2;
+    ...
+```
+
+Dafny checks that each invariant is true before the loop and stays true after every pass. You do not have to prove
+that by hand; the verifier does it. Run it again:
+
+<a href="/assets/tools/dafny/dafny-step2.png" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-step2.png" alt="dafny verify output with one error: line 25, a postcondition could not be proved on this return path, at return -1, with the related postcondition ensures index < 0 ==> target !in ids. 2 verified, 1 error."></a>
+
+The range errors are gone. One error is left, and it is the real bug. When the loop ends, the invariants say
+"everything before `lo` is too small, everything after `hi` is too big". With `while lo < hi`, the loop can end with
+`lo == hi`, and that one element was never checked. So Dafny cannot prove "the id is not in the list" at
+`return -1`. It is right: the id might be exactly there.
+
+## Step 3: fix it
+
+Keep looping while there is still something to check:
+
+```dafny
+  while lo <= hi
+```
+
+<a href="/assets/tools/dafny/dafny-build.png" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-build.png" alt="npm run dafny output: Dafny program verifier finished with 3 verified, 0 errors. ls generated shows search-js.dtr and search.cjs."></a>
+
+`0 errors` means both promises hold for every sorted list and every target, of any length.
+
+Dafny also proves that the loop always ends. Change `lo := mid + 1` to `lo := mid`, a common slip, and it says so:
+
+<a href="/assets/tools/dafny/dafny-loop.png" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-loop.png" alt="dafny verify output: line 11, cannot prove termination; try supplying a decreases clause for the loop, at while lo <= hi. 2 verified, 1 error."></a>
+
+In TS that version hangs forever for some inputs. Here it does not compile.
+
+## Step 4: compile to JavaScript and use it from TS
+
+<a href="/assets/tools/dafny/dafny-workflow.png" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-workflow.png" alt="Workflow diagram: Search.dfy with code, requires and ensures goes into dafny translate js, which verifies first and then compiles. If proved, it writes search.cjs, generated JavaScript, which ids.ts wraps with types, and your app and vitest import indexOfId as usual. If not proved, it stops with an error and no JavaScript is written."></a>
+
+Add a script to `package.json`:
+
+```json
+"scripts": {
+  "dafny": "dafny translate js --include-runtime dafny/Search.dfy -o generated/search && echo 'module.exports = _module;' >> generated/search.js && mv generated/search.js generated/search.cjs"
+}
+```
+
+What it does:
+
+- `dafny translate js` verifies first. If there is any error, it stops and writes nothing. Unproven code cannot reach
+  the `generated` folder.
+- `--include-runtime` puts Dafny's small runtime into the same file, so there is nothing else to install except
+  `bignumber.js`.
+- The generated file is a plain script with no exports, so the script adds one line that exports it, and renames it to
+  `.cjs` so Node loads it as CommonJS.
+
+Then replace the body of `src/ids.ts` with a thin typed wrapper:
+
+```ts
+// src/ids.ts
+import { createRequire } from 'node:module';
+
+interface DafnySearch {
+  __default: { IndexOf(ids: readonly number[], target: number): number };
+}
+
+const dafny = createRequire(import.meta.url)('../generated/search.cjs') as DafnySearch;
+
+export function indexOfId(ids: readonly number[], target: number): number {
+  return dafny.__default.IndexOf(ids, target);
+}
+```
+
+The rest of the app imports `indexOfId` exactly as before. Top-level functions land on `__default`. A plain JS array
+works as the `seq`, because the generated code only reads `.length` and `[i]`.
+
+Add the edge cases to the tests:
+
+```ts
+test('finds the first and the last id', () => {
+  expect(indexOfId([10, 20, 30], 10)).toBe(0);
+  expect(indexOfId([10, 20, 30], 30)).toBe(2);
+});
+
+test('empty list', () => {
+  expect(indexOfId([], 10)).toBe(-1);
+});
+```
+
+Against the old TS function, the new test fails:
+
+<a href="/assets/tools/dafny/vitest-old-fails.png" class="lightbox-trigger"><img src="/assets/tools/dafny/vitest-old-fails.png" alt="vitest output against the old TS function: finds the first and the last id fails with AssertionError expected -1 to be +0. 1 failed, 3 passed."></a>
+
+Against the Dafny build, all pass:
+
+<a href="/assets/tools/dafny/vitest-ok.png" class="lightbox-trigger"><img src="/assets/tools/dafny/vitest-ok.png" alt="vitest output against the Dafny build: 1 test file passed, 4 tests passed."></a>
+
+You still keep a few tests. They check the wiring (the wrapper, the export line, the import path), not the logic.
+
+## What you get, and what you do not
+
+You get:
+
+- The shipped JavaScript comes from the proven code. There is no hand-made copy that can drift.
+- Every index access is proven in range, every loop is proven to end, and every `ensures` is proven for every input.
+- Hidden assumptions become explicit `requires` lines that the next developer can read.
+
+You do not get:
+
+- A check of `requires` at runtime. Dafny proves the function is right when the caller keeps the promise. A TS caller
+  can still pass an unsorted list, and nothing stops it. Make sure the list is sorted where it is built, or check it
+  there once.
+- Idiomatic JavaScript. The output is readable but generated (`_0_lo`, `_dafny.EuclideanDivisionNumber`). You do not
+  edit it; you edit the `.dfy` file.
+- Free proofs. Loops need invariants, and writing them is the main skill to learn. The upside: a failed invariant
+  points at a line, and the fix is usually a sentence you already had in your head.
+- Help with timing, concurrency or I/O. Dafny proves what one function does, not the order of events between
+  services.
+
+## How to start in your own project
+
+1. Pick one small function with loops or index math, where a mistake is expensive.
+2. Write its promise as one sentence, then as `ensures`.
+3. Write what callers must guarantee as `requires`.
+4. Use limited number types like `int53` so the output uses plain JS numbers.
+5. When a loop fails to verify, write down what stays true on every pass. That is your invariant.
+6. Add the `dafny` script, commit or build the `generated` folder, and wrap it with a typed TS function.
+
+## Related
+
+- [SpecCraft vs LemmaScript](/vs/lemmascript): writes the contracts as comments in the TS file and translates the
+  function to Dafny or Lean for you, so you keep writing TypeScript.
+- [Dafny getting started](https://dafny.org/latest/OnlineTutorial/guide)
+- [Dafny reference manual](https://dafny.org/latest/DafnyRef/DafnyRef)
+- [Program Proofs](https://mitpress.mit.edu/9780262546232/program-proofs/), by Dafny's creator, K. Rustan M. Leino: the
+  book for programmers.
