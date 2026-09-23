@@ -1,7 +1,10 @@
 ---
 // Replaces the right-hand "On this page" column with an adoption box on pages that declare `adoption`
 // in their frontmatter. Other pages keep Starlight's table of contents off (see astro.config.mjs).
+import { similarTools } from '../tool-kinds';
+
 const adoption = Astro.locals.starlightRoute.entry.data.adoption;
+const similar = adoption ? similarTools(Astro.url.pathname) : undefined;
 
 const shield = (path: string, label: string) =>
 	`https://img.shields.io/${path}?style=flat&label=${encodeURIComponent(label)}`;
@@ -35,6 +38,22 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 			<p class="last-commit" data-repo={adoption.github} hidden>
 				Last commit: <a href={`https://github.com/${adoption.github}/commits`} target="_blank" rel="noopener noreferrer"></a>
 			</p>
+		</div>
+	)
+}
+
+{
+	similar && (
+		<div class="adoption similar">
+			<h2>Similar tools</h2>
+			<p>{similar.kind}</p>
+			<ul>
+				{similar.tools.map((tool) => (
+					<li>
+						<a href={tool.link}>{tool.label}</a>
+					</li>
+				))}
+			</ul>
 		</div>
 	)
 }
@@ -109,7 +128,24 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 		font-size: var(--sl-text-xs);
 		color: var(--sl-color-gray-3);
 	}
+	.similar ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		font-size: var(--sl-text-sm);
+	}
+	.similar li + li {
+		margin-top: 0.25rem;
+	}
 	@media (max-width: 71.99rem) {
+		.similar ul {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.75rem;
+		}
+		.similar li + li {
+			margin-top: 0;
+		}
 		.adoption {
 			flex-direction: row;
 			flex-wrap: wrap;
