@@ -3,8 +3,9 @@
 // in their frontmatter. Other pages keep Starlight's table of contents off (see astro.config.mjs).
 import { similarTools } from '../tool-kinds';
 
-const adoption = Astro.locals.starlightRoute.entry.data.adoption;
+const { adoption, requires } = Astro.locals.starlightRoute.entry.data;
 const similar = adoption ? similarTools(Astro.url.pathname) : undefined;
+const toggleLabel = adoption ? 'Adoption, dependencies and similar tools' : 'Dependencies';
 
 const shield = (path: string, label: string) =>
 	`https://img.shields.io/${path}?style=flat&label=${encodeURIComponent(label)}`;
@@ -21,9 +22,9 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 ---
 
 {
-	adoption && (
+	(adoption || requires) && (
 		<button type="button" class="tool-info-toggle" aria-expanded="false" aria-controls="tool-info">
-			Adoption, dependencies and similar tools
+			{toggleLabel}
 		</button>
 	)
 }
@@ -52,12 +53,12 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 }
 
 {
-	adoption?.requires && (
+	requires && (
 		<div class="adoption similar">
 			<h2>Dependencies</h2>
 			<ul>
-				{adoption.requires.map((item) => (
-					<li class={item.startsWith('LLM') ? 'llm' : undefined}>{item}</li>
+				{requires.map((item) => (
+					<li class={/^(LLM|AI)\b/.test(item) ? 'llm' : undefined}>{item}</li>
 				))}
 			</ul>
 		</div>

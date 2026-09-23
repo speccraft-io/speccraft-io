@@ -10,13 +10,14 @@ export const collections = {
 			extend: z.object({
 				// Adds a Full / Code only switch under the title (see src/components/PageTitle.astro).
 				views: z.boolean().optional(),
+				// What a tool needs beyond Node and npm, shown in the right sidebar.
+				requires: z.array(z.string()).optional(),
 				// Shown in the right sidebar of a tool comparison page (see src/components/PageSidebar.astro).
 				adoption: z
 					.object({
 						github: z.string(),
 						npm: z.string().optional(),
 						created: z.coerce.date(),
-						requires: z.array(z.string()).optional(),
 					})
 					.optional(),
 			}),

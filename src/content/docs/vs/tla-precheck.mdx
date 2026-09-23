@@ -6,11 +6,12 @@ adoption:
   github: kingbootoshi/tla-precheck
   npm: 'tla-precheck'
   created: 2026-03-15
-  requires:
-    - 'Java 17+'
-    - 'TLC'
-    - 'Bun, Postgres (verify-db)'
 views: true
+requires:
+  - 'Java 17+'
+  - 'TLC'
+  - 'Bun, Postgres (verify-db)'
+  - 'AI to port code to the machine (optional)'
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/tla-precheck/before.ts.txt?raw';
