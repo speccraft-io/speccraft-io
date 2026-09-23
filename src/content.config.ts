@@ -10,7 +10,7 @@ export const collections = {
 			extend: z.object({
 				// Adds a Full / Code only switch under the title (see src/components/PageTitle.astro).
 				views: z.boolean().optional(),
-				// What a tool is for, shown in the right sidebar above Dependencies.
+				// What a tool is best for, shown in the right sidebar above Dependencies.
 				useCases: z.array(z.string()).optional(),
 				// What a tool needs beyond Node and npm, shown in the right sidebar.
 				requires: z.array(z.string()).optional(),
