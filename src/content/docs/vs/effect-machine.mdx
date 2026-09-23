@@ -8,10 +8,13 @@ adoption:
   created: 2026-07-28
   requires:
     - 'Effect 4 (pinned RC)'
+views: true
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/effect-machine/before.ts.txt?raw';
 import after from '../../../fixes/effect-machine/after.ts.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
 
 [effect-machine](https://github.com/typeonce-dev/effect-machine) is a statechart library for
 [Effect](https://effect.website), published on npm as `@typeonce/effect-machine` since July 2026. Its testing module
@@ -21,12 +24,16 @@ this group: about 53,000 downloads a month in September 2026.
 **How close to SpecCraft:** fairly close. The same breadth-first search with invariants and shortest traces, but only
 over Effect statecharts, and async work is not run during the search.
 
+<Short>effect-machine explores Effect statecharts breadth-first, with invariants and coverage. Here: a checkout paid for the wrong cart.</Short>
+
 ## Using effect-machine
 
 The code below is in [formal-methods-samples/effect-machine-checkout](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/effect-machine-checkout)
 and runs on its own with `npm install && npm test`.
 
 ### The problem
+
+<Short>Back during a pending payment lets the reply for the old cart mark the new cart paid.</Short>
 
 A checkout has four states: `Cart` (items can be edited), `PaymentPending`, `Paid` and `Failed`. Checkout sends a
 charge for the cart total to the payment provider and waits for its reply. While the payment is pending the user can
@@ -51,6 +58,8 @@ pnpm add -D @effect/vitest@4.0.0-rc.116
   pinned to the same Effect version.
 
 ### Writing the machine
+
+<Short>States and events come from Effect schemas; `Machine.make(...).handle(...)` says what each event does.</Short>
 
 The machine is in `checkout.ts`. States and events are declared from Effect schemas, then
 `Machine.make(...).handle(...)` says what each event does in each state:
@@ -118,6 +127,8 @@ What each part does:
   returns `true` or a message, here `paid 10 for a cart of 20`.
 
 ### Running it
+
+<Short>Only when every reply still in flight is offered does it find the bug: paid 10 for a cart of 20.</Short>
 
 `MachineTest.explore(machine, options)` walks the machine breadth-first. Its options:
 
@@ -236,6 +247,8 @@ step shows the configuration before and after, and the last line is the invarian
 
 ### Fixing the bug
 
+<Short>Remove Back from `PaymentPending`. The same exploration passes.</Short>
+
 The fix removes `Back` from `PaymentPending`. The fixed machine is `checkout.fixed.ts`, a copy of `checkout.ts` with
 only this line removed:
 
@@ -248,6 +261,8 @@ reply still in flight, passes:
 ```text
 { states: 8, plannedTransitions: 10, retainedEdges: 10, maxDepth: 3 } Complete
 ```
+
+<Full>
 
 ### Tips
 
@@ -311,3 +326,5 @@ writes and teaches about Effect. The repository has about 200 stars in September
 - effect-machine on GitHub: https://github.com/typeonce-dev/effect-machine
 - effect-machine on npm: https://www.npmjs.com/package/@typeonce/effect-machine
 - Effect: https://effect.website
+
+</Full>

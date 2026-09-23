@@ -10,10 +10,13 @@ adoption:
     - 'Java 17+'
     - 'TLC'
     - 'Bun, Postgres (verify-db)'
+views: true
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/tla-precheck/before.ts.txt?raw';
 import after from '../../../fixes/tla-precheck/after.ts.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
 
 [tla-precheck](https://github.com/kingbootoshi/tla-precheck) is a TypeScript tool, published on npm as
 `tla-precheck` in March 2026. You write a state machine once in a restricted TypeScript DSL; it is model-checked with
@@ -23,6 +26,8 @@ best answer so far to the translation problem that sinks [stateproof](/vs/statep
 **How close to SpecCraft:** close in aim, different in form. Every state is checked, but the spec is a restricted
 DSL compiled to TLA+, not plain TypeScript.
 
+<Short>tla-precheck checks a small TypeScript DSL with TLC and generates the runtime code. Here: a ticket shop's one-seat limit.</Short>
+
 ## Using tla-precheck
 
 The code below is in
@@ -31,6 +36,8 @@ runs on its own with `npm install && npm test`, once TLC is set up. We ran it wi
 output is from our run.
 
 ### The problem
+
+<Short>The limit counts only held seats, so a customer can buy one seat and hold another.</Short>
 
 A ticket shop lets a customer hold a seat, then buy it or let it go, and a sold seat can be refunded. The rule is one
 seat per customer. The hold is allowed when the seat is free and the customer holds no other seat:
@@ -73,6 +80,8 @@ npx tla-precheck doctor
 - **`npx tla-precheck init`** scaffolds a new `<name>.machine.ts`.
 
 ### Writing the machine
+
+<Short>Guards, updates and invariants are built from DSL functions; `proof.tiers` sets the domains to check.</Short>
 
 The rest of the machine: the state, the other actions, the rule, and how big a world to check.
 
@@ -129,6 +138,8 @@ What each part does:
 
 ### Running it
 
+<Short>TLC breaks `oneSeatPerCustomer`: c1 holds s1, buys it, and holds s3.</Short>
+
 ```sh
 npx tla-precheck check tickets.machine.ts
 ```
@@ -169,6 +180,8 @@ shortest one, which would take three steps. It ran in about a second and a half.
 
 ### Fixing the bug
 
+<Short>Count every seat the customer has. The proof passes, and both backends agree on 37 states.</Short>
+
 The fixed machine is in `tickets.machine.fixed.ts`, a copy of `tickets.machine.ts` with only the lines of the fix
 changed. The hold now counts every seat the customer has, held or sold:
 
@@ -199,6 +212,8 @@ the TypeScript interpreter found the same graph.
 Deadlock checking is on by default. Our first version had no `refund` action, and the fixed machine then failed with
 "Deadlock reached" once both customers had bought a seat: no action was enabled. A real shop refunds, so the action
 went into both files.
+
+<Full>
 
 ### Tips
 
@@ -265,3 +280,5 @@ A solo project by the GitHub user kingbootoshi. Created in March 2026, with its 
 
 - tla-precheck on GitHub: https://github.com/kingbootoshi/tla-precheck
 - tla-precheck on npm: https://www.npmjs.com/package/tla-precheck
+
+</Full>

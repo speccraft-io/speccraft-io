@@ -8,10 +8,13 @@ adoption:
   created: 2026-01-14
   requires:
     - 'npm only (native engine included)'
+views: true
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/hegel/before.ts.txt?raw';
 import after from '../../../fixes/hegel/after.ts.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
 
 
 [Hegel](https://hegel.dev) is a property-based testing engine built on [Hypothesis](https://hypothesis.works), the
@@ -21,6 +24,8 @@ September 2026. It is in beta.
 
 **How close to SpecCraft:** far. Like fast-check, it samples inputs and orders; it does not explore every state.
 
+<Short>Hegel draws inputs and shrinks failures. Here it finds a quantity bug and an oversell in a stock reservation.</Short>
+
 ## Using Hegel
 
 The code below is in
@@ -28,6 +33,8 @@ The code below is in
 runs on its own with `npm install && npm test`.
 
 ### The problem
+
+<Short>`reserve` accepts a quantity of 0 or less, and two reservations started together both pass the stock check.</Short>
 
 A shop holds stock for a customer while they check out. `reserve` checks that there is enough, saves the
 reservation, then takes the units out of stock:
@@ -70,6 +77,8 @@ object is optional. By default Hegel keeps a test database so a failure repeats 
 it off and derandomizes the search, so every run of the repository's tests gives the same result.
 
 ### Writing the check
+
+<Short>`tc.draw(gs.integers())` asks Hegel for a value; `hegel.testAsync` runs the test many times.</Short>
 
 A Hegel test is a plain async function that gets a test case, `tc`. `tc.draw(generator)` asks Hegel for a value;
 `gs.integers()` generates any safe integer, and `gs.integers({ minValue, maxValue })` limits the range. Any thrown
@@ -118,6 +127,8 @@ bug.
 
 ### Running it
 
+<Short>Both bugs, shrunk: 0 units from an empty shelf, and two reservations of one mug.</Short>
+
 The real output of the first test (stack trace left out):
 
 ```text
@@ -145,12 +156,16 @@ It finds the oversell too, shrunk to one mug and two reservations of one.
 
 ### Fixing the bug
 
+<Short>Reject quantities below 1 and take the units before the save. Both tests pass 100 cases.</Short>
+
 The fixed class is in `inventory.fixed.ts`, a copy of `inventory.ts` with only the lines of the fix changed. It
 rejects a quantity that is not a whole number of at least 1, and takes the units before the save:
 
 <CodeFix before={before} after={after} title="inventory.ts" />
 
 With the fix, both tests pass 100 test cases.
+
+<Full>
 
 ### Tips
 
@@ -205,3 +220,5 @@ main contributors.
 - Hegel: https://hegel.dev
 - Hegel for TypeScript on GitHub: https://github.com/hegeldev/hegel-typescript
 - @hegeldev/hegel on npm: https://www.npmjs.com/package/@hegeldev/hegel
+
+</Full>

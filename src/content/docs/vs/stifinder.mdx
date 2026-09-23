@@ -9,10 +9,13 @@ adoption:
   requires:
     - 'Node 22+'
     - 'valsem'
+views: true
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/stifinder/before.ts.txt?raw';
 import after from '../../../fixes/stifinder/after.ts.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
 
 [stifinder](https://github.com/andershessellund/stifinder) is a state-space explorer for JavaScript and TypeScript,
 published on npm in September 2026. It answers a question most checkers do not ask: not only "is there a failing
@@ -21,12 +24,16 @@ trace", but "what is the failing trace that needs the fewest things to go differ
 **How close to SpecCraft:** close. An explicit-state explorer like SpecCraft's engine, but it ranks failures by the
 fewest departures from the expected schedule and does not check real code.
 
+<Short>stifinder reports the failure that needs the fewest departures from the expected schedule. Here: an outbox relay with crashes and retries.</Short>
+
 ## Using stifinder
 
 The code below is in [formal-methods-samples/stifinder-outbox](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/stifinder-outbox) and
 runs on its own with `npm install && npm test`.
 
 ### The problem
+
+<Short>A crash or a broker retry can lose or duplicate an outbox event.</Short>
 
 A transactional outbox. The order service writes the order and an outbox row in one database transaction. A relay
 reads the row, publishes the event to a broker, and marks the row sent. Two things go wrong in production: the relay
@@ -65,6 +72,8 @@ pnpm add -D stifinder valsem
 The example uses stifinder 0.1.0 and valsem 0.0.4.
 
 ### Writing the model
+
+<Short>A model is `initialState`, `getEvents`, `applyEvent` and invariants. Event index 0 is the expected step; the rest are faults.</Short>
 
 A model has an `initialState`, `getEvents(state)`, `applyEvent(state, event)`, and optional `invariant` and
 `terminalInvariant` checks:
@@ -126,6 +135,8 @@ What each part does:
 
 ### Running it
 
+<Short>One crash loses the event; one retry duplicates it. Runs without a fault are clean.</Short>
+
 `exploreIteratively(model, { baseBudget })` runs the search. It tries a budget of zero deviations first, then one, and
 so on, and within a budget it goes by depth. `baseBudget` sets the limit for each cost key. Each relay here runs with
 up to two crashes and two retries:
@@ -179,6 +190,8 @@ publish again, 6 steps, `{ crash: 1, __deviations__: 1 }`.
 
 ### Fixing the bug
 
+<Short>An idempotency key at the consumer. 7 states, `exhaustive: true`, for any number of crashes and retries.</Short>
+
 The duplicate goes away when the consumer checks an idempotency key and drops a delivery it has already applied.
 `outbox.fixed.ts` is a copy of `outbox.ts` with only that line changed:
 
@@ -199,6 +212,8 @@ It has 7 reachable states (`costs` holds one entry per reachable state) and 11 e
 true`. Faults are a budget, not part of the state, so this is a proof for any number of crashes and retries, not only
 two. With a budget of one crash and one retry, the same run is `exhaustive: false`: that budget does not cover every
 edge of the state space.
+
+<Full>
 
 ### Tips
 
@@ -263,3 +278,5 @@ code). It is new and early: version 0.1.0, no stars and about 165 downloads a mo
 - stifinder on npm: https://www.npmjs.com/package/stifinder
 - kilde on GitHub: https://github.com/andershessellund/kilde
 - valsem on GitHub: https://github.com/andershessellund/valsem
+
+</Full>

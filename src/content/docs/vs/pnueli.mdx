@@ -8,10 +8,13 @@ adoption:
   created: 2026-08-17
   requires:
     - 'npm only'
+views: true
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/pnueli/before.ts.txt?raw';
 import after from '../../../fixes/pnueli/after.ts.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
 
 [pnueli](https://github.com/BOTIROFF-D/pnueli) is an explicit-state model checker written in TypeScript, published
 on npm as `@botiroff/pnueli` in August 2026. A spec is a plain TypeScript object, and the checker walks every
@@ -20,6 +23,8 @@ reachable state.
 **How close to SpecCraft:** very close. Of everything we have found, it is the closest to SpecCraft's own engine and
 ahead of it on symmetry, partial-order reduction and liveness, but it checks the model only, not real code.
 
+<Short>pnueli walks every reachable state of a plain TypeScript spec, with symmetry, partial-order reduction and liveness. Here: a lock with a lease.</Short>
+
 ## Using pnueli
 
 The code below is in
@@ -27,6 +32,8 @@ The code below is in
 runs on its own with `npm install && npm test`.
 
 ### The problem
+
+<Short>A lease can expire while a node is paused, and its late write lands over newer data.</Short>
 
 Several identical nodes share a lock with a lease. A node takes the lock, then writes to shared storage. The lease
 can expire while the node is paused (a long GC pause, a slow disk) between taking the lock and writing. Another node
@@ -48,6 +55,8 @@ Everything comes from one entry point: the `Spec`, `Action` and `Invariant` type
 0.2.0. The checks are plain functions that return a result, so they run inside any test; the example uses vitest.
 
 ### Writing the spec
+
+<Short>Each action has a `step` that returns the next states, and `reads` and `writes` for partial-order reduction.</Short>
 
 The transitions live in a plain file, `lock.ts`. Each function takes a state and returns the next one, or `null`
 when the step does not apply. The write step is where the bug is: the storage accepts every write, whatever its
@@ -148,6 +157,8 @@ What each part does:
 
 ### Running it
 
+<Short>A shortest trace in five steps: n0's lease expires, n1 writes, n0 writes an older token over it.</Short>
+
 Three functions run a spec. `checkExhaustive` walks every reachable state (with symmetry, if the spec has it).
 `checkReduced` adds partial-order reduction on top. `checkLiveness(spec, goal)` checks "eventually the goal holds"
 under weak fairness.
@@ -192,6 +203,8 @@ prints canonical states, where the nodes are sorted after every step, so the nod
 up with the names in the actions.
 
 ### Fixing the bug
+
+<Short>The storage rejects older tokens and safety holds. The liveness check shows n0 can still be fenced out forever.</Short>
 
 The fix is one branch in the write rule: the storage rejects a write that carries an older token than the newest one
 it took. `lock.fixed.ts` is a copy of `lock.ts` with only that branch added.
@@ -254,6 +267,8 @@ write. The cycle is fair, because every process either moves in it or is blocked
 scheduler that simply never runs n0. Fencing keeps the data safe, but it does nothing for progress: a node whose lease
 keeps running out can be fenced out forever.
 
+<Full>
+
 ### Tips
 
 - **Keep the state finite.** A counter that only goes up (here, the lock epoch) makes the state space infinite.
@@ -315,3 +330,5 @@ early: one star and about 55 downloads a month in September 2026.
 - pnueli on GitHub: https://github.com/BOTIROFF-D/pnueli
 - pnueli on npm: https://www.npmjs.com/package/@botiroff/pnueli
 - unflake on GitHub: https://github.com/BOTIROFF-D/unflake
+
+</Full>

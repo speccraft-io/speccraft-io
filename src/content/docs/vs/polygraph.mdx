@@ -10,10 +10,13 @@ adoption:
     - 'LLM (Anthropic key)'
     - 'Claude Code (optional)'
     - 'TLC (--tla only)'
+views: true
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/polygraph/before.ts.txt?raw';
 import after from '../../../fixes/polygraph/after.ts.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
 
 [Polygraph](https://github.com/cognitive-fab/polygraph) is a Claude Code plugin and standalone CLI by Cognitive Fab
 LLC, first published in July 2026. It finds bugs in stateful JavaScript and TypeScript code (workflows, reducers,
@@ -22,6 +25,8 @@ actions and payloads.
 
 **How close to SpecCraft:** close. It covers the most of SpecCraft's method end to end, but an LLM derives the spec
 from existing code instead of you writing it first.
+
+<Short>Polygraph replays real traces against a spec, then model-checks it. Here: a cart that keeps a coupon it no longer qualifies for.</Short>
 
 ## Using Polygraph
 
@@ -32,6 +37,8 @@ audit an LLM writes the spec from your source; that step needs `ANTHROPIC_API_KE
 hand the way it would be derived. Every other step, and all the output below, is from our run.
 
 ### The problem
+
+<Short>The minimum spend is checked when the coupon is applied, not when an item is removed.</Short>
 
 A shop's cart is a reducer. Every item costs 10.00, and the `SAVE5` coupon needs a subtotal of at least 20.00:
 
@@ -76,6 +83,8 @@ Or as a Claude Code plugin, where you mostly ask in plain words ("verify this st
   already have a contract and traces, and `/polygraph:polygen` to write a new machine.
 
 ### Writing the check
+
+<Short>Four files: a contract, traces recorded with `tapReducer`, a SAM spec, and your invariants.</Short>
 
 An audit has four files you can read and diff.
 
@@ -151,6 +160,8 @@ export const stateInvariants = [
 
 ### Running it
 
+<Short>Replay passes. The model check finds the bug in 8 states, with a 4-step shortest trace.</Short>
+
 Replay first, to check that the spec matches the real behavior:
 
 ```sh
@@ -191,6 +202,8 @@ for the real reducer.
 
 ### Fixing the bug
 
+<Short>Drop the coupon below the minimum: 6 states, no violation. Replay alone could not tell the two versions apart.</Short>
+
 The fixed reducer is in `cart.fixed.ts`, a copy of `cart.ts` with only the lines of the fix changed. Removing an item
 now drops the coupon when the subtotal falls below the minimum:
 
@@ -207,6 +220,8 @@ no invariant violations reachable ✓
 
 Replay could not tell the two versions apart: the old spec also replays 15 of 15 windows from the fixed code, because
 no session removed an item from a cart at the minimum. Only the model checker found the difference.
+
+<Full>
 
 ### Tips
 
@@ -279,3 +294,5 @@ pattern the specs are written in: "Can Code Specify a System Precisely Enough to
 - Polyflow on npm: https://www.npmjs.com/package/@cognitive-fab/polyflow
 - The paper: https://arxiv.org/abs/2607.05076
 - Cognitive Fab: https://cognitivefab.com
+
+</Full>

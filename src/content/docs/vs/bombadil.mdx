@@ -10,10 +10,13 @@ adoption:
     - 'Chrome'
     - 'Native binary'
     - 'Running app'
+views: true
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/bombadil/before.ts.txt?raw';
 import after from '../../../fixes/bombadil/after.ts.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
 
 [Bombadil](https://github.com/antithesishq/bombadil) is property-based testing for web and terminal user
 interfaces, built by [Antithesis](https://antithesis.com) and open source since December 2025. Its specs are
@@ -23,6 +26,8 @@ It is the tool most likely to be compared with SpecCraft first.
 **How close to SpecCraft:** far. It samples runs of a real UI against temporal properties; it does not explore every
 state of a spec.
 
+<Short>Bombadil clicks through a running web app and checks temporal properties. Here: a checkout that places an order twice.</Short>
+
 ## Using Bombadil
 
 The code below is in
@@ -31,6 +36,8 @@ runs on its own with `npm install && npm test`, with Chrome installed. We ran it
 on macOS. The output is from our run.
 
 ### The problem
+
+<Short>The button stays clickable while the order request is in flight.</Short>
 
 A checkout page has a "Place order" button. The click handler posts the order, waits for the server, then shows the
 confirmation and hides the button:
@@ -65,6 +72,8 @@ npm install --save-dev @antithesishq/bombadil
 
 ### Writing the check
 
+<Short>`extract` reads the page in every state; `always` states the rule.</Short>
+
 A spec is a plain ES module. Every property and every action generator it exports is used, and the export name is
 the name in error reports:
 
@@ -92,6 +101,8 @@ What each part does:
 No action generator is needed here: the default clicks find the button.
 
 ### Running it
+
+<Short>It found the double order in all five runs, within 0.9 to 8.7 seconds.</Short>
 
 ```sh
 bombadil browser test http://localhost:4500 spec.ts --time-limit=30s --exit-on-violation --output-path out \
@@ -135,6 +146,8 @@ In five runs it found the double order in all five, after 0.9, 1.2, 2.3, 3.4 and
 
 ### Fixing the bug
 
+<Short>Disable the button on click. Two 30-second runs were clean.</Short>
+
 The fixed handler is in `checkout.fixed.js`, a copy of `checkout.js` with only the line of the fix changed. The
 button is disabled as soon as it is clicked:
 
@@ -143,6 +156,8 @@ button is disabled as soon as it is clicked:
 Against the fixed page, two 30-second runs finished with "Test finished after time limit!" and exit code 0. Both
 reached a confirmed order, and none showed a second one. That is evidence, not proof: a clean run means nothing was
 found in this run.
+
+<Full>
 
 ### Tips
 
@@ -229,3 +244,5 @@ downloads a month.
 - Bombadil on GitHub: https://github.com/antithesishq/bombadil
 - The Bombadil manual: https://antithesishq.github.io/bombadil/
 - Bombadil on npm: https://www.npmjs.com/package/@antithesishq/bombadil
+
+</Full>

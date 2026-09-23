@@ -1,12 +1,15 @@
 ---
 title: Quint for TypeScript developers
 description: A practical first look at Quint from a TypeScript project. Model a webhook handler with retries and two workers, let Quint find the double charge, then replay its traces against the real TS code in vitest.
+views: true
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import quintModelBefore from '../../../fixes/quint-model/before.txt?raw';
 import quintModelAfter from '../../../fixes/quint-model/after.txt?raw';
 import quintTsBefore from '../../../fixes/quint-ts/before.txt?raw';
 import quintTsAfter from '../../../fixes/quint-ts/after.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
 
 
 [Quint](https://quint-lang.org) is a language for describing how a system moves from state to state, plus tools that
@@ -21,6 +24,10 @@ against it. See [SpecCraft vs non-TS tools](/tools/speccraft-vs-non-ts-tools).
 Lean and Dafny prove that one function is right for every input. Quint answers a different question: what happens when
 several things run at the same time, in every possible order? This page shows how to use it next to a normal
 TypeScript project, with one small example. No math background needed.
+
+<Short>Model the system in Quint, let it find the bad order of events, then replay its traces against the real TS code.</Short>
+
+<Full>
 
 ## A separate model, on purpose
 
@@ -40,7 +47,11 @@ ways:
 The cost is a second artifact to keep in step with the code. The rest of this page shows how to do that with a replay
 test in vitest.
 
+</Full>
+
 ## Why you would want this
+
+<Short>Both tests pass, but two workers can both read `unpaid` and charge the card twice.</Short>
 
 A service receives an `order.confirmed` webhook and charges the customer's card. The sender retries when it does not
 get a reply in time. The handler checks the order first, so a retry should not charge twice:
@@ -84,6 +95,8 @@ Both tests pass. The retry test runs the two deliveries one after the other. In 
 the same time, and each `await` is a point where the other worker can run. The tests never try that order. Quint
 tries all of them.
 
+<Full>
+
 ## When Quint fits
 
 - Several actors change shared state: workers, retries, queues, webhooks, timeouts, locks, leader election, sagas.
@@ -93,7 +106,11 @@ tries all of them.
 Quint is not the tool for proving one function's math right for every input. See the [Lean](/tools/lean) and
 [Dafny](/tools/dafny) pages for that.
 
+</Full>
+
 ## Install
+
+<Short>`quint verify` also needs Java 17 or newer.</Short>
 
 ```sh
 npm i -g @informalsystems/quint
@@ -102,6 +119,8 @@ npm i -g @informalsystems/quint
 That gives you the `quint` command: `typecheck`, `run` (random runs, fast), `verify` (every reachable state), and a
 REPL. `quint verify` needs Java 17 or newer, and downloads its checker the first time. For the editor, install the
 "Quint" extension in VS Code.
+
+<Full>
 
 ## Architecture
 
@@ -120,7 +139,11 @@ What runs underneath each `quint` command:
 So Quint is a friendlier front end on the TLA+ toolchain, not a replacement for it. It is also why only the model
 check in CI needs Java.
 
+</Full>
+
 ## Step 1: describe the system as state and steps
+
+<Short>Variables are the state; each action has a condition and says what the variables become.</Short>
 
 A Quint model has two parts: variables (the state) and actions (the steps that change it). Each action has a
 condition for when it can happen, and says what the variables become. `x'` means "the value of `x` after this step".
@@ -211,6 +234,8 @@ How to read it:
 
 ## Step 2: let Quint find the bad order
 
+<Short>`quint run` finds the double charge in 9 ms.</Short>
+
 `quint run` makes random runs through the model and stops at the first state that breaks the rule. `--mbt` adds the
 name of each step to the output, and `--hide` leaves out variables to keep it short:
 
@@ -232,6 +257,8 @@ concurrency bugs need only two or three actors to show up.
 
 ## Step 3: fix the model
 
+<Short>Make the read and the claim one step. The rule holds.</Short>
+
 The read and the write must be one step that nobody can get in between. In a database that is a conditional update:
 `UPDATE orders SET status = 'charging' WHERE id = $1 AND status = 'unpaid'`, and the worker charges only if one row
 changed. In the model, the read-then-decide pair becomes one `claimOrder` step:
@@ -251,6 +278,8 @@ The matching TS change:
 <CodeFix before={quintTsBefore} after={quintTsAfter} lang="ts" title="src/webhook.ts" />
 
 ## Step 4: replay Quint's traces against the real TS code
+
+<Short>Quint writes its runs as JSON traces; vitest replays each one against the real handler.</Short>
 
 The model is fixed. Nothing yet says the TS code behaves like the model. The bridge: Quint writes its runs as JSON
 traces, and a vitest file plays each trace against the real handler, step by step, checking the state after every
@@ -371,6 +400,8 @@ the code and the model differ, not just when the rule breaks.
 
 ## Project layout and CI
 
+<Short>Traces are regenerated on every test run with a fixed seed, and never committed.</Short>
+
 One repo. The model sits in its own folder. The traces are built from it on every test run and never committed:
 
 ```text
@@ -479,6 +510,8 @@ What fails when:
 
 ## Making changes
 
+<Short>Change the model first and check it, then change the code until the replay passes.</Short>
+
 Changing the flow (for example, adding a refund step):
 
 1. Change the model first: a new action, the variables it touches, and a rule if there is a new "must never happen".
@@ -501,6 +534,8 @@ Reviewing a pull request: read the model diff first. A new `await` in the handle
 the model no longer splits the code where it can interleave. That is the one mistake the replay cannot catch, because
 the replay follows the model's steps.
 
+<Full>
+
 ## What you get, and what you do not
 
 You get:
@@ -521,6 +556,10 @@ You do not get:
 - Big numbers. Checking every state works for a few workers and a few messages. That is usually enough to find the
   bug, but it is not a load test.
 
+</Full>
+
+<Full>
+
 ## How to start in your own project
 
 1. Pick one flow where order matters: a webhook, a job queue, a retry loop, a lock.
@@ -529,6 +568,10 @@ You do not get:
 4. Make one action per step between two `await`s in the real code.
 5. Run `quint run` first (fast), then `quint verify` (every state), with 2 or 3 actors.
 6. Export traces with `--mbt --out-itf` and a fixed `--seed`, and replay them against the real code with controlled fakes.
+
+</Full>
+
+<Full>
 
 ## Related
 
@@ -539,3 +582,5 @@ You do not get:
 - [Model-based testing with Quint](https://quint-lang.org/docs/model-based-testing)
 - [Quint on GitHub](https://github.com/informalsystems/quint)
 - [TLA+](https://lamport.azurewebsites.net/tla/tla.html), the method underneath.
+
+</Full>

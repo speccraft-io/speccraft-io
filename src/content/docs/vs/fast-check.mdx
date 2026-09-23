@@ -8,10 +8,13 @@ adoption:
   created: 2017-10-30
   requires:
     - 'npm only'
+views: true
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/fast-check/before.ts.txt?raw';
 import after from '../../../fixes/fast-check/after.ts.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
 
 
 [fast-check](https://github.com/dubzzz/fast-check) is the property-based testing library for JavaScript and
@@ -21,12 +24,16 @@ TypeScript developer will compare SpecCraft to.
 **How close to SpecCraft:** medium. Its model-based testing has the same shape (commands with preconditions, run
 against a model and the real system), but it samples orders at random instead of trying every one.
 
+<Short>fast-check samples orders of async calls with its scheduler. Here it finds a webhook double charge on the first run.</Short>
+
 ## Using fast-check
 
 The code below is in [formal-methods-samples/fast-check-webhook](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/fast-check-webhook)
 and runs on its own with `npm install && npm test`. The same example is on the [Quint page](/tools/quint).
 
 ### The problem
+
+<Short>Two deliveries of the same webhook both read `unpaid` and both charge the card.</Short>
 
 A service receives an `order.confirmed` webhook and charges the card. The sender retries when it does not hear back
 in time, so the same order can arrive twice. The handler checks the order first:
@@ -62,6 +69,8 @@ that seam there is nothing for the scheduler to wrap.
 
 ### Writing the check with the scheduler
 
+<Short>`s.scheduleFunction` wraps each async dependency; `s.waitIdle()` releases the calls in an order fast-check picks.</Short>
+
 `fc.scheduler()` is an arbitrary that produces a scheduler `s`. `s.scheduleFunction(fn)` wraps an async function:
 each call is queued, and the scheduler decides when it resolves. The test builds a small in-memory database, wraps
 each dependency, and starts two deliveries at once against the real handler:
@@ -93,6 +102,8 @@ console.log(fc.defaultReportMessage(details));
 
 ### Running it
 
+<Short>It fails on the first run: both `getStatus` calls return `unpaid`, then both charges run.</Short>
+
 The real output:
 
 ```text
@@ -117,6 +128,8 @@ replay the failure.
 
 ### Fixing the bug
 
+<Short>Claim the order in one step with `claimOrder`. All 100 sampled runs pass.</Short>
+
 The fixed handler is in `webhook.fixed.ts`, a copy of `webhook.ts` with only the lines of the fix changed. It
 replaces the read with `claimOrder`, which sets `'charging'` only if the order is still `'unpaid'` and returns
 whether it did. Only the worker that got the claim charges:
@@ -129,6 +142,8 @@ In the test, `claimOrder` is wrapped with `s.scheduleFunction` like the others, 
 ```text
 ✓ webhook under fast-check > holds for every sampled order once the claim is atomic 4ms
 ```
+
+<Full>
 
 ### Tips
 
@@ -193,3 +208,5 @@ Nicolas Dubien, who started fast-check in 2017 and still maintains it, with a la
 - Model-based testing: https://fast-check.dev/docs/advanced/model-based-testing/
 - Race conditions and the scheduler: https://fast-check.dev/docs/advanced/race-conditions/
 - fast-check-ltl on npm: https://www.npmjs.com/package/fast-check-ltl
+
+</Full>

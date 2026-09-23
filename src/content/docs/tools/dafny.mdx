@@ -1,12 +1,15 @@
 ---
 title: Dafny for TypeScript developers
 description: A practical first look at Dafny from a TypeScript project. Write a binary search with its rules, let the verifier find the bug, then compile the proven code to JavaScript and import it from TS.
+views: true
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import dafnyInvariantsBefore from '../../../fixes/dafny-invariants/before.txt?raw';
 import dafnyInvariantsAfter from '../../../fixes/dafny-invariants/after.txt?raw';
 import dafnyFixBefore from '../../../fixes/dafny-fix/before.txt?raw';
 import dafnyFixAfter from '../../../fixes/dafny-fix/after.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
 
 
 [Dafny](https://dafny.org) is a programming language with a checker built in. Next to the code you write what the
@@ -15,7 +18,11 @@ only then compiles the code. It can compile to JavaScript, so the code you prove
 
 This page shows how to use it inside a normal TypeScript project, with one small example. No math background needed.
 
+<Short>Write a function in Dafny with its promises, prove them for every input, and compile it to JavaScript for your TS code.</Short>
+
 ## Why you would want this
+
+<Short>Both tests pass, but `indexOfId([10, 20, 30], 10)` returns `-1`.</Short>
 
 Here is a normal binary search over sorted ids, and two normal tests:
 
@@ -49,6 +56,8 @@ Both tests pass. The function still has a bug: `indexOfId([10, 20, 30], 10)` ret
 `indexOfId([10, 20, 30], 30)`. When the search narrows down to one last element, the loop stops before looking at it.
 Binary search is famous for bugs like this. They hide at the edges, where tests rarely look.
 
+<Full>
+
 ## When Dafny fits
 
 - Code with loops and indexes, where off-by-one mistakes are easy: search, merge, pagination, ring buffers, parsers,
@@ -60,7 +69,11 @@ Binary search is famous for bugs like this. They hide at the edges, where tests 
 Dafny is not the tool for "what happens when two requests arrive at the same time". That is about the order of
 events, not one function. See the Quint page for that.
 
+</Full>
+
 ## Install
+
+<Short>Dafny 4 comes with .NET 8 and Z3.</Short>
 
 ```sh
 brew install dafny
@@ -77,6 +90,8 @@ npm i bignumber.js
 ```
 
 ## Step 1: write the function in Dafny, with its rules
+
+<Short>`requires` is what callers guarantee; `ensures` is what the function promises.</Short>
 
 The Dafny version looks a lot like TS. The new parts are the lines between the signature and the body:
 
@@ -130,6 +145,8 @@ Three errors. Each one points at a line:
 
 ## Step 2: tell Dafny what stays true in the loop
 
+<Short>With loop invariants, only the real bug is left.</Short>
+
 Dafny checks a loop one pass at a time. To do that it needs to know what is true at the start of every pass. That is
 a loop invariant. For binary search it is the same thing you would say to explain the code to a colleague:
 
@@ -151,6 +168,8 @@ The range errors are gone. One error is left, and it is the real bug. When the l
 
 ## Step 3: fix it
 
+<Short>`while lo <= hi` fixes it: 0 errors, for every sorted list and every target.</Short>
+
 Keep looping while there is still something to check:
 
 <CodeFix before={dafnyFixBefore} after={dafnyFixAfter} lang="text" title="dafny/Search.dfy" />
@@ -166,6 +185,8 @@ Dafny also proves that the loop always ends. Change `lo := mid + 1` to `lo := mi
 In TS that version hangs forever for some inputs. Here it does not compile.
 
 ## Step 4: compile to JavaScript and use it from TS
+
+<Short>`dafny translate js` verifies, then writes plain JavaScript; a typed wrapper imports it into TS.</Short>
 
 <a href="/assets/tools/dafny/dafny-workflow.webp" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-workflow.webp" alt="Workflow diagram: Search.dfy with code, requires and ensures goes into dafny translate js, which verifies first and then compiles. If proved, it writes search.cjs, generated JavaScript, which ids.ts wraps with types, and your app and vitest import indexOfId as usual. If not proved, it stops with an error and no JavaScript is written." /></a>
 
@@ -230,6 +251,8 @@ Against the Dafny build, all pass:
 You still keep a few tests. They check the wiring (the wrapper, the export line, the import path), not the logic.
 
 ## Project layout and CI
+
+<Short>Commit `generated/`. CI verifies, regenerates it and fails on any difference.</Short>
 
 One repo. The Dafny source sits in its own folder, and the JavaScript it produces is committed next to it:
 
@@ -327,6 +350,8 @@ What fails when:
 
 ## Making changes
 
+<Short>Change the `ensures` first, then the body; regenerate and commit both.</Short>
+
 Changing the search (for example, returning the insert position instead of `-1`):
 
 1. Change the `ensures` lines first. They are the new promise, and the reviewer reads them before the code.
@@ -344,6 +369,8 @@ and CI checks it like any other.
 
 Reviewing a pull request: read the `.dfy` diff, starting with `requires` and `ensures`. Skim `generated/`. Its diff
 only confirms the rebuild happened, and CI has already checked that it matches.
+
+<Full>
 
 ## What you get, and what you do not
 
@@ -365,6 +392,10 @@ You do not get:
 - Help with timing, concurrency or I/O. Dafny proves what one function does, not the order of events between
   services.
 
+</Full>
+
+<Full>
+
 ## How to start in your own project
 
 1. Pick one small function with loops or index math, where a mistake is expensive.
@@ -374,6 +405,10 @@ You do not get:
 5. When a loop fails to verify, write down what stays true on every pass. That is your invariant.
 6. Add the `dafny` script, commit the `generated` folder, and wrap it with a typed TS function.
 
+</Full>
+
+<Full>
+
 ## Related
 
 - [LemmaScript vs SpecCraft](/vs/lemmascript): writes the contracts as comments in the TS file and translates the
@@ -382,3 +417,5 @@ You do not get:
 - [Dafny reference manual](https://dafny.org/latest/DafnyRef/DafnyRef)
 - [Program Proofs](https://mitpress.mit.edu/9780262546232/program-proofs/), by Dafny's creator, K. Rustan M. Leino: the
   book for programmers.
+
+</Full>

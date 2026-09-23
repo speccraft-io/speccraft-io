@@ -9,10 +9,13 @@ adoption:
   requires:
     - 'Dafny or Lean'
     - 'LLM for hard proofs'
+views: true
 ---
 import CodeFix from '../../../components/CodeFix.astro';
 import before from '../../../fixes/lemmascript/before.ts.txt?raw';
 import after from '../../../fixes/lemmascript/after.ts.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
 
 [LemmaScript](https://github.com/midspiral/LemmaScript) is a verification toolchain for TypeScript by
 [Midspiral](https://www.linkedin.com/company/midspiral/), currently a tech preview. It is the most serious
@@ -20,6 +23,8 @@ import after from '../../../fixes/lemmascript/after.ts.txt?raw';
 
 **How close to SpecCraft:** far, and complementary. It proves pure functions correct for every input; SpecCraft
 explores orders of events.
+
+<Short>LemmaScript turns `//@` contract comments into Dafny proofs. Here: a bill split with a rounding bug.</Short>
 
 ## Using LemmaScript
 
@@ -29,6 +34,8 @@ runs on its own with `npm install && npm test`, once Dafny is installed. We ran 
 The output is from our run.
 
 ### The problem
+
+<Short>Rounding every share up can leave the last person with a negative share.</Short>
 
 A bill in cents is split between people. Everyone pays the same share, rounded up so nobody underpays, and the last
 person pays what is left:
@@ -60,6 +67,8 @@ npm install -D lemmascript
 
 ### Writing the contract
 
+<Short>`//@ requires` and `//@ ensures` state the contract inside the TS file.</Short>
+
 A contract is a set of `//@` comments inside the ordinary TypeScript. `tsc` and the bundler ignore them.
 
 ```ts
@@ -87,6 +96,8 @@ What each annotation does:
   loop ends, and `//@ type i nat` to make a counter a natural number.
 
 ### Running it
+
+<Short>Dafny cannot prove `last >= 0`. One failing input: 20 people splitting 3.41.</Short>
 
 `lsc gen` translates the file, and `lsc check` regenerates it and runs Dafny:
 
@@ -144,6 +155,8 @@ the last share can be negative. Dafny does not say for which input. One is 20 pe
 
 ### Fixing the bug
 
+<Short>Round down with `Math.floor`. Proved for every input.</Short>
+
 The fixed function is in `splitBill.fixed.ts`, a copy of `splitBill.ts` with only the line of the fix changed.
 Rounding down leaves the remainder for the last person, which is never negative:
 
@@ -157,6 +170,8 @@ Dafny program verifier finished with 4 verified, 0 errors
 
 Dafny proved it with no help: the contract now holds for every total and every number of people, not for sampled
 ones.
+
+<Full>
 
 ### Tips
 
@@ -228,3 +243,5 @@ stars, MIT licensed, and the npm package about 7,200 downloads a month.
 - LemmaScript on GitHub: https://github.com/midspiral/LemmaScript
 - LemmaScript blog: https://lemmascript.org/blog/
 - Midspiral on LinkedIn: https://www.linkedin.com/company/midspiral/posts/
+
+</Full>
