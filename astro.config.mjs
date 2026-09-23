@@ -4,6 +4,7 @@ import starlight from '@astrojs/starlight';
 import rehypeExternalLinks from 'rehype-external-links';
 import rehypeImageAttrs from './src/plugins/rehype-image-attrs.mjs';
 import sitemap from '@astrojs/sitemap';
+import remarkGfm from 'remark-gfm';
 import { lastModified } from './src/plugins/last-modified.mjs';
 
 // https://astro.build/config
@@ -18,6 +19,7 @@ export default defineConfig({
 		// internal Starlight links stay relative (e.g. /how-speccraft-compares) so they're
 		// untouched. The visual "external link" icon is CSS, keyed off target="_blank"
 		// (see src/styles/custom.css).
+		remarkPlugins: [remarkGfm],
 		rehypePlugins: [[rehypeExternalLinks, { target: '_blank', rel: ['noopener', 'noreferrer'] }], rehypeImageAttrs],
 	},
 	integrations: [
