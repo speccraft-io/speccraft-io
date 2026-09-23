@@ -84,7 +84,7 @@ export default defineConfig({
 				{
 					label: 'Non-TS tools',
 					items: [
-						{ label: 'SpecCraft vs non-TS tools', link: '/tools/speccraft-vs-non-ts-tools' },
+						{ label: 'Overview', link: '/tools/speccraft-vs-non-ts-tools' },
 						{ label: 'Lean', link: '/tools/lean' },
 						{ label: 'Dafny', link: '/tools/dafny' },
 						{ label: 'Quint', link: '/tools/quint' },
