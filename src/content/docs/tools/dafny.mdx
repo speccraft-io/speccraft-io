@@ -209,21 +209,22 @@ What it does:
 - The generated file is a plain script with no exports, so the script adds one line that exports it, and renames it to
   `.cjs` so Node loads it as CommonJS.
 
-Then replace the body of `src/ids.ts` with a thin typed wrapper:
+The generated JavaScript has no types, so give it a two-line declaration file next to it. You write it once; the
+Dafny build leaves it alone:
+
+```ts
+// generated/search.d.cts
+declare const search: { __default: { IndexOf(ids: readonly number[], target: number): number } };
+export = search;
+```
+
+Then `src/ids.ts` becomes one import and one line:
 
 ```ts
 // src/ids.ts
-import { createRequire } from 'node:module';
+import search from '../generated/search.cjs';
 
-interface DafnySearch {
-  __default: { IndexOf(ids: readonly number[], target: number): number };
-}
-
-const dafny = createRequire(import.meta.url)('../generated/search.cjs') as DafnySearch;
-
-export function indexOfId(ids: readonly number[], target: number): number {
-  return dafny.__default.IndexOf(ids, target);
-}
+export const indexOfId = (ids: readonly number[], target: number): number => search.__default.IndexOf(ids, target);
 ```
 
 The rest of the app imports `indexOfId` exactly as before. Top-level functions land on `__default`. A plain JS array
@@ -264,7 +265,8 @@ ts-ids/
 ├── dafny/
 │   └── Search.dfy               the code, with requires / ensures / invariants
 ├── generated/
-│   └── search.cjs               built from Search.dfy, committed, never edited by hand
+│   ├── search.cjs               built from Search.dfy, committed, never edited by hand
+│   └── search.d.cts             its types, written once by hand
 ├── src/
 │   ├── ids.ts                   typed wrapper, the only file that imports generated/
 │   └── ids.test.ts              tests for the wiring and a few edge cases
@@ -359,8 +361,8 @@ Changing the search (for example, returning the insert position instead of `-1`)
 1. Change the `ensures` lines first. They are the new promise, and the reviewer reads them before the code.
 2. Change the body. Run `npm run dafny` until it verifies. If a loop fails, update the invariant: it should still be
    a sentence you can say out loud.
-3. Update the wrapper type in `src/ids.ts` if the signature changed, and the tests that check the wiring.
-4. Commit `Search.dfy`, `generated/search.cjs` and `src/` together.
+3. Update the types in `generated/search.d.cts` if the signature changed, and the tests that check the wiring.
+4. Commit `Search.dfy`, `generated/` and `src/` together.
 
 Adding a function: add it to the same `.dfy` file (or `include` a new one), export it through the wrapper, regenerate.
 One wrapper file per generated file keeps the untyped surface in one place.
