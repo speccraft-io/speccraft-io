@@ -15,6 +15,8 @@ export default defineConfig({
 	},
 	integrations: [
 		starlight({
+			// No site search: hides the header search bar and skips the Pagefind index.
+			pagefind: false,
 			title: 'SpecCraft',
 			description:
 				'SpecCraft — tooling to understand, verify, and test complex concurrent and durable-execution workflows, where the dangerous bugs live in interleavings no test suite ever samples.',
