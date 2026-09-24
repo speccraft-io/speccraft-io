@@ -87,6 +87,7 @@ export default defineConfig({
 					items: [
 						{ label: 'State machines and FSMs', link: '/concepts/state-machines' },
 						{ label: 'Petri nets', link: '/concepts/petri-nets' },
+						{ label: 'Formal specs', link: '/concepts/formal-specs' },
 					],
 				},
 				{
