@@ -214,14 +214,18 @@ q, for any q" is most of the way to seeing the bug.
 
 ## Step 2: turn the text into Quint (use AI)
 
-<Short>Four variables, two steps, and one rule. The agent writes them; you check them against the text.</Short>
+<Short>The agent writes the Quint. You do not read it: the agent maps it back to the text, and the checks do the rest.</Short>
 
 Give the text file to a coding agent: "Write `quint/search.qnt` from `quint/search.md`. One `var` per variable, one
-action per action, guards as conditions, the invariant as a `val`." You do not need to write Quint, but you need to
-read it well enough to check that it says what the text says.
+action per action, guards as conditions, the invariant as a `val`. Above each part, put the line of the text it comes from as a comment. List anything you
+had to guess." You do not need to read Quint. Answer the guesses by fixing the text, not the model. Quint then checks
+the model, and the replay in Step 5 checks that the real code does what the model says.
 
 A Quint model has variables (the state) and actions (the steps that change it). Each action has a condition for when
 it can happen, and says what the variables become. `x'` means "the value of `x` after this step".
+
+<details>
+<summary>The Quint model: <code>quint/search.qnt</code> (42 lines)</summary>
 
 ```text
 // quint/search.qnt
@@ -267,6 +271,8 @@ module search {
   val listMatchesBox = inFlight == Set() implies shownFor == query
 }
 ```
+
+</details>
 
 How to read it:
 
@@ -342,6 +348,9 @@ CI fails the same way on your laptop. `--max-samples` must be at least `--n-trac
 The replay test gives the search a fake `fetchResults`. Each request waits until the trace says its reply comes back,
 which is how the test controls the order of the replies:
 
+<details>
+<summary>The replay test: <code>src/search.quint.test.ts</code> (55 lines)</summary>
+
 ```ts
 // src/search.quint.test.ts
 import { readdirSync, readFileSync } from 'node:fs';
@@ -399,6 +408,8 @@ test.each(files)('%s: the search follows the model and the list matches the box'
   }
 });
 ```
+
+</details>
 
 What it does for each step of a trace:
 
@@ -475,6 +486,9 @@ Scripts in `package.json`:
 
 The CI workflow has two jobs:
 
+<details>
+<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (45 lines)</summary>
+
 ```yaml
 # .github/workflows/ci.yml
 name: CI
@@ -523,6 +537,8 @@ jobs:
         run: npm test
 ```
 
+</details>
+
 - The `quint` job checks the model. It is the only one that needs Java.
 - The `ts` job generates the traces (through `pretest`) and replays them against the real code.
 - The cache keeps the checker and the trace runner Quint downloads, keyed on the lockfile, so a Quint upgrade gets a
@@ -545,7 +561,7 @@ Changing the flow (for example, clearing the list when the box is emptied):
 
 1. Change the text model first: a new action, the variables it touches, and a rule if there is a new "must never
    happen".
-2. Ask the agent to update `search.qnt` from it, and read the diff against the text.
+2. Ask the agent to update `search.qnt` from it, and to list what it changed in the words of the text.
 3. Run `npm run quint:check` with the two queries, then add a third once it passes.
 4. Change the code. Map the new action to a step in `search.quint.test.ts` (which call to make, which reply to
    release).
@@ -561,8 +577,8 @@ the next run checks every state again.
 Upgrading Quint: bump `@informalsystems/quint` in `package.json`. The lockfile changes, so CI gets a fresh cache and
 downloads the matching checker.
 
-Reviewing a pull request: read the text model diff first, then check the Quint diff says the same. A new `await` in the code with no new step in the model means
-the model no longer splits the code where it can interleave. That is the one mistake the replay cannot catch, because
+Reviewing a pull request: read the text model diff. A new `await` in the code with no new step in the text means the
+model no longer splits the code where it can interleave. That is the one mistake the replay cannot catch, because
 the replay follows the model's steps.
 
 <Full>
@@ -598,7 +614,7 @@ You do not get:
 2. Write a text model next to the code. List the variables, including the ones outside your code: requests in
    flight, retries, what each actor has seen.
 3. Make one action per step between two `await`s in the real code, and write the rule as "this must never happen".
-4. Let an agent turn the text into Quint, and check it against the text.
+4. Let an agent turn the text into Quint, with each part tagged by the line of the text it comes from.
 5. Run `quint run` first (fast), then `quint verify` (every state), with 2 or 3 actors.
 6. Export traces with `--mbt --out-itf` and a fixed `--seed`, and replay them against the real code with controlled fakes.
 

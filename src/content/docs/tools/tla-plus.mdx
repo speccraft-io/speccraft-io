@@ -216,16 +216,20 @@ writing "stays in the map" is most of the way to seeing the bug.
 
 ## Step 2: turn the text into TLA+ (use AI)
 
-<Short>The agent writes one TLA+ variable per variable and one action per action; you check it against the text.</Short>
+<Short>The agent writes the TLA+. You do not read it: the agent maps it back to the text, and the checks do the rest.</Short>
 
 Give the text file to a coding agent: "Write `spec/SingleFlight.tla` and `spec/SingleFlight.cfg` from
 `spec/single-flight.md`. One variable per variable, one action per action, guards as conditions, the invariant and the
-temporal property as operators, fairness as the text grants it." You do not need to write TLA+, but you need to read
-it well enough to check that it says what the text says.
+temporal property as operators, fairness as the text grants it. Above each part, put the line of the text it comes from as a comment. List anything
+you had to guess." You do not need to read TLA+. Answer the guesses by fixing the text, not the spec. TLC then checks
+the spec, and the replay in Step 6 checks that the real code does what the spec says.
 
 A TLA+ spec has variables (the state) and actions (the steps that change it). An action is a list of conditions joined
 by `/\` (and). A line without `'` is a condition: if it is false, the action cannot happen now. `x'` means "the value
 of `x` after this step". Every action must say what every variable becomes, which is what `UNCHANGED` is for.
+
+<details>
+<summary>The TLA+ spec: <code>spec/SingleFlight.tla</code> (52 lines)</summary>
 
 ```text
 ---- MODULE SingleFlight ----
@@ -282,6 +286,8 @@ NoFailedEntry == entry /= "failed"
 ====
 ```
 
+</details>
+
 And the config file TLC reads next to it:
 
 ```text
@@ -308,6 +314,9 @@ How to read it:
 <Short>TLC finds a run where no caller ever gets a value again, in under a second.</Short>
 
 `-deadlock` turns off TLC's deadlock check, since a run where both callers have a value is supposed to stop:
+
+<details>
+<summary>TLC's counterexample (31 lines)</summary>
 
 ```text
 $ java -jar tla2tools.jar -deadlock spec/SingleFlight.tla
@@ -342,6 +351,8 @@ State 6: <Call line 17, col 5 to line 19, col 59 of module SingleFlight>
 
 Back to state 3: <Retry line 35, col 5 to line 37, col 22 of module SingleFlight>
 ```
+
+</details>
 
 Read it as a timeline:
 
@@ -445,6 +456,9 @@ That writes `spec/out/graph.dot`: one node per state, one edge per step. The spe
 path from the first state until it stops or comes back to a state it has already been in. That is every behavior of
 the spec up to its first loop, not a sample. For each path, it drives the real `singleFlight` with an `fn` whose calls
 wait until the path says how they end:
+
+<details>
+<summary>The replay test: <code>src/single-flight.tla.test.ts</code> (110 lines)</summary>
 
 ```ts
 // src/single-flight.tla.test.ts
@@ -559,6 +573,8 @@ test.each(paths)('%s', async (_name, path) => {
 });
 ```
 
+</details>
+
 What it does for each step of a path:
 
 - The edge label says which action ran, but not for which caller. The test finds the caller by comparing the two
@@ -639,6 +655,9 @@ Scripts in `package.json`:
 
 TLC and the replay both need Java, so CI is one job:
 
+<details>
+<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (30 lines)</summary>
+
 ```yaml
 # .github/workflows/ci.yml
 name: CI
@@ -672,6 +691,8 @@ jobs:
         run: npm test
 ```
 
+</details>
+
 What fails when:
 
 | Change | Where CI fails |
@@ -689,7 +710,7 @@ Changing the flow (for example, a caller can cancel while it waits):
 
 1. Change the text spec first: a new action, the variables it touches, and a rule if there is a new "must never
    happen" or "must always happen".
-2. Ask the agent to update `SingleFlight.tla` from it, and read the diff against the text.
+2. Ask the agent to update `SingleFlight.tla` from it, and to list what it changed in the words of the text.
 3. Run `npm run tla:check` until TLC passes.
 4. Change the function. Map the new action in `single-flight.tla.test.ts`.
 5. Run `npm test` until the replay passes. Commit the text, the spec, the function and the replay test together.
@@ -698,7 +719,7 @@ When the graph grows: walking every path works while the spec is small. Past a f
 TLC's `-simulate` mode writes random runs, and Apalache and Quint write traces as ITF JSON (see the
 [Quint page](/tools/quint) for a replay built on those).
 
-Reviewing a pull request: read the text spec diff first, then check the TLA+ diff says the same. A new `await` in the code with no new step in the spec means the
+Reviewing a pull request: read the text spec diff. A new `await` in the code with no new step in the text means the
 spec no longer splits the code where it can interleave. That is the one mistake the replay cannot catch, because the
 replay follows the spec's steps.
 
@@ -739,7 +760,7 @@ You do not get:
 3. Make one action per step between two `await`s in the real code, and one action per way a call can end.
 4. Write the rules as "this must never happen" and "this must always happen in the end", and say which steps are
    fair (callers call, calls return) and which are not (a call may fail).
-5. Let an agent turn the text into TLA+, and check it against the text.
+5. Let an agent turn the text into TLA+, with each part tagged by the line of the text it comes from.
 6. Run TLC with 2 or 3 actors, then dump the graph and replay it against the real code with controlled fakes.
 
 </Full>
