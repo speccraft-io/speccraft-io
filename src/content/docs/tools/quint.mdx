@@ -22,7 +22,6 @@ import quintTextAfter from '../../../fixes/quint-text/after.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
-
 [Quint](https://quint-lang.org) is a language for describing how a system moves from state to state, plus tools that
 check every order in which those moves can happen. It is built on TLA+, the method AWS and Microsoft use for
 distributed systems, but with a syntax that reads more like TypeScript.
@@ -32,7 +31,7 @@ can run. It has its own language and checks the model, not the real code. For to
 checking with the model written in TypeScript, see [TypeScript tools](/ts-tools); for the wider field, see
 [Non-TypeScript tools](/tools/non-ts-tools).
 
-Lean and Dafny prove that one function is right for every input. Quint answers a different question: what happens when
+Dafny and Lean prove that one function is right for every input. Quint answers a different question: what happens when
 several things run at the same time, in every possible order? This page shows how to use it next to a normal
 TypeScript project, with one small example: a search box. No math background needed.
 
@@ -104,8 +103,8 @@ list shows results for "rea". The test never tries that order. Quint tries all o
 - The rule can be said as "this must never happen": never stale results on screen, never charged twice, never a
   lost message.
 
-Quint is not the tool for proving one function's math right for every input. See the [Lean](/tools/lean) and
-[Dafny](/tools/dafny) pages for that.
+Quint is not the tool for proving one function's math right for every input. See the [Dafny](/tools/dafny) and
+[Lean](/tools/lean) pages for that.
 
 </Full>
 
@@ -281,7 +280,6 @@ module search {
   val listMatchesBox = inFlight == Set() implies shownFor == query
 }
 ```
-
 
 How to read it:
 

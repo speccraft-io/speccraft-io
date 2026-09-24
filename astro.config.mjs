@@ -122,11 +122,13 @@ export default defineConfig({
 			sidebar: [
 				{ label: 'Home', link: '/' },
 				{
-					label: 'Concepts',
+					label: 'Formal non-TypeScript tools',
 					items: [
-						{ label: 'State machines and FSMs', link: '/concepts/state-machines' },
-						{ label: 'Petri nets', link: '/concepts/petri-nets' },
-						{ label: 'Formal specs', link: '/concepts/formal-specs' },
+						{ label: 'Overview', link: '/tools/non-ts-tools' },
+						{ label: 'TLA+', link: '/tools/tla-plus' },
+						{ label: 'Quint', link: '/tools/quint' },
+						{ label: 'Dafny', link: '/tools/dafny' },
+						{ label: 'Lean', link: '/tools/lean' },
 					],
 				},
 				{
@@ -148,16 +150,6 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Formal non-TypeScript tools',
-					items: [
-						{ label: 'Overview', link: '/tools/non-ts-tools' },
-						{ label: 'Lean', link: '/tools/lean' },
-						{ label: 'Dafny', link: '/tools/dafny' },
-						{ label: 'Quint', link: '/tools/quint' },
-						{ label: 'TLA+', link: '/tools/tla-plus' },
-					],
-				},
-				{
 					label: 'Formal methods market',
 					items: [
 						{ label: 'Overview', link: '/market/' },
@@ -176,6 +168,14 @@ export default defineConfig({
 				},
 				{ label: 'Contact', link: '/contact' },
 				{ label: 'Design notes', link: '/design' },
+				{
+					label: 'Concepts',
+					items: [
+						{ label: 'State machines and FSMs', link: '/concepts/state-machines' },
+						{ label: 'Petri nets', link: '/concepts/petri-nets' },
+						{ label: 'Formal specs', link: '/concepts/formal-specs' },
+					],
+				},
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },

@@ -5,8 +5,8 @@ description: The wider field of tools for state-machine-shaped correctness in ot
 
 Most tools for checking the order of events are older than the TypeScript ones, live in other languages, and are
 more powerful along some axis. This page maps them. For the tools a TypeScript team can use directly, see
-[TypeScript tools](/ts-tools). To try three of these tools from a TypeScript project, see [Lean](/tools/lean),
-[Dafny](/tools/dafny) and [Quint](/tools/quint).
+[TypeScript tools](/ts-tools). To try four of these tools from a TypeScript project, see [TLA+](/tools/tla-plus),
+[Quint](/tools/quint), [Dafny](/tools/dafny) and [Lean](/tools/lean).
 
 ## The map
 

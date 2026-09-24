@@ -3,21 +3,20 @@
 // Neutral structure; pink and green only where they mean something (see /design).
 // One tile per example on the home page, linking to its section. The pink dot marks a problem.
 const examples = [
-	['Quint', 'late reply', '#search-as-you-type'],
 	['TLA+', 'stuck key', '#one-shared-call-per-key-single-flight'],
-	['Lean', 'negative price', '#a-percentage-discount'],
+	['Quint', 'late reply', '#search-as-you-type'],
 	['Dafny', 'missed id', '#binary-search-over-sorted-ids'],
+	['Lean', 'negative price', '#a-percentage-discount'],
 ];
 ---
 
 <div class="home-intro">
 	<p class="eyebrow">Formal methods for TypeScript</p>
-	<p class="story"><strong>A module of an ordinary TS codebase can go sideways.</strong> We feel comfortable with 95% of the code, but not this one piece. Scary to change, impossible to describe, and painful to test.</p>
-	<p class="story"><strong>Formal methods are first of all a thinking tool.</strong> They make the system easier to understand, and where they don't, at least safe to change and maintain. Correctness comes after.</p>
-	<p class="story"><strong>The TS ecosystem falls short, but the industry has a lot to offer.</strong> TLA+, Quint, Lean, Dafny and more. Here we will try to bridge the gap and show how to use a wide selection of tools in a TypeScript project.</p>
-	<p class="story"><strong>They used to require special skills, not anymore.</strong> AI coding agents close that gap for professional software engineers.</p>
+	<p class="story"><strong>A small part of an ordinary TS codebase may become unmanageable.</strong> We feel comfortable with 95% of the code, but not this one piece. Scary to change, impossible to describe, and painful to test.</p>
+	<p class="story"><strong>Formal methods first of all bring thinking tools.</strong> They make the system easier to understand, and where they don't, at least safe to change and maintain. Correctness comes after.</p>
+	<p class="story"><strong>The TS ecosystem falls short, but the industry has a lot to offer.</strong> TLA+, Quint, Dafny, Lean and more. Here we will try to bridge the gap and show how to use a wide selection of tools in a TypeScript project.</p>
 	<div class="examples">
-		<p class="examples-title">Worked examples</p>
+		<p class="examples-title">Practical examples</p>
 		<ul>
 			{
 				examples.map(([tool, problem, href]) => (

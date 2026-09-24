@@ -26,7 +26,6 @@ import textAfter from '../../../fixes/tla-text/after.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
-
 [TLA+](https://lamport.azurewebsites.net/tla/tla.html) is a language for describing a system as state and the steps
 that change it, written by Leslie Lamport. AWS, Microsoft and MongoDB use it on their distributed systems. TLA+ is the
 language. The checking is done by separate tools, and there are two main ones:
@@ -117,8 +116,8 @@ fails.
 - The rule can be said as "this must never happen" or "this must always happen in the end" (every caller gets a
   value). TLC checks both kinds.
 
-TLA+ is not the tool for proving one function's math right for every input. See the [Lean](/tools/lean) and
-[Dafny](/tools/dafny) pages for that.
+TLA+ is not the tool for proving one function's math right for every input. See the [Dafny](/tools/dafny) and
+[Lean](/tools/lean) pages for that.
 
 </Full>
 
@@ -294,7 +293,6 @@ EveryoneGetsIt == \A c \in Callers : <>(pc[c] = "done")
 NoFailedEntry == entry /= "failed"
 ====
 ```
-
 
 And the config file TLC reads next to it:
 
