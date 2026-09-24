@@ -1,10 +1,6 @@
 ---
 // The home page intro, shown as a card in the right sidebar (pages with `intro: true`).
 // Neutral structure; pink and green only where they mean something (see /design).
-const steps = [
-	['Write it down', 'states, steps and rules'],
-	['Let a tool check it', 'every order, every input'],
-];
 // One tile per example on the home page, linking to its section. The pink dot marks a problem.
 const examples = [
 	['Quint', 'late reply', '#can-a-slow-response-overwrite-newer-search-results'],
@@ -16,29 +12,10 @@ const examples = [
 
 <div class="home-intro">
 	<p class="eyebrow">Formal methods for TypeScript</p>
-	<p class="lead">Part of your system is too big to hold in your head?</p>
-	<ol>
-		{
-			steps.map(([title, detail]) => (
-				<li>
-					<strong>{title}</strong>
-					<span>{detail}</span>
-				</li>
-			))
-		}
-		<li>
-			<strong>Get an answer</strong>
-			<span class="answers">
-				<span class="tag fine">
-					<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 5" /></svg>a verdict
-				</span>
-				or
-				<span class="tag problem">
-					<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v6.5M8 12.5v.5" /></svg>the exact trace
-				</span>
-			</span>
-		</li>
-	</ol>
+	<p class="story"><strong>A module of an ordinary TS codebase can go sideways.</strong> We feel comfortable with 95% of the code, but not this one piece. Scary to change, impossible to describe, and painful to test.</p>
+	<p class="story"><strong>Formal methods are first of all a thinking tool.</strong> They make the system easier to understand, and where they don't, at least safe to change and maintain. Correctness comes after.</p>
+	<p class="story"><strong>The TS ecosystem falls short, but the industry has a lot to offer.</strong> TLA+, Quint, Lean, Dafny and more. Here we will try to bridge the gap and show how to use a wide selection of tools in a TypeScript project.</p>
+	<p class="story"><strong>They used to require special skills, not anymore.</strong> With AI coding agents, that shouldn't be an obstacle for professional software engineers.</p>
 	<div class="examples">
 		<p class="examples-title">Worked examples</p>
 		<ul>
@@ -85,97 +62,17 @@ const examples = [
 		text-transform: uppercase;
 		color: var(--sc-muted);
 	}
-	.lead {
-		margin-top: 0.5rem !important;
-		font-family: var(--sc-font-heading);
-		font-size: 1.15rem;
-		font-weight: 700;
-		line-height: 1.25;
-	}
-
-	/* The three steps, joined by a line into a small timeline. */
-	ol {
-		list-style: none;
-		counter-reset: step;
-		margin: 1.25rem 0 0;
-		padding: 0;
-	}
-	ol li {
-		counter-increment: step;
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-		padding: 0.1rem 0 1rem 2.1rem;
-		line-height: 1.3;
-	}
-	ol li:last-child {
-		padding-bottom: 0;
-	}
-	ol li::before {
-		content: counter(step);
-		position: absolute;
-		left: 0;
-		top: 0;
-		width: 1.5rem;
-		height: 1.5rem;
-		border-radius: 50%;
-		background: var(--sc-text);
-		color: var(--sc-bg);
-		font-size: 0.75rem;
-		font-weight: 700;
-		line-height: 1.5rem;
-		text-align: center;
-	}
-	ol li:not(:last-child)::after {
-		content: '';
-		position: absolute;
-		left: calc(0.75rem - 1px);
-		top: 1.85rem;
-		bottom: 0.3rem;
-		width: 2px;
-		background: var(--sc-border);
-	}
-	ol strong {
+	.story {
+		margin-top: 0.75rem !important;
 		font-size: var(--sl-text-sm);
-		font-weight: 600;
-	}
-	ol li > span {
-		font-size: var(--sl-text-xs);
+		line-height: 1.5;
 		color: var(--sc-muted);
 	}
-	.answers {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 0.35rem;
-		margin-top: 0.2rem;
-	}
-	.tag {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.3rem;
-		padding: 0.15rem 0.55rem;
-		border-radius: 999px;
-		font-size: var(--sl-text-xs);
-		font-weight: 600;
-	}
-	.tag svg {
-		width: 0.8rem;
-		height: 0.8rem;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 2.2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-	.tag.fine {
-		background: var(--sc-green-tint);
-		color: var(--sc-green-text);
-	}
-	.tag.problem {
-		background: var(--sc-pink-tint);
-		color: var(--sc-pink-text);
+	.story strong {
+		display: block;
+		font-size: var(--sl-text-base);
+		font-weight: 700;
+		color: var(--sc-text);
 	}
 
 	/* Links to the examples below. */
