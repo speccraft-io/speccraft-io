@@ -220,12 +220,10 @@ writing "stays in the map" is most of the way to seeing the bug.
 
 <Short>The agent writes the TLA+. You do not read it: the agent maps it back to the text, and the checks do the rest.</Short>
 
-Give the text file to a coding agent:
-
-> Write `spec/SingleFlight.tla` and `spec/SingleFlight.cfg` from `spec/single-flight.md`. One variable per variable,
-> one action per action, guards as conditions, the invariant and the temporal property as operators, fairness as the
-> text grants it. Above each part, put the line of the text it comes from as a comment. List anything you had to
-> guess.
+> Ask AI to write `spec/SingleFlight.tla` and `spec/SingleFlight.cfg` from `spec/single-flight.md`. One variable per
+> variable, one action per action, guards as conditions, the invariant and the temporal property as operators,
+> fairness as the text grants it. Above each part, put the line of the text it comes from as a comment. List anything
+> you had to guess.
 
 You do not need to read TLA+. To check the result:
 
