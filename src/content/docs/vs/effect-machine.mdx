@@ -34,12 +34,10 @@ The code below is in [formal-methods-samples/effect-machine-checkout](https://gi
 
 <Short>Back during a pending payment lets the reply for the old cart mark the new cart paid.</Short>
 
-A checkout has four states: `Cart` (items can be edited), `PaymentPending`, `Paid` and `Failed`. Checkout sends a
-charge for the cart total to the payment provider and waits for its reply. While the payment is pending the user can
-press Back, edit the cart and check out again. The first charge is still in flight, and its reply can arrive while the
-second one is pending.
+A checkout sends a charge for the cart total and waits for the reply. While it waits, the user can press Back, add an
+item and check out again. The first reply can still arrive while the second charge is pending.
 
-The rule that must hold: in `Paid`, the paid amount is the cart total.
+The rule: in `Paid`, the paid amount is the cart total.
 
 ### Install and set up
 
@@ -52,61 +50,48 @@ effect-machine 0.38.0 needs exactly `effect` 4.0.0-rc.116, and `ESNext.Disposabl
 
 ### Writing the machine
 
-<Short>States and events come from Effect schemas; `Machine.make(...).handle(...)` says what each event does.</Short>
-
-The machine is in `checkout.ts`. States and events are declared from Effect schemas, then
-`Machine.make(...).handle(...)` says what each event does in each state:
+<Short>States and events come from Effect schemas; `.handle(...)` says what each event does.</Short>
 
 ```ts
-// checkout.ts (shortened)
+// checkout.ts
 export const States = Machine.state({
-  // Shared by every state; each state can add its own fields.
+  // Shared by every state: the number of items in the cart.
   fields: { items: Schema.Number },
   states: {
     Cart: {},
     PaymentPending: { fields: { amount: Schema.Number } },
     Paid: { fields: { amount: Schema.Number } },
-    Failed: {},
   },
 });
 export const targets = Machine.targets(States);
 
 export const Events = Machine.events({
   AddItem: {},
-  RemoveItem: {},
   Checkout: {},
   Back: {},
   // The payment reply carries the amount it was for.
   PaymentSucceeded: { amount: Schema.Number },
-  PaymentFailed: { amount: Schema.Number },
 });
 
-export const cart = {
-  on: {
-    // update: stay in the state and change the shared fields. target: move to another state, data fills its fields.
-    AddItem: { update: targets.root, data: ({ root }: { root: { items: number } }) => ({ items: root.items + 1 }) },
-    // RemoveItem is the same, with items - 1
-    Checkout: {
-      target: targets.root.PaymentPending,
-      data: ({ root }: { root: { items: number } }) => ({ amount: root.items * price }),
-    },
-  },
-} as const;
+type Root = { root: { items: number } };
 
 export const machine = Machine.make({ root: States, events: Events }).handle({
   root: () => ({ items: 1 }),
   initial: { target: targets.root.Cart },
   states: {
-    Cart: cart,
+    Cart: {
+      on: {
+        AddItem: { update: targets.root, data: ({ root }: Root) => ({ items: root.items + 1 }) },
+        Checkout: { target: targets.root.PaymentPending, data: ({ root }: Root) => ({ amount: root.items * price }) },
+      },
+    },
     PaymentPending: {
       on: {
         Back: { target: targets.root.Cart },
         PaymentSucceeded: { target: targets.root.Paid, data: ({ event }) => ({ amount: event.amount }) },
-        PaymentFailed: { target: targets.root.Failed },
       },
     },
     Paid: {},
-    Failed: {},
   },
 });
 ```
@@ -115,115 +100,45 @@ export const machine = Machine.make({ root: States, events: Events }).handle({
 
 <Short>Only when every reply still in flight is offered does it find the bug: paid 10 for a cart of 20.</Short>
 
-`MachineTest.explore(machine, options)` walks the machine breadth-first. The result has `stats`, a `completeness` tag, and transition coverage. A failure comes back as an error with the
-trace. The example runs it three ways.
-
-**1. The charge as an `invoke`.** In effect-machine, async work belongs to the state that owns it, so the natural way
-is an `invoke` on `PaymentPending`:
+`MachineTest.explore` walks the machine breadth-first and checks the rule in every state. It only sends the events the
+test offers, so the test offers every payment reply that can still arrive:
 
 ```ts
 // checkout.effect-machine.test.ts (shortened)
-PaymentPending: {
-  invoke: {
-    src: 'charge',
-    input: ({ state }) => state.amount,
-    onDone: { target: targets.root.Paid, data: ({ output }) => ({ amount: output }) },
-  },
-  on: { Back: { target: targets.root.Cart } },
-},
-```
-
-```ts
-const explored = yield* MachineTest.explore(invokeMachine, {
-  // The only events tried: AddItem, RemoveItem, Checkout in Cart (up to two items), Back in PaymentPending.
-  events: ({ snapshot }) => userEvents(snapshot),
-  // When two snapshots count as the same state.
-  stateKey: ({ snapshot }) => JSON.stringify(snapshot),
-  invariants: [invokeInvariant],
-});
-```
-
-```text
-{ states: 4, plannedTransitions: 6, retainedEdges: 6, maxDepth: 2 } Complete
-[
-  {
-    source: 'PaymentPending',
-    trigger: { type: 'invoke', id: 'charge', outcome: 'done' }
-  }
-]
-```
-
-The first line is `stats` and the completeness tag; the list is the transitions coverage says were never taken. The
-exploration is complete and the invariant passes, but `Paid` is never reached: the explorer plans transitions and does
-not run invokes. Coverage says so directly: the one missed transition is the invoke's `onDone`. At runtime, according to its
-docs, the machine cancels the invoke when Back leaves `PaymentPending`, so the machine drops the late reply, even if
-the provider has already charged the card. The planner cannot show that either.
-
-**2. The reply as a public event, current reply only.** A provider that answers through a webhook sends its reply to
-the machine as an event, `PaymentSucceeded { amount }` or `PaymentFailed { amount }`. That is `machine` above.
-The test first lists the reply to the current request:
-
-```ts
-const explored = yield* MachineTest.explore(machine, {
-  events: ({ snapshot }) => [...userEvents(snapshot), ...currentReply(snapshot)],
-  stateKey: ({ snapshot }) => JSON.stringify(snapshot),
-  invariants: [invariant],
-});
-```
-
-```text
-{ states: 8, plannedTransitions: 10, retainedEdges: 10, maxDepth: 3 } Complete
-6 / 6
-```
-
-It passes: a complete exploration with all 6 transition definitions covered, and the bug is not found. The reply from
-the first checkout is never offered while the second one is pending.
-
-**3. Every reply still in flight.** `inFlight` reads the trace (a Checkout adds the cart total, a reply removes its
-amount), and the state key includes that set so two states with different replies in flight are not merged:
-
-```ts
-// checkout.effect-machine.test.ts (shortened)
+// Every charge still waiting for its reply: each Checkout adds one, each reply removes one.
 function inFlight(steps: readonly Step[]): number[] {
   const amounts = new Set<number>();
   for (const { event, before } of steps) {
-    if (event._tag === 'Checkout' && States.matches(before, 'Cart')) {
-      amounts.add(before.value.items * price);
-    }
-    if (event._tag === 'PaymentSucceeded' || event._tag === 'PaymentFailed') {
-      amounts.delete(event.amount);
-    }
+    if (event._tag === 'Checkout' && States.matches(before, 'Cart')) amounts.add(before.value.items * price);
+    if (event._tag === 'PaymentSucceeded') amounts.delete(event.amount);
   }
   return [...amounts].sort((a, b) => a - b);
 }
 
 const error = yield* Effect.flip(
   MachineTest.explore(machine, {
-    events: ({ snapshot, trace }) => [...userEvents(snapshot), ...inFlightReplies(trace.steps)],
+    events: ({ snapshot, trace }) => [
+      ...userEvents(snapshot),
+      ...inFlight(trace.steps).map((amount) => ({ _tag: 'PaymentSucceeded', amount })),
+    ],
+    // Two snapshots with different replies in flight are different states.
     stateKey: ({ snapshot, trace }) => JSON.stringify([snapshot, inFlight(trace.steps)]),
     invariants: [invariant],
   }),
 );
-console.log(MachineTest.formatTrace(error.trace));
-console.log(error.violations.map((violation) => violation.message));
 ```
 
-The real output (shortened: the `initial` line, the microstep lines and the end of each step line are left out):
-
 ```text
-scenario: {"events":[{"_tag":"Checkout"},{"_tag":"Back"},{"_tag":"AddItem"},{"_tag":"Checkout"},{"_tag":"PaymentSucceeded","amount":10}]}
-step 0: event={"_tag":"Checkout"} before=[(root), Cart] after=[(root), PaymentPending] ...
-step 1: event={"_tag":"Back"} before=[(root), PaymentPending] after=[(root), Cart] ...
-step 2: event={"_tag":"AddItem"} before=[(root), Cart] after=[(root), Cart] ...
-step 3: event={"_tag":"Checkout"} before=[(root), Cart] after=[(root), PaymentPending] ...
-step 4: event={"_tag":"PaymentSucceeded","amount":10} before=[(root), PaymentPending] after=[(root), Paid] ...
-final: configuration=[(root), Paid] state={"path":"","state":{"path":"Paid","value":{"_tag":"Paid","amount":10}},"value":{"_tag":"","items":2}}
+{"_tag":"Checkout"} → {"_tag":"Back"} → {"_tag":"AddItem"} → {"_tag":"Checkout"} → {"_tag":"PaymentSucceeded","amount":10}
 [ 'paid 10 for a cart of 20' ]
 ```
 
-That is the shortest counterexample: check out one item, go back, add a second item, check out again, and the reply
-to the first charge marks the order paid at 10 for a cart of 20. `scenario` is the list of events to replay; each
-step shows the configuration before and after, and the last line is the invariant's own message.
+That is the shortest counterexample: check out one item, go back, add a second, check out again, and the reply to the
+first charge marks the order paid at 10 for a cart of 20.
+
+Two easier versions of the same test miss it. With the charge written as an `invoke`, the explorer never runs it, so
+`Paid` is never reached (4 states, complete). With only the reply to the current charge offered, it passes
+(12 states, complete).
 
 ### Fixing the bug
 
@@ -233,29 +148,20 @@ The fix removes `Back` from `PaymentPending`:
 
 <CodeFix before={before} after={after} title="checkout.ts" />
 
-Back is no longer allowed while the payment is pending, so `PaymentPending` handles only the two replies.
-(Tagging each reply with a cart version and rejecting an old one would also work.) The same exploration, with every
-reply still in flight, passes:
+The same exploration, with every reply still in flight, passes:
 
 ```text
-{ states: 8, plannedTransitions: 10, retainedEdges: 10, maxDepth: 3 } Complete
+{ states: 6, plannedTransitions: 7, retainedEdges: 7, maxDepth: 3 } Complete
 ```
 
 <Full>
 
 ### Tips
 
-- **An `invoke` is not explored.** The explorer plans transitions; in its own words, "staged actions and runtime
-  activities are not executed". To explore a reply, make it a public event. Coverage flags the invoke's `onDone` as
-  missed, so check the misses list.
-- **Offer every event that can still arrive.** A complete result with full coverage only covers the events the test
-  listed. Offering only the current reply hid the bug.
-- **Put what the events depend on into `stateKey`.** If the events offered depend on the trace, as `inFlight` does,
-  the key must include it, or two different situations are merged into one state.
-- **Use `Effect.flip` to get the failure.** A violation fails the Effect with `MachineTestInvariantError`; flipping
-  it gives the error, with its `trace` and `violations`.
-- **`formatTrace` is long.** Each step prints its microsteps and the full state; `error.trace.steps` gives the events
-  directly when only the path is needed.
+- **Offer every event that can still arrive.** A complete result only covers the events the test listed. Offering
+  only the current reply hid the bug.
+- **Put what the events depend on into `stateKey`.** If the events depend on the trace, as `inFlight` does, the key
+  must include it, or two different situations are merged into one state.
 
 ## Strengths and limits
 

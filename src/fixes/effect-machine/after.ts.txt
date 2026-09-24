@@ -1,6 +1,5 @@
 PaymentPending: {
   on: {
     PaymentSucceeded: { target: targets.root.Paid, data: ({ event }) => ({ amount: event.amount }) },
-    PaymentFailed: { target: targets.root.Failed },
   },
 },

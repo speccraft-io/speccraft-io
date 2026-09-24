@@ -2,6 +2,5 @@ PaymentPending: {
   on: {
     Back: { target: targets.root.Cart },
     PaymentSucceeded: { target: targets.root.Paid, data: ({ event }) => ({ amount: event.amount }) },
-    PaymentFailed: { target: targets.root.Failed },
   },
 },
