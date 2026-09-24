@@ -81,65 +81,39 @@ Needs Node 20+; an Anthropic API key only for the LLM steps.
 
 An audit has four files you can read and diff.
 
-The **contract**, `contract.json`, says what is observable: the state fields, the actions and the data each one
-carries, and the special rules. Here the state is `{ items, coupon }`, and the four ways an action can leave the cart
-unchanged are named rules: `cart-full`, `cart-empty`, `unknown-code` and `below-minimum`.
+The **contract**, `contract.json`, lists the state fields, the actions and their data, and names the ways an action
+can leave the cart unchanged: `cart-full`, `cart-empty`, `unknown-code` and `below-minimum`.
 
-The **traces** record what the real code does: one JSON line per step. `tapReducer` wraps the reducer once and
-writes a line on every call; the sample runs three scripted sessions through it:
+The **traces** record what the real code does, one JSON line per step. `tapReducer` wraps the reducer and writes them:
 
 ```ts
-// record-traces.ts (shortened)
-import { tapReducer } from '@cognitive-fab/polygraph/scripts/instrument/trace-emitter.mjs';
-
 const traced = tapReducer(cart, (s: Cart) => s, 'traces/sessions.ndjson');
-for (const session of sessions) session.reduce(traced, emptyCart);
 ```
 
 ```text
-{"pre":{"items":0,"coupon":null},"action":"ADD_ITEM","data":{},"post":{"items":1,"coupon":null}}
 {"pre":{"items":1,"coupon":null},"action":"APPLY_COUPON","data":{"code":"SAVE5"},"post":{"items":1,"coupon":null}}
 ```
 
-The **spec** is a JavaScript module in the SAM pattern, v2 strict profile. It is a faithful reading of the code, bug
-included:
+The **spec** is a JavaScript module in the SAM pattern. It reads the code as it is, bug included:
 
 ```js
 // specs/cart.js (shortened)
-const control = instance({
-  initialState: { items: 0, coupon: null },
-  component: {
-    // Every state field; the strict profile allows no hidden state.
-    modelShape: {
-      items: { type: 'number' },
-      coupon: { type: 'string', nullable: true },
-    },
-    actions: {
-      ADD_ITEM: { action: (data = {}) => ({ ...data }), schema: {}, domain: [{}] },
-      REMOVE_ITEM: { action: (data = {}) => ({ ...data }), schema: {}, domain: [{}] },
-      APPLY_COUPON: {
-        action: (data = {}) => ({ ...data }),
-        schema: { code: { type: 'string' } },
-        // The payloads the model checker tries: a valid and an unknown code.
-        domain: [{ code: 'SAVE5' }, { code: 'SAVE10' }],
-      },
-    },
-    // Compute the next state; reject(reason) uses the contract's rule names.
-    acceptors: {
-      REMOVE_ITEM: (model) => (proposal, { reject, next, unchanged }) => {
-        if (model.items === 0) return reject('cart-empty');
-        next.items = model.items - 1;
-        unchanged('coupon');
-      },
-      // ADD_ITEM and APPLY_COUPON follow the same pattern
-    },
-    reactors: [],
+actions: {
+  REMOVE_ITEM: { action: (data = {}) => ({ ...data }), schema: {}, domain: [{}] },
+  // domain: the payloads the model checker tries
+  APPLY_COUPON: { /* ... */ domain: [{ code: 'SAVE5' }, { code: 'SAVE10' }] },
+},
+acceptors: {
+  REMOVE_ITEM: (model) => (proposal, { reject, next, unchanged }) => {
+    if (model.items === 0) return reject('cart-empty');
+    next.items = model.items - 1;
+    unchanged('coupon');
   },
-});
+},
 ```
 
-The **invariants**, `invariants.mjs`, are the rules as plain JavaScript predicates. They come from you, because a
-spec derived from the code describes what the code does, not what it should do:
+The **invariants** are the rules, as plain predicates. They come from you: a spec read from the code says what the
+code does, not what it should do.
 
 ```js
 // invariants.mjs
@@ -152,7 +126,7 @@ export const stateInvariants = [
 
 <Short>Replay passes. The model check finds the bug in 8 states, with a 4-step shortest trace.</Short>
 
-Replay first, to check that the spec matches the real behavior:
+Replay first, to check that the spec matches the real code:
 
 ```sh
 node node_modules/@cognitive-fab/polygraph/scripts/verify.mjs --contract contract.json --traces traces \
@@ -161,12 +135,10 @@ node node_modules/@cognitive-fab/polygraph/scripts/verify.mjs --contract contrac
 
 ```text
 15/15 windows consistent across 1 spec(s).
-findings: 0 spec-error, 0 code-finding/contract, 0 unscoreable-all
-report: out/findings.md
 ```
 
-The spec is faithful, and no recorded session hit the bug. Then the model checker, which explores the spec from its
-initial state over every declared action and payload:
+The spec matches, and no recorded session hit the bug. Then the model checker tries every action and payload from
+the initial state:
 
 ```sh
 node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec specs/cart.js --contract contract.json \
@@ -175,9 +147,6 @@ node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec specs/cart.j
 
 ```text
 states explored: 8
-rejections explored: below-minimum ×4, cart-empty ×2, cart-full ×2, unknown-code ×8
-1 invariant violation(s):
-
   ✗ coupon-needs-minimum-spend [state] — reachable state violates the rule
     counterexample (shortest path from init):
       init            {"items":0,"coupon":null}
@@ -187,27 +156,24 @@ rejections explored: below-minimum ×4, cart-empty ×2, cart-full ×2, unknown-c
       REMOVE_ITEM({}) -> {"items":1,"coupon":"SAVE5"}
 ```
 
-It exits with code 1. The counterexample is the shortest path to the bug, as actions with payloads: a ready way to
-reproduce the bug in the real reducer.
+The counterexample is the shortest path to the bug, ready to replay against the real reducer.
 
 ### Fixing the bug
 
 <Short>Drop the coupon below the minimum: 6 states, no violation. Replay alone could not tell the two versions apart.</Short>
 
-The fix: removing an item now drops the coupon when the subtotal falls below the minimum:
+Removing an item now drops the coupon when the subtotal falls below the minimum:
 
 <CodeFix before={before} after={after} title="cart.ts" />
 
-The traces are recorded again from the fixed code, and the spec is derived again (`specs-fixed/cart.js`): the
-`REMOVE_ITEM` acceptor now sets `next.coupon` instead of keeping it. The same invariant holds in every reachable state:
+With traces and spec made again from the fixed code, the invariant holds in every state:
 
 ```text
 states explored: 6
-rejections explored: below-minimum ×2, cart-empty ×1, cart-full ×2, unknown-code ×6
 no invariant violations reachable ✓
 ```
 
-Replay could not tell the two versions apart: the old spec also replays 15 of 15 windows from the fixed code, because
+Replay could not tell the two versions apart: the old spec also matches all 15 windows from the fixed code, because
 no session removed an item from a cart at the minimum. Only the model checker found the difference.
 
 <Full>

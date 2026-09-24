@@ -32,27 +32,13 @@ The code below is in [formal-methods-samples/stifinder-outbox](https://github.co
 
 ### The problem
 
-<Short>A crash or a broker retry can lose or duplicate an outbox event.</Short>
+<Short>A broker retry can deliver an outbox event twice.</Short>
 
-A transactional outbox. The order service writes the order and an outbox row in one database transaction. A relay
-reads the row, publishes the event to a broker, and marks the row sent. Two things go wrong in production: the relay
-can crash at any step and restart from the outbox, and the broker can time out after it has already delivered the
-message, so the relay retries.
+A transactional outbox. The order service writes the order and an outbox row in one transaction. A relay reads the
+row, publishes the event to a broker, and marks the row sent. The relay can crash at any step and restart, and the
+broker can time out after it has already delivered the message, so the relay retries.
 
-Two rules must hold: every committed order is published, and the consumer applies each order at most once. There are
-three relays to check:
-
-- **Mark, then publish.** The relay marks the row sent before it publishes. A crash in
-  between loses the event.
-- **Publish, then mark, no idempotency key.** Nothing is lost, but a retry or a crash after publishing
-  delivers the event twice, and the consumer applies it twice.
-- **Publish, then mark, with an idempotency key.** The consumer drops a delivery it has already
-  applied. This is the fixed relay.
-
-The state is small: the outbox row (`none`, `pending`, `sent`), the relay's phase (`idle`, `read`, `published`,
-`marked`), and how many times the consumer applied the order. Each of the three files exports the same functions:
-`initial`, `consume` (the consumer), `publishing` and `marking` (when the relay publishes and marks), and `publish` and
-`mark` (what those steps do to the state).
+The rules: every committed order is published, and the consumer applies each order at most once.
 
 ### Install and set up
 
@@ -60,53 +46,26 @@ The state is small: the outbox row (`none`, `pending`, `sent`), the relay's phas
 pnpm add -D stifinder valsem
 ```
 
-Needs Node 22+. With `skipLibCheck: false`, add `ESNext.Collection` to the tsconfig `lib`.
-
-The example uses stifinder 0.1.0 and valsem 0.0.4.
+Needs Node 22+.
 
 ### Writing the model (use AI)
 
 <Short>A model is `initialState`, `getEvents`, `applyEvent` and invariants. Event index 0 is the expected step; the rest are faults.</Short>
 
-A model has an `initialState`, `getEvents(state)`, `applyEvent(state, event)`, and optional `invariant` and
-`terminalInvariant` checks:
-
 ```ts
 // stifinder-model.ts (shortened)
-export type Relay = typeof import('./outbox.js');
-
-function expected(relay: Relay, s: State): EventDescriptor<Event>[] {
-  if (s.outbox === 'none') {
-    return [{ event: 'order service commits order and outbox row' }];
-  }
-  if (s.relay === 'idle' && s.outbox === 'pending') {
-    return [{ event: 'relay reads row' }];
-  }
-  if (relay.publishing(s)) {
-    return [{ event: 'relay publishes' }];
-  }
-  if (relay.marking(s)) {
-    return [{ event: 'relay marks row sent' }];
-  }
-  return [];
-}
-
-// A fault also costs one unit of its key; each key has its own budget.
-function faults(relay: Relay, s: State): EventDescriptor<Event>[] {
-  return [
-    ...(relay.publishing(s) ? [{ event: 'broker times out after delivery' as const, cost: ['retry'] }] : []),
-    ...(s.relay === 'idle' ? [] : [{ event: 'relay crashes' as const, cost: ['crash'] }]),
-  ];
-}
-
 export function outboxModel(relay: Relay): Model<State, Event> {
   return {
     initialState: relay.initial,
-    // Index 0 is the expected step; every other event costs one deviation.
-    getEvents: (s) => [...expected(relay, s), ...faults(relay, s)],
+    // Index 0 is the expected step; the rest are faults, each with its own budget key.
+    getEvents: (s) => [
+      ...expected(relay, s),
+      ...(relay.publishing(s) ? [{ event: 'broker times out after delivery', cost: ['retry'] }] : []),
+      ...(s.relay === 'idle' ? [] : [{ event: 'relay crashes', cost: ['crash'] }]),
+    ],
     applyEvent: (s, e) => ({ to: effects[e](relay, s) }),
     invariant: (s) => (s.applied > 1 ? { error: new Error('the order was applied twice') } : undefined),
-    // Checked only on states with no events left.
+    // Checked only when no events are left.
     terminalInvariant: (s) =>
       s.applied === 0 ? { error: new Error('the committed order was never published') } : undefined,
   };
@@ -115,72 +74,37 @@ export function outboxModel(relay: Relay): Model<State, Event> {
 
 ### Running it
 
-<Short>One crash loses the event; one retry duplicates it. Runs without a fault are clean.</Short>
+<Short>One retry duplicates the event. Runs without a fault are clean.</Short>
 
-`exploreIteratively` tries a budget of zero deviations first, then one, and so on. Each relay here runs with up to two
-crashes and two retries:
+`exploreIteratively` tries zero faults first, then one, and so on, up to the budget:
 
 ```ts
-// outbox.stifinder.test.ts (shortened)
-import * as outbox from './outbox.js';
-import * as fixedOutbox from './outbox.fixed.js';
-import * as markFirstOutbox from './outbox.mark-first.js';
+const result = await exploreIteratively(outboxModel(outbox), { baseBudget: { crash: 2, retry: 2 } });
 
-const faults = { crash: 2, retry: 2 };
-
-const space = await exploreIteratively(outboxModel(markFirstOutbox), { baseBudget: faults });
-expect(space.violation?.error).toEqual(new Error('the committed order was never published'));
-// Each step is [event, index in getEvents]: 0 is expected, anything else is a fault.
-expect(space.violation?.steps.map((s) => [s.event, s.index])).toEqual([
-  ['order service commits order and outbox row', 0],
-  ['relay reads row', 0],
-  ['relay marks row sent', 0],
-  ['relay crashes', 2],
-]);
-expect(Object.fromEntries(space.violation?.cost ?? [])).toEqual({ crash: 1, __deviations__: 1 });
-expect(space.violation?.badState).toEqual({ outbox: 'sent', relay: 'idle', applied: 0 });
-// The zero-deviation budget was searched first and was clean.
-expect(space.maxDeviationsReached).toBe(1);
-// It stopped at the violation, so not every state was explored.
-expect(space.exhaustive).toBe(false);
-
-const duplicate = await exploreIteratively(outboxModel(outbox), { baseBudget: faults });
-expect(duplicate.violation?.steps.map((s) => [s.event, s.index])).toEqual([
-  ['order service commits order and outbox row', 0],
-  ['relay reads row', 0],
-  ['broker times out after delivery', 1],
-  ['relay publishes', 0],
-]);
-expect(Object.fromEntries(duplicate.violation?.cost ?? [])).toEqual({ retry: 1, __deviations__: 1 });
+result.violation.error; // the order was applied twice
+result.violation.steps; // commit, read row, broker times out after delivery, publish
+result.violation.cost;  // { retry: 1, __deviations__: 1 }
 ```
 
-The lost event needs one crash, right after the row is marked sent. The duplicate needs one retry. With retries taken
-out of the budget (`{ crash: 2 }`), the duplicate comes back as the crash path instead: publish, crash, read again,
-publish again, 6 steps, `{ crash: 1, __deviations__: 1 }`.
+One retry is enough. A relay that marks the row before publishing fails the other rule: one crash between the two
+steps loses the event.
 
 ### Fixing the bug
 
 <Short>An idempotency key at the consumer. 7 states, `exhaustive: true`, for any number of crashes and retries.</Short>
 
-The duplicate goes away when the consumer checks an idempotency key and drops a delivery it has already applied:
+The consumer checks an idempotency key and drops a delivery it has already applied:
 
 <CodeFix before={before} after={after} title="outbox.ts" />
 
-The same exploration on the fixed relay, which publishes first, then marks:
-
 ```ts
-// outbox.stifinder.test.ts (shortened)
-const fixed = await exploreIteratively(outboxModel(fixedOutbox), { baseBudget: faults });
-expect(fixed.violation).toBeNull();
-expect(fixed.exhaustive).toBe(true);
-expect(fixed.costs.size).toBe(7);
-expect(fixed.edgesComputed).toBe(11);
+const fixed = await exploreIteratively(outboxModel(fixedOutbox), { baseBudget: { crash: 2, retry: 2 } });
+
+fixed.violation;  // null
+fixed.exhaustive; // true, 7 states
 ```
 
-It has 7 reachable states (`costs` holds one entry per reachable state) and 11 edges, and the result is `exhaustive:
-true`. Faults are a budget, not part of the state, so this is a proof for any number of crashes and retries, not only
-two. With a budget of one crash and one retry, the same run is `exhaustive: false`: that budget does not cover every
-edge of the state space.
+Faults are a budget, not part of the state, so a complete clean run holds for any number of crashes and retries.
 
 <Full>
 
