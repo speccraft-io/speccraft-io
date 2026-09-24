@@ -150,36 +150,6 @@ export default defineConfig({
 						{ label: 'Some more TS Tools', link: '/vs/other-ts-tools' },
 					],
 				},
-				{
-					label: 'Formal methods market',
-					collapsed: true,
-					items: [
-						{ label: 'Overview', link: '/market/' },
-						{ label: 'Job listings', link: '/market/jobs' },
-						{ label: 'Marketplaces', link: '/market/marketplaces' },
-					],
-				},
-				{
-					label: 'Durable execution',
-					collapsed: true,
-					items: [
-						{ label: 'The problems', link: '/durable-execution-problems' },
-						{ label: 'Existing ecosystem', link: '/durable-workflow-correctness-tooling-research' },
-						{ label: 'Known methods', link: '/approaches-to-correctness' },
-						{ label: 'Config document workflow', link: '/case-study-config-document-workflow' },
-					],
-				},
-				{ label: 'Contact', link: '/contact' },
-				{ label: 'Design notes', link: '/design' },
-				{
-					label: 'Concepts',
-					collapsed: true,
-					items: [
-						{ label: 'State machines and FSMs', link: '/concepts/state-machines' },
-						{ label: 'Petri nets', link: '/concepts/petri-nets' },
-						{ label: 'Formal specs', link: '/concepts/formal-specs' },
-					],
-				},
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },
