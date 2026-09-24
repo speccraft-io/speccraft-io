@@ -1,0 +1,50 @@
+# Lazy connect - spec
+
+Connect on first use, then reuse the connection.
+The checkable version is LazyConnect.tla, next to this file.
+
+## Constants
+
+- callers = a, b (two are enough to race)
+
+## Variables
+
+- db: none | ready = none (the connection that is kept)
+- connecting: 0..2 = 0 (connect() calls in flight)
+- callers: { a: idle | connecting | done | failed = idle, b: same as a }
+
+## Actions
+
+- call c (per caller)
+  - Guard: c is idle
+  - Effect:
+    - db ready: c is done
+    - otherwise: connect() starts, connecting + 1, c is connecting
+
+- connect resolves for c
+  - Guard: c is connecting
+  - Effect: db = ready, connecting - 1, c is done
+
+- connect rejects for c
+  - Guard: c is connecting
+  - Effect: connecting - 1, c is failed
+
+- retry c (per caller)
+  - Guard: c is failed
+  - Effect: c is idle
+
+## Properties
+
+### Invariants
+
+- at most one connect() at a time: connecting <= 1
+
+### Temporal properties
+
+- every caller gets the connection in the end, granted: callers call and retry, and
+  connect may reject, but not every time
+
+## Considerations
+
+- The connection itself is not modeled, only whether there is one.
+- Retry stands for the same caller, or the next request, asking again.

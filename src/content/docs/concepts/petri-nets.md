@@ -69,9 +69,9 @@ correctness check is soundness:
 - when it does, nothing else is still running, and
 - every step can fire in some run.
 
-That is the durable-execution correctness question under another name. The stuck key on the
-[TLA+ page](/tools/tla-plus), where callers keep failing and none of them can reach the end, is a soundness failure.
-Model checkers ask the same questions of workflow code written as steps, instead of drawn as a net.
+That is the durable-execution correctness question under another name. Model checkers ask the same questions of
+workflow code written as steps, instead of drawn as a net. The [TLA+ page](/tools/tla-plus) checks "every caller gets
+the connection in the end", which is the first of them.
 
 ## Related
 

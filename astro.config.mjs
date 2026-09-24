@@ -151,6 +151,7 @@ export default defineConfig({
 				},
 				{
 					label: 'Formal methods market',
+					collapsed: true,
 					items: [
 						{ label: 'Overview', link: '/market/' },
 						{ label: 'Job listings', link: '/market/jobs' },
@@ -159,6 +160,7 @@ export default defineConfig({
 				},
 				{
 					label: 'Durable execution',
+					collapsed: true,
 					items: [
 						{ label: 'The problems', link: '/durable-execution-problems' },
 						{ label: 'Existing ecosystem', link: '/durable-workflow-correctness-tooling-research' },
@@ -170,6 +172,7 @@ export default defineConfig({
 				{ label: 'Design notes', link: '/design' },
 				{
 					label: 'Concepts',
+					collapsed: true,
 					items: [
 						{ label: 'State machines and FSMs', link: '/concepts/state-machines' },
 						{ label: 'Petri nets', link: '/concepts/petri-nets' },

@@ -1,0 +1,64 @@
+---- MODULE LazyConnect ----
+\* Two callers ask for the connection at once. The first call connects,
+\* later calls reuse the connection.
+EXTENDS Naturals
+
+Callers == {"a", "b"}
+
+VARIABLES db, connecting, pc
+
+vars == <<db, connecting, pc>>
+
+Init ==
+    /\ db = "none"
+    /\ connecting = 0
+    /\ pc = [c \in Callers |-> "idle"]
+
+\* A caller asks: it gets the promise that is kept, or starts connect() and keeps its promise.
+Call(c) ==
+    /\ pc[c] = "idle"
+    /\ CASE db = "none" ->
+              /\ pc' = [pc EXCEPT ![c] = "waiting"]
+              /\ db' = "pending"
+              /\ connecting' = connecting + 1
+         [] db = "pending" ->
+              /\ pc' = [pc EXCEPT ![c] = "waiting"]
+              /\ UNCHANGED <<db, connecting>>
+         [] db = "ready" ->
+              /\ pc' = [pc EXCEPT ![c] = "done"]
+              /\ UNCHANGED <<db, connecting>>
+
+\* connect() resolves: every waiting caller gets the connection.
+ConnectOk ==
+    /\ db = "pending"
+    /\ db' = "ready"
+    /\ connecting' = connecting - 1
+    /\ pc' = [c \in Callers |-> IF pc[c] = "waiting" THEN "done" ELSE pc[c]]
+
+\* connect() rejects: every waiting caller gets the error, and the rejected promise is dropped.
+ConnectFails ==
+    /\ db = "pending"
+    /\ db' = "none"
+    /\ connecting' = connecting - 1
+    /\ pc' = [c \in Callers |-> IF pc[c] = "waiting" THEN "failed" ELSE pc[c]]
+
+\* A caller got an error and tries again.
+Retry(c) ==
+    /\ pc[c] = "failed"
+    /\ pc' = [pc EXCEPT ![c] = "idle"]
+    /\ UNCHANGED <<db, connecting>>
+
+Next == ConnectOk \/ ConnectFails \/ \E c \in Callers : Call(c) \/ Retry(c)
+
+\* Callers call and retry. connect() may reject, but not every time.
+Spec ==
+    /\ Init /\ [][Next]_vars
+    /\ SF_vars(ConnectOk)
+    /\ \A c \in Callers : WF_vars(Call(c)) /\ WF_vars(Retry(c))
+
+\* At most one connect() at a time.
+OneConnect == connecting <= 1
+
+\* Every caller gets the connection in the end.
+EveryoneGetsIt == \A c \in Callers : <>(pc[c] = "done")
+====

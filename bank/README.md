@@ -32,7 +32,8 @@ and which one to use.
 | # | Use case | What goes wrong | Rule | Fits | Used on |
 |---|---|---|---|---|---|
 | 1 | Search as you type | A slow reply for "rea" lands after the one for "react" and replaces the list | The list matches the box | Quint, TLA+, fast-check | Quint |
-| 2 | Single-flight (one shared call per key) | A failed call stays in the map, so the key fails forever | Every caller gets a value in the end | TLA+, Quint, pnueli | TLA+ |
+| 2 | Single-flight (one shared call per key) | A failed call stays in the map, so the key fails forever | Every caller gets a value in the end | TLA+, Quint, pnueli | TLA+ (earlier version) |
+| 2a | Lazy connect | Two requests at startup both connect | One connect at a time; every caller gets the connection in the end | TLA+, Quint, pnueli | TLA+ |
 | 3 | Webhook handler | The same event arrives twice and the card is charged twice | One charge per order | fast-check, Quint, SpecCraft TS | fast-check |
 | 4 | Token refresh in two tabs | Both tabs refresh at once; with rotating refresh tokens the second one is rejected and the user is logged out | The user stays logged in | TLA+, Quint, fast-check | |
 | 5 | Autosave | An edit made while a save is in flight is never saved | The saved text is the last edit, in the end | TLA+, Quint, fast-check | |

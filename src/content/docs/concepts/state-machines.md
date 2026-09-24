@@ -71,8 +71,8 @@ states:
 | A new requirement | Multiplies the states you draw | Adds a variable or a step |
 | Several execution contexts | One diagram each; the race falls between them | All of them in one state; every interleaving is tried |
 
-The single-flight helper on the [TLA+ page](/tools/tla-plus) is an example: two callers, each with its own position,
-and a shared map entry. It is written as about 25 lines of steps. TLC finds 17 states and the stuck key among them.
+The lazy connection on the [TLA+ page](/tools/tla-plus) is an example: two callers, each with its own position, and
+one shared connection. It is written as about 30 lines of steps. TLC finds the race in 3 states.
 
 One subtlety: a model checker can only walk a finite state space, which is why models use 2 or 3 workers. So the
 model it checks is technically an FSM. The difference is that nobody writes its states by hand.

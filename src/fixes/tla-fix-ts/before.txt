@@ -1,0 +1,7 @@
+export function lazyConnect<T>(connect: () => Promise<T>) {
+  let db: T | undefined;
+  return async () => {
+    if (!db) db = await connect();
+    return db;
+  };
+}

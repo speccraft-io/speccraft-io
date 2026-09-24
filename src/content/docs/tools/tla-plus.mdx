@@ -1,6 +1,6 @@
 ---
 title: TLA+ for TypeScript developers
-description: A practical first look at TLA+ from a TypeScript project. Model a single-flight helper that shares one call per key, let TLC find the failed call that breaks the key for good, and replay every behavior of the spec against the real TS code in vitest.
+description: A practical first look at TLA+ from a TypeScript project. Model a lazy database connection, let TLC find the double connect, check the fix, and replay every behavior of the spec against the real TS code in vitest.
 views: true
 tableOfContents: true
 trend:
@@ -17,12 +17,12 @@ requires:
   - 'Coding agent (TS ↔ TLA+)'
 ---
 import CodeFix from '../../../components/CodeFix.astro';
-import modelBefore from '../../../fixes/tla-model/before.txt?raw';
-import modelAfter from '../../../fixes/tla-model/after.txt?raw';
-import tsBefore from '../../../fixes/tla-ts/before.txt?raw';
-import tsAfter from '../../../fixes/tla-ts/after.txt?raw';
-import textBefore from '../../../fixes/tla-text/before.txt?raw';
-import textAfter from '../../../fixes/tla-text/after.txt?raw';
+import textBefore from '../../../fixes/tla-fix-text/before.txt?raw';
+import textAfter from '../../../fixes/tla-fix-text/after.txt?raw';
+import modelBefore from '../../../fixes/tla-fix-model/before.txt?raw';
+import modelAfter from '../../../fixes/tla-fix-model/after.txt?raw';
+import tsBefore from '../../../fixes/tla-fix-ts/before.txt?raw';
+import tsAfter from '../../../fixes/tla-fix-ts/after.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
@@ -42,7 +42,7 @@ TLA+ describes a system as state, steps and "must never happen" rules, checked i
 language and checks the spec, not the real code. For tools that do the same kind of checking with the model written
 in TypeScript, see [TypeScript tools](/ts-tools); for the wider field, see [Non-TypeScript tools](/tools/non-ts-tools).
 
-<Short>Write the spec as plain text, let an agent turn it into TLA+, let TLC find the order that breaks the key for good, then replay every behavior of the spec against the real TS code.</Short>
+<Short>Write the spec as plain text, let an agent turn it into TLA+, let TLC find the double connect, then replay every behavior of the spec against the real TS code.</Short>
 
 <Full>
 
@@ -65,56 +65,48 @@ test in vitest.
 
 ## Why you would want this
 
-<Short>The test passes, but one failed call leaves its rejected promise in the map, and that key fails forever.</Short>
+<Short>The test passes, but two requests at startup both connect.</Short>
 
-When many callers ask for the same thing at once, only one call should run, and the others should share it. This is
-called single-flight, or request coalescing:
+Connect to the database on first use, then reuse the connection. Almost every Node service has this somewhere:
 
 ```ts
-// src/single-flight.ts
-// Callers that ask for the same key while fn() runs share one call.
-export function singleFlight<T>() {
-  const inflight = new Map<string, Promise<T>>();
-  return (key: string, fn: () => Promise<T>) => {
-    const running = inflight.get(key);
-    if (running) return running;
-    const p = fn().then((v) => {
-      inflight.delete(key);
-      return v;
-    });
-    inflight.set(key, p);
-    return p;
+// src/lazy-connect.ts
+// Connect on first use, then reuse the connection.
+export function lazyConnect<T>(connect: () => Promise<T>) {
+  let db: T | undefined;
+  return async () => {
+    if (!db) db = await connect();
+    return db;
   };
 }
 ```
 
 ```ts
-// src/single-flight.test.ts
-test('five callers at once share one call', async () => {
-  const flight = singleFlight<string>();
-  let calls = 0;
-  const fn = async () => {
-    calls++;
-    return 'v';
-  };
-  await Promise.all([1, 2, 3, 4, 5].map(() => flight('u1', fn)));
-  expect(calls).toBe(1);
+// src/lazy-connect.test.ts
+test('the second call reuses the connection', async () => {
+  let connects = 0;
+  const getDb = lazyConnect(async () => {
+    connects++;
+    return { pool: 1 };
+  });
+  await getDb();
+  await getDb();
+  expect(connects).toBe(1);
 });
 ```
 
-The test passes, and `fn` never fails in it. In production, the call times out once. The promise in the map is now
-rejected, and only the success path removes it. Every later caller for that key finds it and gets the old error at
-once, without calling `fn` again, until the process restarts. TLC tries every order, including the ones where `fn`
-fails.
+The test passes. It lets the first call finish before the second one starts. In production, two requests arrive
+while the service starts. Both see no connection, because the first `connect()` has not returned yet, and both
+connect: two pools, and the first one is never closed. TLC tries every order.
 
 <Full>
 
 ## When TLA+ fits
 
-- Several actors change shared state: callers, handlers, timers, retries, queues, locks, leader election, sagas.
-- The bug you fear is about order: "what if a caller arrives after the call failed?"
-- The rule can be said as "this must never happen" or "this must always happen in the end" (every caller gets a
-  value). TLC checks both kinds.
+- Several actors change shared state: requests, handlers, timers, retries, queues, locks, leader election, sagas.
+- The bug you fear is about order: "what if a second request arrives while the first one is still connecting?"
+- The rule can be said as "this must never happen" (two connects at once) or "this must always happen in the end"
+  (every request gets the connection). TLC checks both kinds.
 
 TLA+ is not the tool for proving one function's math right for every input. See the [Dafny](/tools/dafny) and
 [Lean](/tools/lean) pages for that.
@@ -150,38 +142,37 @@ what is unclear, you decide what the steps and rules are and correct every line.
 
 Concepts: state, variables, actions, guards, effects, invariants, liveness, fairness.
 
-```md title="spec/single-flight.md"
-# Single-flight - spec
+```md title="spec/lazy-connect.md"
+# Lazy connect - spec
 
-Callers that ask for the same key while fn() runs share one call.
-The checkable version is SingleFlight.tla, next to this file.
+Connect on first use, then reuse the connection.
+The checkable version is LazyConnect.tla, next to this file.
 
 ## Constants
 
-- callers = a, b (two are enough to share a call)
-- one key (keys share nothing, so one is enough)
+- callers = a, b (two are enough to race)
 
 ## Variables
 
-- entry: none | running | failed = none (the map entry for the key)
-- callers: { a: idle | waiting | done | failed = idle, b: same as a }
+- db: none | ready = none (the connection that is kept)
+- connecting: 0..2 = 0 (connect() calls in flight)
+- callers: { a: idle | connecting | done | failed = idle, b: same as a }
 
 ## Actions
 
 - call c (per caller)
   - Guard: c is idle
   - Effect:
-    - entry none: fn() starts, entry = running, c is waiting
-    - entry running: c is waiting on the same call
-    - entry failed: c gets the old error at once, c is failed
+    - db ready: c is done
+    - otherwise: connect() starts, connecting + 1, c is connecting
 
-- fn resolves
-  - Guard: entry is running
-  - Effect: entry = none, every waiting caller is done
+- connect resolves for c
+  - Guard: c is connecting
+  - Effect: db = ready, connecting - 1, c is done
 
-- fn rejects
-  - Guard: entry is running
-  - Effect: entry = failed (the rejected promise stays in the map), every waiting caller is failed
+- connect rejects for c
+  - Guard: c is connecting
+  - Effect: connecting - 1, c is failed
 
 - retry c (per caller)
   - Guard: c is failed
@@ -191,42 +182,43 @@ The checkable version is SingleFlight.tla, next to this file.
 
 ### Invariants
 
-- no failed call is left in the map: entry is never failed
+- at most one connect() at a time: connecting <= 1
 
 ### Temporal properties
 
-- every caller gets a value in the end, granted: callers call and retry, and fn may
-  reject, but not every time
+- every caller gets the connection in the end, granted: callers call and retry, and
+  connect may reject, but not every time
 
 ## Considerations
 
-- The value fn returns is not modeled, only whether it resolves or rejects.
-- Retry stands for the same caller, or the next request for the key, asking again.
+- The connection itself is not modeled, only whether there is one.
+- Retry stands for the same caller, or the next request, asking again.
 ```
 
 How it maps to the code:
 
-- `entry` is the `inflight` map for one key: no entry, a promise that is running, or a promise that has rejected.
-- Each action is one step of the code between two `await`s. `call c` is one call to `flight(key, fn)`; `fn resolves`
-  and `fn rejects` are the two ways the shared promise can settle.
-- The rules come before anything is checked. "Entry is never failed" is a "must never happen". "Every caller gets a
-  value in the end" is a "must always happen in the end", with what it takes for granted.
+- `db` is the `db` variable in `lazyConnect`. `connecting` is outside the code: the `connect()` calls that have not
+  returned yet.
+- Each action is one step of the code between two `await`s. `call c` is `getDb()` up to `await connect()`; the two
+  `connect` actions are the two ways that call can end.
+- The rules come before anything is checked. "At most one connect() at a time" is a "must never happen". "Every
+  caller gets the connection in the end" is a "must always happen in the end", with what it takes for granted.
 
-Writing it is where most of the thinking happens. The `fn rejects` line has to say what happens to the entry, and
-writing "stays in the map" is most of the way to seeing the bug.
+Writing it is where most of the thinking happens. The `call c` line has to say what a second caller sees while the
+first one is still connecting, and the answer, "otherwise: connect() starts", is the bug.
 
 ## Step 2: turn the text into TLA+ (use AI)
 
 <Short>The agent writes the TLA+. You do not read it: the agent maps it back to the text, and the checks do the rest.</Short>
 
-> Ask AI to write `spec/SingleFlight.tla` and `spec/SingleFlight.cfg` from `spec/single-flight.md`. One variable per
+> Ask AI to write `spec/LazyConnect.tla` and `spec/LazyConnect.cfg` from `spec/lazy-connect.md`. One variable per
 > variable, one action per action, guards as conditions, the invariant and the temporal property as operators,
 > fairness as the text grants it. Above each part, put the line of the text it comes from as a comment. List anything
 > you had to guess.
 
 You do not need to read TLA+. To check the result:
 
-- TLC parses it: `java -jar tla2tools.jar spec/SingleFlight.tla` starts checking instead of stopping at a parse error.
+- TLC parses it: `java -jar tla2tools.jar spec/LazyConnect.tla` starts checking instead of stopping at a parse error.
 - Every action and rule in the text has its part in the spec, with the text line above it.
 - The agent's guesses are answered in the text, not in the spec. Then regenerate.
 
@@ -240,174 +232,171 @@ by `/\` (and). A line without `'` is a condition: if it is false, the action can
 of `x` after this step". Every action must say what every variable becomes, which is what `UNCHANGED` is for.
 
 ```text
----- MODULE SingleFlight ----
-\* Two callers ask for the same key. The first one starts fn(),
-\* the other one shares its promise while it runs.
+---- MODULE LazyConnect ----
+\* Two callers ask for the connection at once. The first call connects,
+\* later calls reuse the connection.
+EXTENDS Naturals
 
 Callers == {"a", "b"}
 
-VARIABLES entry, pc
+VARIABLES db, connecting, pc
 
-vars == <<entry, pc>>
+vars == <<db, connecting, pc>>
 
 Init ==
-    /\ entry = "none"
+    /\ db = "none"
+    /\ connecting = 0
     /\ pc = [c \in Callers |-> "idle"]
 
-\* A caller asks: it shares the promise in the map, or starts fn() and puts it there.
+\* A caller asks: it gets the connection, or awaits connect() if there is none yet.
 Call(c) ==
     /\ pc[c] = "idle"
-    /\ pc' = [pc EXCEPT ![c] = IF entry = "failed" THEN "failed" ELSE "waiting"]
-    /\ entry' = IF entry = "none" THEN "running" ELSE entry
+    /\ IF db = "ready"
+         THEN /\ pc' = [pc EXCEPT ![c] = "done"]
+              /\ UNCHANGED connecting
+         ELSE /\ pc' = [pc EXCEPT ![c] = "connecting"]
+              /\ connecting' = connecting + 1
+    /\ UNCHANGED db
 
-\* fn() resolves: the entry is removed, and every waiting caller gets the value.
-Resolve ==
-    /\ entry = "running"
-    /\ entry' = "none"
-    /\ pc' = [c \in Callers |-> IF pc[c] = "waiting" THEN "done" ELSE pc[c]]
+\* connect() resolves: the connection is kept.
+ConnectOk(c) ==
+    /\ pc[c] = "connecting"
+    /\ db' = "ready"
+    /\ connecting' = connecting - 1
+    /\ pc' = [pc EXCEPT ![c] = "done"]
 
-\* fn() rejects: every waiting caller gets the error, and the entry stays.
-Reject ==
-    /\ entry = "running"
-    /\ entry' = "failed"
-    /\ pc' = [c \in Callers |-> IF pc[c] = "waiting" THEN "failed" ELSE pc[c]]
+\* connect() rejects: the caller gets the error.
+ConnectFails(c) ==
+    /\ pc[c] = "connecting"
+    /\ connecting' = connecting - 1
+    /\ pc' = [pc EXCEPT ![c] = "failed"]
+    /\ UNCHANGED db
 
 \* A caller got an error and tries again.
 Retry(c) ==
     /\ pc[c] = "failed"
     /\ pc' = [pc EXCEPT ![c] = "idle"]
-    /\ UNCHANGED entry
+    /\ UNCHANGED <<db, connecting>>
 
-Next == Resolve \/ Reject \/ \E c \in Callers : Call(c) \/ Retry(c)
+Next == \E c \in Callers : Call(c) \/ ConnectOk(c) \/ ConnectFails(c) \/ Retry(c)
 
-\* Callers call and retry. fn() may reject, but not every time.
+\* Callers call and retry. connect() may reject, but not every time.
 Spec ==
     /\ Init /\ [][Next]_vars
-    /\ SF_vars(Resolve)
-    /\ \A c \in Callers : WF_vars(Call(c)) /\ WF_vars(Retry(c))
+    /\ \A c \in Callers : WF_vars(Call(c)) /\ WF_vars(Retry(c)) /\ SF_vars(ConnectOk(c))
 
-\* Every caller gets a value in the end.
+\* At most one connect() at a time.
+OneConnect == connecting <= 1
+
+\* Every caller gets the connection in the end.
 EveryoneGetsIt == \A c \in Callers : <>(pc[c] = "done")
-
-\* No failed call is left in the map.
-NoFailedEntry == entry /= "failed"
 ====
 ```
 
 And the config file TLC reads next to it:
 
 ```text
-\* spec/SingleFlight.cfg
+\* spec/LazyConnect.cfg
 SPECIFICATION Spec
+INVARIANT OneConnect
 PROPERTY EveryoneGetsIt
 ```
 
 How to read it:
 
-- Two variables: `entry` is the map entry for one key (`"none"`, `"running"` or `"failed"`), and `pc` is where each
-  caller is, like a program counter.
-- Two callers, `"a"` and `"b"`, are enough. `[c \in Callers |-> "idle"]` is a map, like `Record<string, string>`.
-  `pc[c]` reads it, `[pc EXCEPT ![c] = "done"]` returns an updated copy.
-- `Call(c)` has a parameter: there is one for each caller. `Resolve` and `Reject` are the two ways `fn()` can end.
-  `Retry` is a caller asking again after an error.
+- `[c \in Callers |-> "idle"]` is a map, like `Record<string, string>`. `pc[c]` reads it, and
+  `[pc EXCEPT ![c] = "done"]` returns an updated copy. `pc` is where each caller is, like a program counter.
+- `Call(c)` has a parameter: there is one for each caller. So do `ConnectOk(c)` and `ConnectFails(c)`, since each
+  caller has its own `connect()` in flight.
 - `Next` says what can happen next: any step whose conditions hold. TLC tries each one.
 - `Spec` is the whole system: start in `Init`, then take `Next` steps. `WF` and `SF` are fairness: callers do call
-  and retry, and `fn()` may reject, but not every time. `SF` (strong fairness) is what says "not every time".
-- `EveryoneGetsIt` is a liveness property: `<>` means "at some point". It says every caller gets a value in the end.
+  and retry, and `connect()` may reject, but not every time. `SF` (strong fairness) is what says "not every time".
+- `OneConnect` is an invariant: true in every state. `EveryoneGetsIt` is a liveness property: `<>` means "at some
+  point".
 
 </details>
 
 ## Step 3: let TLC find the bad order
 
-<Short>TLC finds a run where no caller ever gets a value again, in under a second.</Short>
+<Short>TLC finds the double connect in under a second, in 3 states.</Short>
 
-`-deadlock` turns off TLC's deadlock check, since a run where both callers have a value is supposed to stop:
+`-deadlock` turns off TLC's deadlock check, since a run where both callers have the connection is supposed to stop.
+TLC stops at the first state that breaks `OneConnect`:
 
 <details>
-<summary>TLC's counterexample (31 lines)</summary>
+<summary>TLC's counterexample (19 lines)</summary>
 
 ```text
-$ java -jar tla2tools.jar -deadlock spec/SingleFlight.tla
-Checking 2 branches of temporal properties for the complete state space with 34 total distinct states
-Error: Temporal properties were violated.
-
-Error: The following behavior constitutes a counter-example:
-
+$ java -jar tla2tools.jar -deadlock spec/LazyConnect.tla
+Error: Invariant OneConnect is violated.
+Error: The behavior up to this point is:
 State 1: <Initial predicate>
+/\ connecting = 0
 /\ pc = [a |-> "idle", b |-> "idle"]
-/\ entry = "none"
+/\ db = "none"
 
-State 2: <Call line 17, col 5 to line 19, col 59 of module SingleFlight>
-/\ pc = [a |-> "idle", b |-> "waiting"]
-/\ entry = "running"
+State 2: <Call line 19, col 5 to line 25, col 19 of module LazyConnect>
+/\ connecting = 1
+/\ pc = [a |-> "connecting", b |-> "idle"]
+/\ db = "none"
 
-State 3: <Reject line 29, col 5 to line 31, col 78 of module SingleFlight>
-/\ pc = [a |-> "idle", b |-> "failed"]
-/\ entry = "failed"
+State 3: <Call line 19, col 5 to line 25, col 19 of module LazyConnect>
+/\ connecting = 2
+/\ pc = [a |-> "connecting", b |-> "connecting"]
+/\ db = "none"
 
-State 4: <Call line 17, col 5 to line 19, col 59 of module SingleFlight>
-/\ pc = [a |-> "failed", b |-> "failed"]
-/\ entry = "failed"
-
-State 5: <Retry line 35, col 5 to line 37, col 22 of module SingleFlight>
-/\ pc = [a |-> "failed", b |-> "idle"]
-/\ entry = "failed"
-
-State 6: <Call line 17, col 5 to line 19, col 59 of module SingleFlight>
-/\ pc = [a |-> "failed", b |-> "failed"]
-/\ entry = "failed"
-
-Back to state 3: <Retry line 35, col 5 to line 37, col 22 of module SingleFlight>
+6 states generated, 6 distinct states found, 3 states left on queue.
 ```
 
 </details>
 
 Read it as a timeline:
 
-1. Caller `b` calls, and `fn()` starts.
-2. `fn()` rejects. `b` gets the error, and the failed entry stays in the map.
-3. Caller `a` calls, finds the failed entry, and gets the old error at once.
-4. `b` retries and gets the same error. `Back to state 3` means this loops forever: `fn()` is never called again.
+1. Caller `a` sees no connection and calls `connect()`.
+2. Caller `b` arrives before that call returns. It sees no connection either, and calls `connect()` again.
 
-No test with the word "race" in its name would look for this, and an invariant cannot say it either: every single
-state here looks fine. Only the whole run is wrong. That is what liveness properties are for.
+Two connects, two pools. TLC checks states in breadth-first order, so the trace it prints is a shortest one. Most
+races need only two or three actors to show up.
 
 ## Step 4: fix it
 
-<Short>Change one line of the text, let the agent update the spec, and check it. The property holds.</Short>
+<Short>Keep the promise, not the connection, and drop it if it rejects. Both properties hold.</Short>
 
-The entry must go when the call settles, whether it resolves or rejects. Change the text first:
+Keep the promise instead of the connection, so a second caller awaits the same `connect()`. If the promise rejects,
+drop it, so the next call connects again. A rejected promise that stays would fail every later call, and TLC's
+`EveryoneGetsIt` check catches that too. Change the text first:
 
-<CodeFix before={textBefore} after={textAfter} lang="md" title="spec/single-flight.md" />
+<CodeFix before={textBefore} after={textAfter} lang="md" title="spec/lazy-connect.md" />
 
 The agent updates the spec to match.
 
 <details>
-<summary>The spec change: <code>spec/SingleFlight.tla</code> (1 line)</summary>
+<summary>The spec change: <code>spec/LazyConnect.tla</code></summary>
 
-`Reject` now sets the entry back to `"none"`, like `Resolve`:
+`db` now holds the promise: none yet, pending or resolved. The two `connect` actions no longer belong to one caller:
+every caller waiting on the promise gets the same result.
 
-<CodeFix before={modelBefore} after={modelAfter} lang="text" title="spec/SingleFlight.tla" />
+<CodeFix before={modelBefore} after={modelAfter} lang="text" title="spec/LazyConnect.tla" />
 
 </details>
 
-In the TS code, that is `.finally()`:
+In the TS code:
 
-<CodeFix before={tsBefore} after={tsAfter} lang="ts" title="src/single-flight.ts" />
+<CodeFix before={tsBefore} after={tsAfter} lang="ts" title="src/lazy-connect.ts" />
 
 ```text
-$ java -jar tla2tools.jar -deadlock spec/SingleFlight.tla
-Checking 2 branches of temporal properties for the complete state space with 32 total distinct states
+$ java -jar tla2tools.jar -deadlock spec/LazyConnect.tla
+Checking 2 branches of temporal properties for the complete state space with 28 total distinct states
 Finished checking temporal properties in 00s
 Model checking completed. No error has been found.
-31 states generated, 16 distinct states found, 0 states left on queue.
+27 states generated, 14 distinct states found, 0 states left on queue.
 ```
 
-Every caller gets a value in the end, in every run.
+Never two connects at once, and every caller gets the connection in the end, in every run.
 
 ## Step 5: the same spec in Apalache
 
-<Short>Add a type comment to each variable; Apalache checks the "never" rule with Z3.</Short>
+<Short>Add a type comment to each variable; Apalache finds the same double connect with Z3.</Short>
 
 Apalache reads the same file. It needs one type comment per variable, which the agent adds. TLC ignores them.
 
@@ -417,31 +406,33 @@ Apalache reads the same file. It needs one type comment per variable, which the 
 ```text
 VARIABLES
     \* @type: Str;
-    entry,
+    db,
+    \* @type: Int;
+    connecting,
     \* @type: Str -> Str;
     pc
 ```
 
 </details>
 
-Apalache checks "must never happen" rules; it has no fairness, so it cannot check `EveryoneGetsIt`. The same bug as a
-"never" rule is the last line of the spec: `NoFailedEntry`, no failed call is left in the map. On the Step 2 spec:
+Apalache checks "must never happen" rules; it has no fairness, so it cannot check `EveryoneGetsIt`. On the Step 2
+spec it finds the double connect:
 
 ```text
-$ apalache-mc check --no-deadlock --inv=NoFailedEntry --length=10 spec/SingleFlight.tla
+$ apalache-mc check --no-deadlock --inv=OneConnect --length=10 spec/LazyConnect.tla
 State 2: state invariant 0 violated.
 Found 1 error(s)
 The outcome is: Error
-Total time: 1.256 sec
+Total time: 1.691 sec
 ```
 
 On the fixed spec:
 
 ```text
-$ apalache-mc check --no-deadlock --inv=NoFailedEntry --length=10 spec/SingleFlight.tla
+$ apalache-mc check --no-deadlock --inv=OneConnect --length=10 spec/LazyConnect.tla
 The outcome is: NoError
 Checker reports no error up to computation length 10
-Total time: 1.360 sec
+Total time: 1.805 sec
 ```
 
 Callers can retry forever, so runs of this spec never stop. Apalache checked every run up to 10 steps; TLC checked
@@ -468,27 +459,27 @@ The spec is right. Nothing yet says the TS code behaves like the spec. TLC can w
 explored, with each edge labeled by its action:
 
 ```sh
-java -jar tla2tools.jar -deadlock -dump dot,actionlabels spec/out/graph spec/SingleFlight.tla
+java -jar tla2tools.jar -deadlock -dump dot,actionlabels spec/out/graph spec/LazyConnect.tla
 ```
 
 That writes `spec/out/graph.dot`: one node per state, one edge per step. The spec is small, so the test can walk every
 path from the first state until it stops or comes back to a state it has already been in. That is every behavior of
-the spec up to its first loop, not a sample. For each path, it drives the real `singleFlight` with an `fn` whose calls
-wait until the path says how they end:
+the spec up to its first loop, not a sample. For each path, it drives the real `lazyConnect` with a `connect` whose
+calls wait until the path says how they end:
 
 <details>
-<summary>The replay test: <code>src/single-flight.tla.test.ts</code> (110 lines)</summary>
+<summary>The replay test: <code>src/lazy-connect.tla.test.ts</code> (119 lines)</summary>
 
 ```ts
-// src/single-flight.tla.test.ts
+// src/lazy-connect.tla.test.ts
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import { singleFlight } from './single-flight';
+import { lazyConnect } from './lazy-connect';
 
 // TLC's state graph (-dump dot,actionlabels): one node per state, one edge per step.
-type Status = 'idle' | 'waiting' | 'done' | 'failed';
+type Status = 'idle' | 'connecting' | 'waiting' | 'done' | 'failed';
 interface State {
-  running: boolean;
+  connecting: number;
   pc: Record<string, Status>;
 }
 interface Edge {
@@ -506,7 +497,7 @@ function readGraph(file: URL) {
       const pc = Object.fromEntries(
         [...node[2].matchAll(/(\w+) \|-> \\"(\w+)\\"/g)].map((m) => [m[1], m[2] as Status]),
       );
-      states.set(node[1], { running: node[2].includes('entry = \\"running\\"'), pc });
+      states.set(node[1], { connecting: Number(node[2].match(/connecting = (\d+)/)![1]), pc });
       if (node[3]) init = node[1];
     }
     const edge = line.match(/^(-?\d+) -> (-?\d+) \[label="(\w+)"/);
@@ -530,32 +521,39 @@ function allPaths(graph: ReturnType<typeof readGraph>): Edge[][] {
   return walk(graph.init, new Set([graph.init]));
 }
 
-// Each fn() call waits until the replay says how it ends.
+// Each connect() call waits until the replay says how it ends.
 function world() {
-  const calls: { ok: () => void; fail: () => void }[] = [];
-  const fn = () =>
-    new Promise<string>((resolve, reject) => {
-      calls.push({ ok: () => resolve('v'), fail: () => reject(new Error('down')) });
-    });
-  const flight = singleFlight<string>();
+  const connects: { caller: string; ok: () => void; fail: () => void }[] = [];
+  let caller = '';
+  const getDb = lazyConnect(
+    () =>
+      new Promise<string>((resolve, reject) => {
+        connects.push({ caller, ok: () => resolve('pool'), fail: () => reject(new Error('refused')) });
+      }),
+  );
   const status: Record<string, Status> = { a: 'idle', b: 'idle' };
   const call = (c: string) => {
+    caller = c;
     status[c] = 'waiting';
-    flight('k', fn).then(
+    getDb().then(
       () => (status[c] = 'done'),
       () => (status[c] = 'failed'),
     );
   };
-  const finish = (how: 'ok' | 'fail') => {
-    expect(calls.length, 'the model says fn() ends here, but no call is running').toBe(1);
-    calls.pop()![how]();
+  // End the connect() this caller started, or the one shared by everyone.
+  const finish = (how: 'ok' | 'fail', c: string) => {
+    expect(connects.length, 'the model says connect() ends here, but none is running').toBeGreaterThan(0);
+    const i = Math.max(0, connects.findIndex((x) => x.caller === c));
+    connects.splice(i, 1)[0][how]();
   };
-  return { calls, status, call, finish };
+  return { connects, status, call, finish };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 // The edge label has no caller: it is the one whose status changes.
+// The code cannot tell a caller that started connect() from one that shares it.
+const seen = (s: Status) => (s === 'connecting' ? 'waiting' : s);
 const graph = readGraph(new URL('../spec/out/graph.dot', import.meta.url));
 const steps = (path: Edge[]) => {
   let from = graph.init;
@@ -563,7 +561,7 @@ const steps = (path: Edge[]) => {
     const [a, b] = [graph.states.get(from)!, graph.states.get(to)!];
     const who = Object.keys(b.pc).filter((c) => a.pc[c] !== b.pc[c]);
     from = to;
-    const name = action === 'Call' || action === 'Retry' ? `${action}(${who[0]})` : action;
+    const name = who.length === 1 ? `${action}(${who[0]})` : action;
     return { to, action, who: who[0], name };
   });
 };
@@ -572,21 +570,23 @@ const paths = allPaths(graph)
   .map((path) => [path.map((s) => s.name).join(' → '), path] as const);
 
 test.each(paths)('%s', async (_name, path) => {
-  const { calls, status, call, finish } = world();
+  const { connects, status, call, finish } = world();
 
   for (const { to, action, who, name } of path) {
     if (action === 'Call') call(who);
-    else if (action === 'Resolve') finish('ok');
-    else if (action === 'Reject') finish('fail');
+    else if (action === 'ConnectOk') finish('ok', who);
+    else if (action === 'ConnectFails') finish('fail', who);
     else if (action === 'Retry') status[who] = 'idle';
     else throw new Error(`no mapping for action ${action}`);
     await settle();
 
     const model = graph.states.get(to)!;
-    expect({ step: name, running: calls.length === 1, ...status }).toEqual({
+    expect(connects.length, 'at most one connect() at a time').toBeLessThanOrEqual(1);
+    expect({ step: name, connecting: connects.length, ...status }).toEqual({
       step: name,
-      running: model.running,
-      ...model.pc,
+      connecting: model.connecting,
+      a: seen(model.pc.a),
+      b: seen(model.pc.b),
     });
   }
 });
@@ -598,37 +598,36 @@ What it does for each step of a path:
 
 - The edge label says which action ran, but not for which caller. The test finds the caller by comparing the two
   states: the one whose `pc` changed.
-- `Call` calls the real function. `Resolve` and `Reject` make the waiting `fn()` call resolve or reject. If no call is
+- `Call` calls the real `getDb()`. The `Connect` steps make a waiting `connect()` call resolve or reject. If none is
   waiting, the code and the spec disagree, and the test says so.
-- After each step, whether `fn()` is running and each caller's status must match the spec.
-- Each path is its own test, named by its steps, so a failure reads as the exact order that differs.
+- After each step, the `connect()` calls in flight and each caller's status must match the spec, and there must
+  never be two connects at once.
+- Each path is its own test, named by its steps, so a failure reads as the exact order that breaks.
 
-Replay the fixed spec against the original function, the way it goes when you fix the spec first:
+First, replay the Step 2 spec against the original function. TLC stops at the first violation, so to get the full
+graph, run it once with a config that leaves out the `INVARIANT` line:
 
 ```text
-$ npx vitest run src/single-flight.tla.test.ts
- ❯ src/single-flight.tla.test.ts (88 tests | 76 failed)
-   × Call(a) → Reject → Call(b) → Reject → Retry(b)
+$ npx vitest run src/lazy-connect.tla.test.ts
+ ❯ src/lazy-connect.tla.test.ts (108 tests | 80 failed)
+   × Call(a) → Call(b) → ConnectOk(a) → ConnectOk(b)
+   × Call(a) → Call(b) → ConnectOk(a) → ConnectFails(b) → Retry(b) → Call(b)
    ...
 
-AssertionError: expected { step: 'Call(b)', …(3) } to deeply equal { Object (step, running, ...) }
-
-  {
-    "a": "failed",
--   "b": "waiting",
--   "running": true,
-+   "b": "failed",
-+   "running": false,
-    "step": "Call(b)",
-  }
+AssertionError: at most one connect() at a time: expected 2 to be less than or equal to 1
 ```
 
-After `a`'s call rejected, the spec says `b`'s call starts a new `fn()`. The original code gives `b` the old error
-instead. With the fix from Step 4, all 88 behaviors pass.
+The spec has 108 behaviors up to their first loop. The real function followed the spec at every step of all of them,
+and broke the rule on the 80 where both callers were connecting at once. The TLC counterexample is now a failing
+vitest on your real code.
 
-One thing the replay cannot do: the original function against the Step 2 spec passes all 38 behaviors. The code does
-what that spec says, step by step. The stuck key breaks no step and no state, only the run as a whole. TLC's
-`EveryoneGetsIt` check on the spec is what catches it.
+After Step 4, the fixed function against the fixed spec: 68 behaviors, all pass. To check the replay is not passing
+by accident, run the fixed function against the Step 2 spec: 80 of 108 fail, first at the second `Call`. The spec
+says `b` starts a second `connect()`; the fixed code shares the first one. The replay notices when the code and the
+spec differ, not just when the rule breaks.
+
+The replay checks steps and states, not whole runs. "Every caller gets the connection in the end" is checked by TLC
+on the spec.
 
 ## Project layout and CI
 
@@ -640,14 +639,14 @@ One repo. The spec sits in its own folder. The graph is written from it on every
 ./
 ├── .github/workflows/ci.yml
 ├── spec/
-│   ├── single-flight.md            the spec in plain text: written with the agent, reviewed by people
-│   ├── SingleFlight.tla            the same spec in TLA+, generated from the text
-│   ├── SingleFlight.cfg            which spec and properties TLC checks
+│   ├── lazy-connect.md             the spec in plain text: written with the agent, reviewed by people
+│   ├── LazyConnect.tla             the same spec in TLA+, generated from the text
+│   ├── LazyConnect.cfg             which spec and properties TLC checks
 │   └── out/                        graph and TLC's working files, git-ignored
 ├── src/
-│   ├── single-flight.ts            the real function
-│   ├── single-flight.test.ts       normal unit tests
-│   └── single-flight.tla.test.ts   replays spec/out/graph.dot against single-flight.ts
+│   ├── lazy-connect.ts             the real function
+│   ├── lazy-connect.test.ts        normal unit tests
+│   └── lazy-connect.tla.test.ts    replays spec/out/graph.dot against lazy-connect.ts
 ├── tools/tla2tools.jar             downloaded, git-ignored
 ├── .gitignore                      node_modules, spec/out/, tools/
 ├── package.json
@@ -659,7 +658,7 @@ Scripts in `package.json`:
 ```json
 "scripts": {
   "tla:install": "mkdir -p tools && curl -sLo tools/tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar",
-  "tla:check": "java -jar tools/tla2tools.jar -deadlock -cleanup -metadir spec/out/meta -dump dot,actionlabels spec/out/graph spec/SingleFlight.tla",
+  "tla:check": "java -jar tools/tla2tools.jar -deadlock -cleanup -metadir spec/out/meta -dump dot,actionlabels spec/out/graph spec/LazyConnect.tla",
   "pretest": "npm run tla:check",
   "typecheck": "tsc",
   "test": "vitest run"
@@ -667,7 +666,7 @@ Scripts in `package.json`:
 ```
 
 - `tla:install` pins the TLC version in one place.
-- `tla:check` checks the property and writes the graph in one run. `-metadir` keeps TLC's working files in
+- `tla:check` checks both properties and writes the graph in one run. `-metadir` keeps TLC's working files in
   `spec/out/` instead of a `states/` folder in the repo root.
 - `pretest` runs before `npm test`, so the replay always walks the graph of the current spec. If the spec breaks a
   property, TLC exits with an error and the tests do not run.
@@ -716,22 +715,22 @@ What fails when:
 
 | Change | Where CI fails |
 |---|---|
-| A spec change breaks `EveryoneGetsIt` | `npm test`, in `pretest`: TLC prints the counterexample |
-| The function changes and no longer follows the spec | `single-flight.tla.test.ts`: the path and step where the code and the spec differ |
-| The spec changes, the function does not | `single-flight.tla.test.ts`: the new paths no longer match the old function |
-| The spec gets a new action | `single-flight.tla.test.ts`: `no mapping for action ...` |
+| A spec change breaks `OneConnect` or `EveryoneGetsIt` | `npm test`, in `pretest`: TLC prints the counterexample |
+| The function changes and no longer follows the spec | `lazy-connect.tla.test.ts`: the path and step where the code and the spec differ |
+| The spec changes, the function does not | `lazy-connect.tla.test.ts`: the new paths no longer match the old function |
+| The spec gets a new action | `lazy-connect.tla.test.ts`: `no mapping for action ...` |
 
 ## Making changes
 
-<Short>Change the spec first and check it, then change the code until the replay passes.</Short>
+<Short>Change the text spec first and check it, then change the code until the replay passes.</Short>
 
-Changing the flow (for example, a caller can cancel while it waits):
+Changing the flow (for example, the connection can drop and must reconnect):
 
 1. Change the text spec first: a new action, the variables it touches, and a rule if there is a new "must never
    happen" or "must always happen".
-2. Ask the agent to update `SingleFlight.tla` from it, and to list what it changed in the words of the text.
+2. Ask the agent to update `LazyConnect.tla` from it, and to list what it changed in the words of the text.
 3. Run `npm run tla:check` until TLC passes.
-4. Change the function. Map the new action in `single-flight.tla.test.ts`.
+4. Change the function. Map the new action in `lazy-connect.tla.test.ts`.
 5. Run `npm test` until the replay passes. Commit the text, the spec, the function and the replay test together.
 
 When the graph grows: walking every path works while the spec is small. Past a few thousand paths, replay a sample.
@@ -749,9 +748,8 @@ replay follows the spec's steps.
 You get:
 
 - Every order of steps checked, in the spec, in under a second at this size.
-- Liveness: "every caller gets a value in the end" is checked, not only "nothing bad happens". That is how the stuck
-  key was found.
-- A shortest failing order, as a readable trace, instead of a bug that shows up once a month after a timeout.
+- Liveness: "every caller gets the connection in the end" is checked, not only "nothing bad happens".
+- A shortest failing order, as a readable trace, instead of a bug that shows up once in a while at startup.
 - A fix you can check before you write it in TS.
 - Every behavior of a small spec, up to its first loop, replayed against the real code.
 
@@ -761,8 +759,8 @@ You do not get:
   check liveness in the code.
 - A free spec. You choose where the steps split. If you merge steps that the real code keeps apart, the spec hides
   the bug.
-- Anything the spec leaves out. Here: more than one key, and more than one process. Neither is in the spec, so TLC
-  says nothing about them.
+- Anything the spec leaves out. Here: a connection that drops later, and more than one process. Neither is in the
+  spec, so TLC says nothing about them.
 - A familiar syntax. `/\`, `'`, `EXCEPT` and `<>` take a day to get used to. You and a coding agent write the text
   spec, the agent writes the TLA+ from it, and [Quint](/tools/quint) exists for teams who want the same checkers with
   a friendlier language.
@@ -773,7 +771,7 @@ You do not get:
 
 ## How to start in your own project
 
-1. Pick one flow where order matters: shared calls, a signal and a timer, a retry loop, a lock, a saga.
+1. Pick one flow where order matters: a lazy connection, a signal and a timer, a retry loop, a lock, a saga.
 2. Write a text spec next to the code. List the variables, including the ones outside your code: calls in flight,
    what each caller has seen.
 3. Make one action per step between two `await`s in the real code, and one action per way a call can end.

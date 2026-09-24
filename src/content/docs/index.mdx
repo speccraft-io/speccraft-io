@@ -14,8 +14,8 @@ head:
 import CodeFix from '../../components/CodeFix.astro';
 import quintBefore from '../../fixes/quint-ts/before.txt?raw';
 import quintAfter from '../../fixes/quint-ts/after.txt?raw';
-import tlaBefore from '../../fixes/tla-ts/before.txt?raw';
-import tlaAfter from '../../fixes/tla-ts/after.txt?raw';
+import tlaBefore from '../../fixes/tla-fix-ts/before.txt?raw';
+import tlaAfter from '../../fixes/tla-fix-ts/after.txt?raw';
 import leanBefore from '../../fixes/lean-ts/before.txt?raw';
 import leanAfter from '../../fixes/lean-ts/after.txt?raw';
 import dafnyBefore from '../../fixes/dafny-ts/before.txt?raw';
@@ -23,12 +23,12 @@ import dafnyAfter from '../../fixes/dafny-ts/after.txt?raw';
 
 <p class="home-lead">SpecCraft is about formal methods in TypeScript projects. Below are some situations we run into from time to time. See if any of them look familiar, and learn how formal methods (and other modern tools) can help.</p>
 
-## One shared call per key (single-flight)
+## Connect on first use
 
-Callers that ask for the same key at once share one call. If that call fails, its rejected promise stays in the map,
-and every later caller gets the old error without trying again.
+Connect to the database on first use, then reuse the connection. Two requests at startup both see no connection yet,
+and both connect.
 
-<CodeFix before={tlaBefore} after={tlaAfter} title="src/single-flight.ts" />
+<CodeFix before={tlaBefore} after={tlaAfter} title="src/lazy-connect.ts" />
 
 See how this is diagnosed with [TLA+](/tools/tla-plus).
 

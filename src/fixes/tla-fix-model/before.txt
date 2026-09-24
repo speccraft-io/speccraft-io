@@ -1,0 +1,59 @@
+---- MODULE LazyConnect ----
+\* Two callers ask for the connection at once. The first call connects,
+\* later calls reuse the connection.
+EXTENDS Naturals
+
+Callers == {"a", "b"}
+
+VARIABLES db, connecting, pc
+
+vars == <<db, connecting, pc>>
+
+Init ==
+    /\ db = "none"
+    /\ connecting = 0
+    /\ pc = [c \in Callers |-> "idle"]
+
+\* A caller asks: it gets the connection, or awaits connect() if there is none yet.
+Call(c) ==
+    /\ pc[c] = "idle"
+    /\ IF db = "ready"
+         THEN /\ pc' = [pc EXCEPT ![c] = "done"]
+              /\ UNCHANGED connecting
+         ELSE /\ pc' = [pc EXCEPT ![c] = "connecting"]
+              /\ connecting' = connecting + 1
+    /\ UNCHANGED db
+
+\* connect() resolves: the connection is kept.
+ConnectOk(c) ==
+    /\ pc[c] = "connecting"
+    /\ db' = "ready"
+    /\ connecting' = connecting - 1
+    /\ pc' = [pc EXCEPT ![c] = "done"]
+
+\* connect() rejects: the caller gets the error.
+ConnectFails(c) ==
+    /\ pc[c] = "connecting"
+    /\ connecting' = connecting - 1
+    /\ pc' = [pc EXCEPT ![c] = "failed"]
+    /\ UNCHANGED db
+
+\* A caller got an error and tries again.
+Retry(c) ==
+    /\ pc[c] = "failed"
+    /\ pc' = [pc EXCEPT ![c] = "idle"]
+    /\ UNCHANGED <<db, connecting>>
+
+Next == \E c \in Callers : Call(c) \/ ConnectOk(c) \/ ConnectFails(c) \/ Retry(c)
+
+\* Callers call and retry. connect() may reject, but not every time.
+Spec ==
+    /\ Init /\ [][Next]_vars
+    /\ \A c \in Callers : WF_vars(Call(c)) /\ WF_vars(Retry(c)) /\ SF_vars(ConnectOk(c))
+
+\* At most one connect() at a time.
+OneConnect == connecting <= 1
+
+\* Every caller gets the connection in the end.
+EveryoneGetsIt == \A c \in Callers : <>(pc[c] = "done")
+====
