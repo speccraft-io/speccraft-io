@@ -6,8 +6,8 @@
     "record": "node record-traces.ts",
     "record:fixed": "node record-traces.ts --fixed",
     "replay": "node node_modules/@cognitive-fab/polygraph/scripts/verify.mjs --contract contract.json --traces traces --specs specs --out out",
-    "check": "node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec specs/cart.js --contract contract.json --invariants invariants.mjs",
-    "check:fixed": "node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec specs-fixed/cart.js --contract contract.json --invariants invariants.mjs",
+    "check": "node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec specs/cart-sam.js --contract contract.json --invariants invariants.mjs",
+    "check:fixed": "node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec specs-fixed/cart-sam.js --contract contract.json --invariants invariants.mjs",
     "test": "node test.ts"
   },
   "devDependencies": {

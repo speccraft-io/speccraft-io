@@ -24,15 +24,54 @@ import Full from '../../../components/Full.astro';
 checkout flows and reducers (a function `(state, action) => newState`, as in Redux). It is a CLI and a Claude Code
 plugin. It is experimental: its own README calls it a consistency check, not a proof.
 
-It works in three steps:
+## The idea
 
-1. An LLM reads your code and writes a **spec**: a JavaScript copy of your logic in a format Polygraph can run.
-2. **Replay:** Polygraph runs recorded calls of your real code through the spec, to check that the spec does the same
-   thing as the code.
+It is the same kind of check as [TLA+](/tools/tla-plus): try every action in every state, and check your rules in each
+state. The difference: you do not write the model. An LLM copies your code into a JavaScript state machine, called the
+**spec**. It works in three steps:
+
+1. **The LLM writes the spec** from your code.
+2. **Replay:** your real code runs a few scripted sessions, and every call is recorded. The spec must give the same
+   result for each call. This tells you if you can trust the spec.
 3. **Model check:** starting from the first state, Polygraph tries every action with every data value you list, in
    every state it can reach, and checks your rules in each state.
 
-It can also turn the spec into TLA+ and check it with TLC, the TLA+ model checker.
+Replay alone cannot find a bug: the spec copies the code, bug included, so the two agree. Only the model check finds
+it, and only against rules you write. That is why the rules come from you.
+
+Polygraph has its own model checker, written in JavaScript. It does not use TLA+. As an option, `--tla` turns the spec
+into TLA+ and checks it with TLC, the TLA+ model checker.
+
+### What SAM is
+
+The spec must be written in SAM (State-Action-Model), a pattern Polygraph's author, Jean-Jacques Dubray, published in
+2016. It is close to a Redux reducer, split in two: an **action** turns an event into a proposed change, and an
+**acceptor** accepts it and sets the next state, or rejects it with a name.
+
+```js
+// cart.ts, a reducer: one function computes and decides
+case 'APPLY_COUPON':
+  if (action.code !== 'SAVE5') return state;
+  if (state.items * PRICE < MIN_SPEND) return state;
+  return { ...state, coupon: 'SAVE5' };
+
+// specs/cart-sam.js, SAM: the action proposes, the acceptor decides
+actions: { APPLY_COUPON: { action: (data = {}) => ({ ...data }) /* ... */ } },
+acceptors: {
+  APPLY_COUPON: (model) => (proposal, { reject, next, unchanged }) => {
+    if (proposal.code !== 'SAVE5') return reject('unknown-code');
+    if (model.items * 1000 < 2000) return reject('below-minimum');
+    next.coupon = 'SAVE5';
+    unchanged('items');
+  },
+},
+```
+
+Polygraph adds strict rules: every state field is declared, every rejection has a name, and each action lists the data
+values to try (`domain`). That tells the model checker exactly what to try, and tells replay why the spec said no.
+
+SAM is not widely used; most JavaScript code uses Redux, Zustand or [XState](/vs/xstate). Your own code does not have
+to use it. Think of SAM as the file format of Polygraph's specs.
 
 <Short>Polygraph checks a spec against recorded calls, then checks every state it can reach. Here: a cart that keeps a coupon it should lose.</Short>
 
@@ -139,13 +178,12 @@ Each line has the cart before the call (`pre`), the action and its data, and the
 
 Here the coupon is applied to one item, and the cart does not change, because 10.00 is below the minimum.
 
-**3. The spec** (`specs/cart.js`) is the cart logic again, written by the LLM in Polygraph's format (it calls it
-SAM). In this example we wrote it by hand, because we ran without an API key. It copies
+**3. The spec** (`specs/cart-sam.js`) is the cart logic again, written by the LLM in SAM. In this example we wrote it by hand, because we ran without an API key. It copies
 the code as it is, bug included. For each action, `domain` lists the data to try, and the acceptor computes the next
 state or rejects the action with a name from the contract:
 
 ```js
-// specs/cart.js (shortened)
+// specs/cart-sam.js (shortened)
 actions: {
   REMOVE_ITEM: { action: (data = {}) => ({ ...data }), schema: {}, domain: [{}] },
   APPLY_COUPON: { /* ... */ domain: [{ code: 'SAVE5' }, { code: 'SAVE10' }] },
@@ -190,7 +228,7 @@ All 15 recorded calls match, so the spec does what the code does. But none of th
 Then run the model check. In every state it can reach, it tries every action with every value in `domain`:
 
 ```sh
-node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec specs/cart.js --contract contract.json \
+node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec specs/cart-sam.js --contract contract.json \
   --invariants invariants.mjs
 ```
 
@@ -241,7 +279,7 @@ code, because no recorded list of actions removed an item at the minimum. Only t
 └── polygraph/
     ├── contract.json              state and actions
     ├── invariants.mjs             your rules
-    ├── specs/cart.js              written by the LLM, committed
+    ├── specs/cart-sam.js              written by the LLM, committed
     └── record-traces.ts           runs sessions through tapReducer
 ```
 
@@ -255,7 +293,7 @@ key, so CI runs them on every push:
 - run: npx polygraph --contract polygraph/contract.json --traces traces --specs polygraph/specs --out out
 # Replay exits 0 even when calls do not match, so check its report.
 - run: node -e "const s = require('./out/findings.json').summary; if (s.consistent !== s.windows) process.exit(1)"
-- run: node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec polygraph/specs/cart.js --contract polygraph/contract.json --invariants polygraph/invariants.mjs
+- run: node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec polygraph/specs/cart-sam.js --contract polygraph/contract.json --invariants polygraph/invariants.mjs
 ```
 
 What fails when:
@@ -277,6 +315,26 @@ A new action or state field goes into `contract.json` first, then into the recor
 
 <Full>
 
+## Compared with other tools
+
+- **[TLA+](/tools/tla-plus) and [Quint](/tools/quint):** the same kind of check, but you write the model yourself, in
+  another language. Much older and much more used. All three find a wrong state that some order of actions can reach,
+  with the shortest list of steps to it. TLA+ and Quint also cover:
+  - **Concurrency:** several processes, messages, crashes and retries, in every order. Polygraph checks one machine
+    taking one action at a time. For deep bugs in concurrent or distributed systems, its README says to use Specula.
+  - **Liveness:** "every order is eventually paid or refunded". Polygraph checks rules on one state or one step only.
+  - **Designs before code:** Polygraph needs code to copy.
+
+  Polygraph has one thing they do not: replay checks that the model matches your real code.
+- **[XState](/vs/xstate), [tla-precheck](/vs/tla-precheck), [stateproof](/vs/stateproof):** your code is the machine,
+  so there is no copy to keep in step. But you must write the code their way first. Polygraph is for code that is
+  already written.
+- **[fast-check](/vs/fast-check):** runs your real code with random lists of actions. It tries many orders, not all,
+  but it tests the code itself, not a copy.
+- **[Specula](https://github.com/specula-org/Specula):** a research project with the same three steps, but in TLA+.
+  Its August 2026 paper reports 249 bugs in 48 real projects (MongoDB, etcd and others); maintainers confirmed 68 of
+  them. Polygraph's own README calls it the closest project, and ahead on evidence.
+
 ## Strengths
 
 - **Starts from your code.** An LLM writes the spec from code you already have.
@@ -295,16 +353,22 @@ A new action or state field goes into `contract.json` first, then into the recor
 - **Code must run on its own.** Code that needs a database or a network needs test doubles first. In Claude Code, the
   agent can build them.
 - **Experimental, and needs an LLM.** Its README says it is not a proof and not peer-reviewed. Writing the spec needs
-  an Anthropic API key.
+  an Anthropic API key and a strong model; the README recommends Opus 5 or better.
+- **Young.** The GitHub repo started in July 2026 and the npm package in September 2026. Almost all commits come from
+  one account. One production bug is confirmed outside the project, and the paper behind it is the author's own
+  preprint.
 
 ## Links
 
 - Built by Cognitive Fab LLC. The GitHub repo started in July 2026; the npm package was first published in September
   2026. The method comes from Jean-Jacques Dubray's July 2026 paper "Can
   Code Specify a System Precisely Enough to Formally Verify It?" (arXiv:2607.05076).
+- Jean-Jacques Dubray on LinkedIn: https://www.linkedin.com/in/jdubray/
 - Polygraph on GitHub: https://github.com/cognitive-fab/polygraph
 - Polygraph on npm: https://www.npmjs.com/package/@cognitive-fab/polygraph
 - The paper: https://arxiv.org/abs/2607.05076
+- The SAM pattern: https://sam.js.org
+- Specula on GitHub: https://github.com/specula-org/Specula
 - Cognitive Fab: https://cognitivefab.com
 
 </Full>
