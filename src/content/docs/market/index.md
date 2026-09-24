@@ -64,8 +64,7 @@ The field looks huge because it grew from three separate communities — math, h
 ## Which tools people actually get hired for
 
 Demand is counted by how many job postings below name each tool directly. It skews hard toward proof assistants,
-not model checkers — Lean and Coq/Rocq beat TLA+ by a wide margin, even though neither was on SpecCraft's own
-positioning chart at all.
+not model checkers — Lean and Coq/Rocq beat TLA+ by a wide margin, even though neither is a model checker.
 
 The Trend column is Google Trends search interest over the last 12 months (worldwide), included only where the
 term maps to a single, unambiguous Trends topic — most tool names here are too generic or collide with unrelated
@@ -92,7 +91,7 @@ CryptoVerif, MathSAT) don't get one.
 | [Coyote](https://github.com/microsoft/coyote) | 0 | Microsoft's systematic concurrency tester for C#, internal Azure tool. | — | [1,598](https://github.com/microsoft/coyote) |
 | [FizzBee](https://fizzbee.io) | 0 | Open-source, more approachable alternative to TLA+. | — | [350](https://github.com/fizzbee-io/fizzbee) |
 | [Stateright](https://github.com/stateright/stateright) | 0 | Embedded model checker as a Rust library. | — | [1,882](https://github.com/stateright/stateright) |
-| [stateproof](https://github.com/HexaField/stateproof) | 0 | TypeScript DSL compiling to TLA+; closest direct comparable to speccraft-ts found. | — | [2](https://github.com/HexaField/stateproof) |
+| [stateproof](https://github.com/HexaField/stateproof) | 0 | TypeScript DSL compiling to TLA+; the closest TS-to-TLA+ tool found. | — | [2](https://github.com/HexaField/stateproof) |
 | [loom](https://github.com/tokio-rs/loom) | 0 | Rust concurrency-permutation tester, under the Tokio project. | — | [2,823](https://github.com/tokio-rs/loom) |
 | [XState graph](https://stately.ai/docs/xstate-graph) | 0 | Exhaustive state-graph traversal for XState machines, from Stately.ai. | — | [30,138](https://github.com/statelyai/xstate) |
 | [fast-check](https://fast-check.dev/) | 0 | TypeScript/JS property-based testing, 139M downloads/month. | — | [5,149](https://github.com/dubzzz/fast-check) |
@@ -131,8 +130,8 @@ CryptoVerif, MathSAT) don't get one.
 | Kyle Kingsbury ([Jepsen](https://jepsen.io)) | Paid safety analyses of distributed databases | 13+ years, built purely on reputation from published findings. |
 | [Hillel Wayne](https://www.hillelwayne.com/consulting/) | TLA+/Alloy consulting, workshops, retainers | Dominant named brand; clients incl. Netflix, NASA, Meta. |
 | [Nicolas Dubien](https://github.com/dubzzz) ([fast-check](https://fast-check.dev/)) | Property-testing library, TypeScript/JavaScript | 139M downloads/month — proof OSS distribution works in this ecosystem. |
-| [Josh Field](https://au.linkedin.com/in/josh-field) ([stateproof](https://github.com/HexaField/stateproof)) | TypeScript DSL compiling to TLA+, runs TLC | Closest direct comparable to speccraft-ts found. |
-| [Jonathan Nadal](https://github.com/jonnadal) ([Stateright](https://github.com/stateright/stateright)) | Embedded model checker as a Rust library | Same idea as speccraft-ts, different language. |
+| [Josh Field](https://au.linkedin.com/in/josh-field) ([stateproof](https://github.com/HexaField/stateproof)) | TypeScript DSL compiling to TLA+, runs TLC | The closest TS-to-TLA+ tool found. |
+| [Jonathan Nadal](https://github.com/jonnadal) ([Stateright](https://github.com/stateright/stateright)) | Embedded model checker as a Rust library | Model checker as a library, the Rust counterpart of the TS ones. |
 | [Jack Vanlightly](https://jack-vanlightly.com) | Public technical writing on distributed systems + formal verification | Builds credibility via writing rather than a direct consulting offer. |
 | [JP Kadarkarai](https://sessionize.com/jayaprabhakar-kadarkarai/) ([FizzBee](https://fizzbee.io)) | Open-source, more approachable alternative to TLA+ | Tool/OSS project, not an active paid practice. |
 
@@ -171,5 +170,5 @@ CryptoVerif, MathSAT) don't get one.
 ---
 
 *This page distills a market survey read at source, alongside [Durable workflow correctness](/durable-workflow-correctness-tooling-research)
-and [How SpecCraft compares](/how-speccraft-compares). Confidence is high on the sourced claims; job-posting
+and [TypeScript tools](/ts-tools). Confidence is high on the sourced claims; job-posting
 snapshots and community activity levels will date — check the linked sources directly for current status.*

@@ -3,15 +3,24 @@ type Tool = { label: string; link: string };
 
 export const toolKinds: { kind: string; tools: Tool[] }[] = [
 	{
-		kind: 'Search every reachable state',
+		kind: 'Model checker as a library, run in-process',
 		tools: [
+			{ label: 'SpecCraft TS', link: '/vs/speccraft-ts' },
 			{ label: 'pnueli', link: '/vs/pnueli' },
 			{ label: 'stifinder', link: '/vs/stifinder' },
 			{ label: 'Polygraph', link: '/vs/polygraph' },
+		],
+	},
+	{
+		kind: 'TypeScript spec translated to TLA+, checked by TLC',
+		tools: [
 			{ label: 'tla-precheck', link: '/vs/tla-precheck' },
-			{ label: 'effect-machine', link: '/vs/effect-machine' },
 			{ label: 'stateproof', link: '/vs/stateproof' },
 		],
+	},
+	{
+		kind: 'Explore statecharts',
+		tools: [{ label: 'effect-machine', link: '/vs/effect-machine' }],
 	},
 	{
 		kind: 'Sample inputs and orders',
@@ -35,5 +44,6 @@ export const toolKinds: { kind: string; tools: Tool[] }[] = [
 export function similarTools(path: string): { kind: string; tools: Tool[] } | undefined {
 	const clean = `/${path.replace(/^\/|\/$/g, '')}`;
 	const group = toolKinds.find((g) => g.tools.some((t) => t.link === clean));
-	return group && { kind: group.kind, tools: group.tools.filter((t) => t.link !== clean) };
+	const tools = group?.tools.filter((t) => t.link !== clean);
+	return group && tools?.length ? { kind: group.kind, tools } : undefined;
 }

@@ -1,6 +1,6 @@
 ---
-title: pnueli vs SpecCraft
-description: pnueli is an explicit-state model checker in TypeScript with symmetry and partial-order reduction and liveness under weak fairness. This page walks through using it on a distributed lock, then compares it with SpecCraft.
+title: pnueli
+description: pnueli is an explicit-state model checker in TypeScript with symmetry and partial-order reduction and liveness under weak fairness. This page walks through using it on a distributed lock with a lease.
 tableOfContents: true
 adoption:
   github: BOTIROFF-D/pnueli
@@ -21,9 +21,6 @@ import Full from '../../../components/Full.astro';
 [pnueli](https://github.com/BOTIROFF-D/pnueli) is an explicit-state model checker written in TypeScript, published
 on npm as `@botiroff/pnueli` in August 2026. A spec is a plain TypeScript object, and the checker walks every
 reachable state.
-
-**How close to SpecCraft:** very close. Of everything we have found, it is the closest to SpecCraft's own engine and
-ahead of it on symmetry, partial-order reduction and liveness, but it checks the model only, not real code.
 
 <Short>pnueli walks every reachable state of a plain TypeScript spec, with symmetry, partial-order reduction and liveness. Here: a lock with a lease.</Short>
 
@@ -294,31 +291,25 @@ keeps running out can be fenced out forever.
 - Honest scope: no disk-backed storage, no full LTL, no strong fairness, and no link between the spec and the
   implementation.
 
-## Compared with SpecCraft
+## Strengths and limits
 
-| | pnueli | SpecCraft |
-|---|---|---|
-| An action's result | A list of next states (several outcomes allowed) | One next state; parameters are expanded into separate actions |
-| Reductions | Symmetry and partial-order, validated against the full search | None yet |
-| Liveness | "Eventually P" under weak fairness | Not yet |
-| Output | Verdict per invariant, trace, liveness cycle | State count, endings, stuck states, shortest trace per invariant, beliefs that must keep failing |
-| Real code | Not covered: "the specification is not the implementation" | `checkConformance` walks the spec against a real implementation |
-| Async in real code | Not covered | Inline specs: the explorer delivers async replies in every order |
+| | pnueli |
+|---|---|
+| An action's result | A list of next states (several outcomes allowed) |
+| Reductions | Symmetry and partial-order, validated against the full search |
+| Liveness | "Eventually P" under weak fairness |
+| Output | Verdict per invariant, trace, liveness cycle |
+| Real code | Not covered: "the specification is not the implementation" |
+| Async in real code | Not covered |
 
-SpecCraft, on the same `lock.ts`, finds the same five-step trace without fencing after walking all 566 reachable
-states, and proves the fenced store in 37, 283 and 2,521 states, exactly pnueli's unreduced counts. Its
-`checkConformance` then runs a small real lock client against the fenced spec: it matches in all 283 states with a
-fenced storage, and with a plain storage it reports the one step, "n0 writes", where the real code accepts a write the
-spec rejects.
-
-- **pnueli found a bug SpecCraft cannot.** SpecCraft has no liveness check, so its clean run on the fenced spec says
-  nothing about n0 being shut out forever.
-- **pnueli needs far fewer states.** Symmetry cut the proof from 2,521 states to 119 at four nodes; SpecCraft visits
-  the full count every time.
-- **Only SpecCraft checks real code.** pnueli proves the model and stops there; its author points to separate
+- **Liveness finds what a safety check cannot.** The fenced spec passes every invariant, and only the liveness check
+  shows that n0 can be shut out forever.
+- **Symmetry saves a lot of states.** It cut the proof from 2,521 states to 119 at four nodes.
+- **It checks the model, not the code.** pnueli proves the model and stops there; its author points to separate
   sampling tools (unflake, bulwark) for the code.
-- **SpecCraft takes from it** steps that return a list of next states, declared reads and writes as the input to
-  partial-order reduction, and validating every reduction against the unreduced search.
+- **All in-process TypeScript.** No Java and no translation step, unlike [stateproof](/vs/stateproof) and
+  [tla-precheck](/vs/tla-precheck), which hand the model to TLC. For full temporal logic or strong fairness,
+  [TLA+](/tools/tla-plus) with TLC covers more.
 
 ## Who builds it
 

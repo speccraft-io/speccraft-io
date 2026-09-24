@@ -1,6 +1,6 @@
 ---
-title: fast-check vs SpecCraft
-description: fast-check is the standard property-based testing library for TypeScript, with model-based testing and a scheduler for async races. This page shows how to use its scheduler to find a webhook double charge, then compares it with SpecCraft.
+title: fast-check
+description: fast-check is the standard property-based testing library for TypeScript, with model-based testing and a scheduler for async races. This page shows how to use its scheduler to find a webhook double charge, and where its strengths and limits lie.
 tableOfContents: true
 adoption:
   github: dubzzz/fast-check
@@ -21,11 +21,9 @@ import Full from '../../../components/Full.astro';
 
 
 [fast-check](https://github.com/dubzzz/fast-check) is the property-based testing library for JavaScript and
-TypeScript: about 5,000 stars and about 140 million npm downloads a month in September 2026. It is the first tool a
-TypeScript developer will compare SpecCraft to.
-
-**How close to SpecCraft:** medium. Its model-based testing has the same shape (commands with preconditions, run
-against a model and the real system), but it samples orders at random instead of trying every one.
+TypeScript: about 5,000 stars and about 140 million npm downloads a month in September 2026. Its model-based testing
+runs commands with preconditions against a model and the real system, and it samples orders at random instead of
+trying every one.
 
 <Short>fast-check samples orders of async calls with its scheduler. Here it finds a webhook double charge on the first run.</Short>
 
@@ -171,33 +169,30 @@ In the test, `claimOrder` is wrapped with `s.scheduleFunction` like the others, 
   minimal counterexample.
 - Works with any test runner; integrations for Jest and Vitest.
 
-## Compared with SpecCraft
+## Strengths and limits
 
-| | fast-check | SpecCraft |
-|---|---|---|
-| What you write | Properties, or commands with a model and the real system | A spec: state, actions with guards and effects, invariants |
-| Search | Random sequences, shrunk on failure | Every reachable state, breadth-first |
-| A clean run means | Not found in the runs made | No reachable state breaks an invariant, within the spec's bounds |
-| Counterexample | A shrunk sequence, replayable by seed | The shortest trace |
-| Async orders | `fc.scheduler`: sampled orders of wrapped promises | Inline specs: every order of async replies |
-| Inputs | Rich generators for any data | Small, finite value sets chosen in the spec |
+| | fast-check |
+|---|---|
+| What you write | Properties, or commands with a model and the real system |
+| Search | Random sequences, shrunk on failure |
+| A clean run means | Not found in the runs made |
+| Counterexample | A shrunk sequence, replayable by seed |
+| Async orders | `fc.scheduler`: sampled orders of wrapped promises |
+| Inputs | Rich generators for any data |
 
-On this example SpecCraft checks a spec of the handler, not the handler itself. It visits all 20 reachable states and
-returns a 4-step trace to the double charge, and the fixed spec holds in all 12 reachable states. fast-check found the
-same bug on its first run, because every order of these calls breaks the rule.
+fast-check found the bug on its first run here, because every order of these calls breaks the rule.
 
 - fast-check runs the real code every time and is strong on data: generators for any input and shrinking to the
-  smallest one. SpecCraft keeps values small and finite on purpose.
-- SpecCraft walks every reachable state, so a bug that needs one rare order is not left to chance, and a clean run is
-  a statement about all of them.
-- They fit together: fast-check for functions over rich data (parsers, pricing), SpecCraft for the order of events
-  around them. A SpecCraft trace can be pinned with `fc.schedulerFor` as a regression test.
-- SpecCraft takes ideas from it: replay from a short token like `replayPath`, and temporal properties over command
-  runs, as [fast-check-ltl](https://www.npmjs.com/package/fast-check-ltl) adds on top of fast-check.
+  smallest one.
+- It samples. A bug that needs one rare order can be missed, and a clean run says nothing about the orders it did not
+  try. An exhaustive checker such as [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or [Quint](/tools/quint) walks
+  every reachable state of a model instead, with small, finite values.
+- A trace found by another tool can be pinned with `fc.schedulerFor` as a regression test.
+- Temporal properties over command runs are not built in;
+  [fast-check-ltl](https://www.npmjs.com/package/fast-check-ltl) adds them on top of fast-check.
 
 :::note[To do]
-A second example with a bug that only one rare order triggers, where sampling can miss it, and the SpecCraft side run
-on the real handler with an inline spec instead of a separate model.
+A second example with a bug that only one rare order triggers, where sampling can miss it.
 :::
 
 ## Who builds it

@@ -25,10 +25,10 @@ import Full from '../../../components/Full.astro';
 check every order in which those moves can happen. It is built on TLA+, the method AWS and Microsoft use for
 distributed systems, but with a syntax that reads more like TypeScript.
 
-Quint is close to SpecCraft in intent. Both describe a system as state, steps and
-"must never happen" rules, and both check every order in which the steps can run. The difference is in how: Quint
-has its own language and checks the model, while SpecCraft writes the model in TypeScript and checks the real code
-against it. See [SpecCraft vs non-TS tools](/tools/speccraft-vs-non-ts-tools).
+Quint describes a system as state, steps and "must never happen" rules, and checks every order in which the steps
+can run. It has its own language and checks the model, not the real code. For tools that do the same kind of
+checking with the model written in TypeScript, see [TypeScript tools](/ts-tools); for the wider field, see
+[Non-TypeScript tools](/tools/non-ts-tools).
 
 Lean and Dafny prove that one function is right for every input. Quint answers a different question: what happens when
 several things run at the same time, in every possible order? This page shows how to use it next to a normal
@@ -612,8 +612,8 @@ You do not get:
 
 ## Related
 
-- [SpecCraft vs non-TS tools](/tools/speccraft-vs-non-ts-tools): SpecCraft does the same kind of checking with the model written
-  in TypeScript, and checks the real code against the model over every state, not a sample of traces.
+- [Non-TypeScript tools](/tools/non-ts-tools): where Quint sits among TLA+, Alloy, P, Stateright and the rest.
+- [TypeScript tools](/ts-tools): the same kind of checking with the model written in TypeScript.
 - [Quint getting started](https://quint-lang.org/docs/getting-started)
 - [Summary of the Quint language](https://quint-lang.org/docs/lang)
 - [Model-based testing with Quint](https://quint-lang.org/docs/model-based-testing)

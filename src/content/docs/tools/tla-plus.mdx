@@ -41,9 +41,9 @@ language. The checking is done by separate tools, and there are two main ones:
 One `.tla` file works with both, which is why this is one page and not three. [Quint](/tools/quint) is a friendlier
 language that compiles to TLA+ and runs these same two checkers underneath. This page uses TLA+ directly.
 
-TLA+ is close to SpecCraft in intent: state, steps and "must never happen" rules, checked in every order. The
-difference is that TLA+ has its own language and checks the spec, while SpecCraft writes the model in TypeScript and
-checks the real code against it. See [SpecCraft vs non-TS tools](/tools/speccraft-vs-non-ts-tools).
+TLA+ describes a system as state, steps and "must never happen" rules, checked in every order. It has its own
+language and checks the spec, not the real code. For tools that do the same kind of checking with the model written
+in TypeScript, see [TypeScript tools](/ts-tools); for the wider field, see [Non-TypeScript tools](/tools/non-ts-tools).
 
 <Short>Write the spec, let TLC find the bad order and the stuck state, then replay every behavior of the spec against the real TS code.</Short>
 
@@ -720,8 +720,8 @@ You do not get:
 
 ## Related
 
-- [SpecCraft vs non-TS tools](/tools/speccraft-vs-non-ts-tools): SpecCraft does the same kind of checking with the model
-  written in TypeScript, and checks the real code against the model over every state.
+- [Non-TypeScript tools](/tools/non-ts-tools): where TLA+ sits among Quint, Alloy, P, Stateright and the rest.
+- [TypeScript tools](/ts-tools): the same kind of checking with the model written in TypeScript.
 - [Quint for TypeScript developers](/tools/quint): a TLA+-based language with the same checkers underneath.
 - [The TLA+ home page](https://lamport.azurewebsites.net/tla/tla.html) and the TLA+ Video Course by Leslie Lamport.
 - [Learn TLA+](https://learntla.com), a practical guide by Hillel Wayne.

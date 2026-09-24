@@ -1,6 +1,6 @@
 ---
-title: Polygraph vs SpecCraft
-description: Polygraph has an LLM derive a JavaScript spec from your code, checks the spec against real traces, then model-checks it exhaustively. This page walks through using it on a cart reducer with a coupon bug, then compares it with SpecCraft, which starts from a spec you write.
+title: Polygraph
+description: Polygraph has an LLM derive a JavaScript spec from your code, checks the spec against real traces, then model-checks it exhaustively. This page walks through using it on a cart reducer with a coupon bug, and sets out its strengths and limits.
 tableOfContents: true
 adoption:
   github: cognitive-fab/polygraph
@@ -24,9 +24,6 @@ import Full from '../../../components/Full.astro';
 LLC, first published in July 2026. It finds bugs in stateful JavaScript and TypeScript code (workflows, reducers,
 protocol handlers, checkout flows) by exhaustively exploring every state reachable over a declared, finite set of
 actions and payloads.
-
-**How close to SpecCraft:** close. It covers the most of SpecCraft's method end to end, but an LLM derives the spec
-from existing code instead of you writing it first.
 
 <Short>Polygraph replays real traces against a spec, then model-checks it. Here: a cart that keeps a coupon it no longer qualifies for.</Short>
 
@@ -259,29 +256,28 @@ no session removed an item from a cart at the minimum. Only the model checker fo
   against running instances), polynv (eliciting invariants and grading them by how many mutated machines they catch),
   and an optional escalation to TLA+ and TLC with `--tla`.
 
-## Compared with SpecCraft
+## Strengths and limits
 
-| | Polygraph | SpecCraft |
-|---|---|---|
-| Where the spec comes from | An LLM derives it from your code | You write it, as TypeScript |
-| What the spec is checked against | Recorded execution traces of the real code | The real implementation, walked state by state (`checkConformance`) or inline |
-| Model checking | Exhaustive over a declared finite domain, plain JS invariants | Exhaustive over a bounded model, plain TS invariants |
-| LLM | Needed to generate specs and author code; checking runs without it | Not needed |
-| Async orderings in real code | Covered only as far as the traces and the spec model them | Inline specs: the explorer delivers async replies in every order |
-| Scope and packaging | Audit, authoring, runtime, versioning, invariant grading; Claude Code plugin plus CLI, Apache-2.0 | Spec exploration, conformance, inline specs; npm library, MIT |
+| | Polygraph |
+|---|---|
+| Where the spec comes from | An LLM derives it from your code |
+| What the spec is checked against | Recorded execution traces of the real code |
+| Model checking | Exhaustive over a declared finite domain, plain JS invariants |
+| LLM | Needed to generate specs and author code; checking runs without it |
+| Async orderings in real code | Covered only as far as the traces and the spec model them |
+| Scope and packaging | Audit, authoring, runtime, versioning, invariant grading; Claude Code plugin plus CLI, Apache-2.0 |
 
-- **Opposite starting points.** Polygraph derives the spec from the code, so it works on code you already have, but
+- **It starts from the code.** Polygraph derives the spec from the code, so it works on code you already have, but
   the spec is a reading of the code as it is: code with a bug is a faithful description of the wrong behavior. That
-  is why its invariants must come from you. SpecCraft starts from a spec of what the code should do, and someone has
-  to write it.
-- **Polygraph is wider and has evidence.** Authoring, a durable runtime, version gating, invariant grading, a
+  is why its invariants must come from you. Tools such as [TLA+](/tools/tla-plus), [Quint](/tools/quint) and
+  [pnueli](/vs/pnueli) start from a spec of what the code should do, and someone has to write it.
+- **It is wide and has evidence.** Authoring, a durable runtime, version gating, invariant grading, a
   corroborated double-charge bug on a production billing machine, and a seeded-bug evaluation where replay found 0
   of 5 bugs and model checking found 5 of 5.
-- **SpecCraft needs no LLM and walks the real code.** Conformance explores the implementation against the spec over
-  the whole state graph, not over recorded traces, and inline specs find a stale reply arriving late. It is one
-  library, used from ordinary tests.
-- **What SpecCraft takes from it:** grade invariants by how many broken models they catch, run a known-good and a
-  known-bad control before a run counts, and replay real traces as a cheap first check for existing code.
+- **The check is only as good as the traces.** The spec is checked against recorded traces, not the whole state graph
+  of the real code, and generating specs needs an LLM.
+- **Worth copying:** grade invariants by how many broken models they catch, run a known-good and a known-bad control
+  before a run counts, and replay real traces as a cheap first check for existing code.
 
 ## Who builds it
 

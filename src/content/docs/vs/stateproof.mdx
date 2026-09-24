@@ -1,6 +1,6 @@
 ---
-title: stateproof vs SpecCraft
-description: stateproof compiles a TypeScript-looking state machine to TLA+ and checks it with TLC. This page walks through using it on a subscription that renews a canceled plan, then compares it with SpecCraft, which runs the spec as real TypeScript.
+title: stateproof
+description: stateproof compiles a TypeScript-looking state machine to TLA+ and checks it with TLC. This page walks through using it on a subscription that renews a canceled plan.
 tableOfContents: true
 adoption:
   github: HexaField/stateproof
@@ -19,12 +19,11 @@ import after from '../../../fixes/stateproof/after.ts.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
-[stateproof](https://github.com/HexaField/stateproof) is the closest earlier attempt at what SpecCraft does: write a
-model in TypeScript and check every reachable state. It is a small project (one contributor, MIT licensed, last
+[stateproof](https://github.com/HexaField/stateproof) lets you write a model in TypeScript and check every
+reachable state. It is a small project (one contributor, MIT licensed, last
 commit in March 2026).
 
-**How close to SpecCraft:** close in aim, far in practice. It compiles a subset of TypeScript to TLA+, is not on npm,
-and its own README example fails.
+It compiles a subset of TypeScript to TLA+, is not on npm, and its own README example fails.
 
 <Short>stateproof compiles a TypeScript state machine to TLA+ and checks it with TLC. Here: a subscription renewed after a cancel.</Short>
 
@@ -224,28 +223,26 @@ What we saw, and what the source says:
 - Around it: a small in-process BFS for generating test traces, conformance adapters for a real implementation,
   liveness through TLC, Mermaid diagrams, spec diff, and a visual Studio.
 
-## Compared with SpecCraft
+## Strengths and limits
 
-| | stateproof | SpecCraft |
-|---|---|---|
-| How guards and effects run | Source captured with `fn.toString()` and re-parsed into TLA+ | Executed as ordinary TypeScript |
-| TypeScript you can use | A small subset: comparisons, `&&` / `\|\|`, arithmetic, a few array methods | All of it: helper functions, destructuring, closures, libraries |
-| Where checking happens | TLC in Java, results parsed from its text output | In-process, as a library call |
-| Shape of the model | Required state enum with from/to transitions and a flat context | Any JSON-shaped state; a state machine is one option, not a requirement |
-| What you get back | Pass/fail plus violations parsed from TLC | State count, endings, stuck states, the shortest trace per invariant, beliefs that must keep failing |
-| Spec vs implementation | The same artifact at runtime | Kept apart; conformance checks the code against the spec |
+| | stateproof |
+|---|---|
+| How guards and effects run | Source captured with `fn.toString()` and re-parsed into TLA+ |
+| TypeScript you can use | A small subset: comparisons, `&&` / `\|\|`, arithmetic, a few array methods |
+| Where checking happens | TLC in Java, results parsed from its text output |
+| Shape of the model | Required state enum with from/to transitions and a flat context |
+| What you get back | Pass/fail plus violations parsed from TLC |
+| Spec vs implementation | The same artifact at runtime |
 
 - **stateproof has a translator you have to trust.** Its hand-written parser of about 800 lines accepts a small
   subset, and the translation can be silently wrong: `.filter()` and `.some()` compile to `Filter(...)` and
   `Exists(...)`, which are not TLA+ operators, and `null` compiles to the string `"null"`. Because the runtime
-  interprets the same parsed model, what TLC checks and what runs can drift apart. SpecCraft has no translator.
-- **stateproof is ahead on liveness and tooling.** "Eventually this happens" works through TLC, and it has Mermaid
-  diagrams, spec diff and the Studio. SpecCraft checks safety only today and has none of these yet.
-- **SpecCraft is plain TypeScript in-process.** No Java, no temp files, no parsing another tool's output, free-form
-  state, and parameterized actions as ordinary arrays, where stateproof's escape hatch is raw TLA+ strings.
-- **SpecCraft keeps spec and code apart.** The spec is the oracle and the code is checked against it: a standalone
-  spec with `checkConformance`, or inline specs as decorators or an `annotate()` call, where the explorer also
-  delivers async replies in every order.
+  interprets the same parsed model, what TLC checks and what runs can drift apart.
+  [tla-precheck](/vs/tla-precheck) takes the same route through TLC but proves the two state graphs identical.
+- **It is strong on liveness and tooling.** "Eventually this happens" works through TLC, and it has Mermaid diagrams,
+  spec diff and the Studio.
+- **It needs Java and a temp folder.** Checking runs TLC out of process and parses its text output. Parameterized
+  actions need raw TLA+ strings. [pnueli](/vs/pnueli) checks a plain TypeScript spec in-process instead.
 
 ## Who builds it
 

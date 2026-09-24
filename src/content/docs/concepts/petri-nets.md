@@ -70,11 +70,11 @@ correctness check is soundness:
 - every step can fire in some run.
 
 That is the durable-execution correctness question under another name. The stuck payment hold on the
-[TLA+ page](/tools/tla-plus), a hold that is never captured or released, is a soundness failure. SpecCraft asks the
-same questions of workflow code, written in TypeScript instead of drawn as a net.
+[TLA+ page](/tools/tla-plus), a hold that is never captured or released, is a soundness failure. Model checkers ask the
+same questions of workflow code written as steps, instead of drawn as a net.
 
 ## Related
 
 - [State machines and FSMs](/concepts/state-machines)
 - [TLA+ for TypeScript developers](/tools/tla-plus) and [Quint for TypeScript developers](/tools/quint)
-- [SpecCraft vs non-TS tools](/tools/speccraft-vs-non-ts-tools)
+- [Non-TypeScript tools](/tools/non-ts-tools)

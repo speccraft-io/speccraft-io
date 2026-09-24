@@ -1,6 +1,6 @@
 ---
-title: effect-machine vs SpecCraft
-description: effect-machine is a schema-first statechart library for Effect with bounded breadth-first exploration, invariants and coverage in its testing module. This page walks through exploring a checkout machine with it, then compares it with SpecCraft.
+title: effect-machine
+description: effect-machine is a schema-first statechart library for Effect with bounded breadth-first exploration, invariants and coverage in its testing module. This page walks through exploring a checkout machine with it, and where its strengths and limits lie.
 tableOfContents: true
 adoption:
   github: typeonce-dev/effect-machine
@@ -23,8 +23,7 @@ import Full from '../../../components/Full.astro';
 includes a bounded breadth-first explorer with invariants and shortest counterexamples. It is the most used tool in
 this group: about 53,000 downloads a month in September 2026.
 
-**How close to SpecCraft:** fairly close. The same breadth-first search with invariants and shortest traces, but only
-over Effect statecharts, and async work is not run during the search.
+The search works only over Effect statecharts, and async work is not run during the search.
 
 <Short>effect-machine explores Effect statecharts breadth-first, with invariants and coverage. Here: a checkout paid for the wrong cart.</Short>
 
@@ -291,32 +290,25 @@ reply still in flight, passes:
 - Besides exploration: scenario generation from schemas, a reference model to check traces against, and a runtime
   `probe` that acknowledges live commands, timers and invokes.
 
-## Compared with SpecCraft
+## Strengths and limits
 
-| | effect-machine | SpecCraft |
-|---|---|---|
-| Model | A statechart built from Effect schemas, Effect only | Plain TypeScript state and actions, any shape |
-| Event choice | You list representative events per state | Actions with guards; parameters expanded into actions |
-| State identity | A user-defined `stateKey` | The full spec state |
-| Result | Shortest counterexample, completeness, coverage | State count, endings, stuck states, shortest trace per invariant |
-| Async work | Not run during exploration | Inline specs deliver async replies in every order |
-| Real code | The machine is the real code, when the app is written with it | `checkConformance`, or inline specs on existing classes |
-
-SpecCraft, with the replies in flight kept in the spec's state as actions that can fire on any screen, visits all 26
-reachable states and returns the same five-step trace; two of its 6 endings are paid with the wrong amount. The fixed
-spec has 8 reachable states and 4 endings, and the invariant holds in every one.
+| | effect-machine |
+|---|---|
+| Model | A statechart built from Effect schemas, Effect only |
+| Event choice | You list representative events per state |
+| State identity | A user-defined `stateKey` |
+| Result | Shortest counterexample, completeness, coverage |
+| Async work | Not run during exploration |
+| Real code | The machine is the real code, when the app is written with it |
 
 - **effect-machine found the bug, but only once the test was written for it.** With the charge as an `invoke` it
-  cannot, and with only the current reply it gave a complete result, full coverage, and no bug.
-- **In this example SpecCraft also needed the replies written by hand.** Its `inFlight` list does the same job, but
-  in the spec's state instead of the test's event list and state key. SpecCraft's inline specs deliver async replies
-  in every order without that list (see the
-  [annotated cart example](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/annotated-cart)).
-- **effect-machine explores the machine that runs.** There is no second artifact. SpecCraft's spec is separate, and
-  in exchange it can check existing code that was never written as a machine.
-- **effect-machine's coverage report is ahead.** It named the exact transition that was never taken; SpecCraft reports
-  no coverage. SpecCraft takes from it transition coverage, hard limits reported as completeness, and a user-defined
-  state key.
+  cannot, and with only the current reply it gave a complete result, full coverage, and no bug. The replies in flight
+  had to be listed by hand in the test's events and state key.
+- **effect-machine explores the machine that runs.** There is no second artifact. In exchange, it only checks code
+  written as an effect-machine statechart. Model checkers such as [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or
+  [Quint](/tools/quint) check a separate model instead.
+- **The coverage report is a strength.** It named the exact transition that was never taken, and hard limits are
+  reported as completeness, so a bounded run is never mistaken for an exhaustive one.
 
 ## Who builds it
 

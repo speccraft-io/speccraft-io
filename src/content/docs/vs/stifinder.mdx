@@ -1,6 +1,6 @@
 ---
-title: stifinder vs SpecCraft
-description: stifinder is a state-space explorer for JavaScript that finds the failure needing the fewest departures from the expected schedule. This page walks through using it on a transactional outbox, then compares it with SpecCraft.
+title: stifinder
+description: stifinder is a state-space explorer for JavaScript that finds the failure needing the fewest departures from the expected schedule. This page walks through using it on a transactional outbox, and sets out its strengths and limits.
 tableOfContents: true
 adoption:
   github: andershessellund/stifinder
@@ -23,9 +23,6 @@ import Full from '../../../components/Full.astro';
 [stifinder](https://github.com/andershessellund/stifinder) is a state-space explorer for JavaScript and TypeScript,
 published on npm in September 2026. It answers a question most checkers do not ask: not only "is there a failing
 trace", but "what is the failing trace that needs the fewest things to go differently than expected".
-
-**How close to SpecCraft:** close. An explicit-state explorer like SpecCraft's engine, but it ranks failures by the
-fewest departures from the expected schedule and does not check real code.
 
 <Short>stifinder reports the failure that needs the fewest departures from the expected schedule. Here: an outbox relay with crashes and retries.</Short>
 
@@ -242,31 +239,24 @@ edge of the state space.
 - The cache survives a change of budget, so deepening the search never repeats work.
 - States and events are compared by structure through `valsem`.
 
-## Compared with SpecCraft
+## Strengths and limits
 
-| | stifinder | SpecCraft |
-|---|---|---|
-| Spec | `initialState`, `getEvents`, `applyEvent`, invariants | Plain TypeScript object, or inline next to a real class |
-| Search | Iterative deepening over a deviation budget, then depth | BFS, shortest traces |
-| Which trace is reported | Fewest deviations, then lowest cost, then fewest steps | Fewest steps |
-| Clean result | Says whether it was exhaustive or only budget-bounded | Exhaustive within the spec's own bounds |
-| Endings | `terminalInvariant` on states with no events | Endings and stuck states as separate lists |
-| Real code | Not covered by the library itself | `checkConformance` walks the spec against a real implementation |
+| | stifinder |
+|---|---|
+| Spec | `initialState`, `getEvents`, `applyEvent`, invariants |
+| Search | Iterative deepening over a deviation budget, then depth |
+| Which trace is reported | Fewest deviations, then lowest cost, then fewest steps |
+| Clean result | Says whether it was exhaustive or only budget-bounded |
+| Endings | `terminalInvariant` on states with no events |
+| Real code | Not covered by the library itself |
 
-SpecCraft checks the same three relays with fault counters in the state and the bounds in the guards. With two crashes
-and two retries it returns the same four-step traces (27 states for the lost event, 71 for the duplicate), and the
-fixed relay holds in all 39 reachable states within those bounds.
-
-- **The traces agree here, for different reasons.** stifinder reports the trace with the fewest faults, SpecCraft the
-  trace with the fewest steps. In this model they are the same trace.
-- **stifinder says what the failure costs, and its proof covers every number of faults.** In SpecCraft the counters
-  are state, so the result covers exactly the bounds in the spec, and the minimum is found by lowering them and
-  running again.
-- **stifinder checks the ending directly.** Its `terminalInvariant` violation comes with a trace; SpecCraft's `stuck`
-  list finds the same end states without one, so its spec needed a second, state-level rule.
-- **SpecCraft adds a spec layer and real code.** Named actions with guards next to effects, and `checkConformance` or
-  inline specs to check an implementation; stifinder is a search core by design. SpecCraft takes from it
-  deviation-ordered search, named cost budgets, and a result that states its own completeness.
+- **It says what the failure costs, and its proof covers every number of faults.** In a plain breadth-first checker
+  such as [pnueli](/vs/pnueli), fault counters are state, so the result covers exactly the bounds in the spec, and the
+  minimum is found by lowering them and running again.
+- **It checks the ending directly.** A `terminalInvariant` violation comes with a trace.
+- **It is a search core by design.** There are no named actions with guards next to effects, and nothing to check a
+  real implementation against the model.
+- **Worth copying:** deviation-ordered search, named cost budgets, and a result that states its own completeness.
 
 ## Who builds it
 

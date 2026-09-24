@@ -1,6 +1,6 @@
 ---
-title: LemmaScript vs SpecCraft
-description: LemmaScript proves TypeScript functions correct for every input with Dafny or Lean. This page walks through using it on a bill split with a rounding bug, then compares it with SpecCraft, which explores every ordering of events in a bounded model.
+title: LemmaScript
+description: LemmaScript proves TypeScript functions correct for every input with Dafny or Lean. This page walks through using it on a bill split with a rounding bug, and sets out what it proves and what it leaves out.
 tableOfContents: true
 adoption:
   github: midspiral/LemmaScript
@@ -22,9 +22,6 @@ import Full from '../../../components/Full.astro';
 [LemmaScript](https://github.com/midspiral/LemmaScript) is a verification toolchain for TypeScript by
 [Midspiral](https://www.linkedin.com/company/midspiral/), currently a tech preview. It is the most serious
 "formal methods for TypeScript" project we know of.
-
-**How close to SpecCraft:** far, and complementary. It proves pure functions correct for every input; SpecCraft
-explores orders of events.
 
 <Short>LemmaScript turns `//@` contract comments into Dafny proofs. Here: a bill split with a rounding bug.</Short>
 
@@ -211,28 +208,29 @@ ones.
 - Over twenty case studies, from greenfield apps to in-place verification of real projects (hono's security
   middleware, node-casbin, opencode's permission system and patch parser, balanced-match).
 
-## Compared with SpecCraft
+## Strengths and limits
 
-| | LemmaScript | SpecCraft |
-|---|---|---|
-| Question it answers | Is this function correct for every input? | Can some order of events break a rule? |
-| Technique | Deductive proof (Dafny / Lean) | Exhaustive state exploration (explicit-state model checking) |
-| Sweet spot | A pure domain core: reducers, splitters, permission checks, parsers | Coordination: handlers, async jobs, timers, replies arriving in any order |
-| What you get back | A proof, or a failed proof obligation | A verdict, or the shortest trace that breaks the rule |
-| Bounds | None: all inputs | Small bounded model (small scope) |
-| Toolchain | TypeScript plus Dafny or Lean, and an LLM for the proofs | TypeScript only, runs in-process |
+| | LemmaScript |
+|---|---|
+| Question it answers | Is this function correct for every input? |
+| Technique | Deductive proof (Dafny / Lean) |
+| Sweet spot | A pure domain core: reducers, splitters, permission checks, parsers |
+| What you get back | A proof, or a failed proof obligation |
+| Bounds | None: all inputs |
+| Toolchain | TypeScript plus Dafny or Lean, and an LLM for the proofs |
 
 - **LemmaScript covers all inputs, and data.** Money that never leaks, sums, rankings, graph reachability: properties
   over real-sized values are what a proof handles and a bounded search cannot. It is also further along, with many
   case studies, a VS Code extension and a CI workflow.
-- **SpecCraft covers the order of events.** Dafny proves sequential code; it has no notion of three async jobs in
-  flight or a reply landing between a check and its write. That is the boundary LemmaScript's case studies draw, and
-  it is where SpecCraft works.
-- **SpecCraft has nothing in between.** The spec runs as TypeScript, so there is no translation to trust, no Dafny
-  or Lean to install, no proof to write, and a failure comes back as a concrete trace.
-- **They fit together.** Prove the pure core with LemmaScript and check the coordination around it with SpecCraft.
-  SpecCraft takes from it contracts as comments, one file list for local runs and CI, and generated files that may
-  only gain additions.
+- **It does not cover the order of events.** Dafny proves sequential code; it has no notion of three async jobs in
+  flight or a reply landing between a check and its write. That is the boundary LemmaScript's case studies draw.
+  For that, a model checker such as [TLA+](/tools/tla-plus), [Quint](/tools/quint) or [pnueli](/vs/pnueli) explores
+  every ordering in a bounded model.
+- **There is a translation in between.** The TypeScript is translated to [Dafny](/tools/dafny) or [Lean](/tools/lean),
+  so you install that toolchain and trust the translation, and a failure comes back as a proof obligation, not a
+  concrete trace.
+- **Worth copying:** contracts as comments, one file list for local runs and CI, and generated files that may only
+  gain additions.
 
 ## Who builds it
 

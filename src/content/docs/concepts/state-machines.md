@@ -57,14 +57,14 @@ regions instead of 9 combined states.
 
 The second complaint remains. Each machine or actor is checked on its own. The race between two actors, or between a
 machine and the `async` code it calls, is outside every diagram, and no library here tries every interleaving of it.
-See [SpecCraft vs TypeScript tools](/how-speccraft-compares) for the tools that do.
+See [TypeScript tools](/ts-tools) for the tools that do.
 
 ## How a model checker's state machine differs
 
-TLA+, Quint and SpecCraft use Lamport's kind. You write the variables and the steps, and the checker works out the
+TLA+, Quint and the TypeScript model checkers use Lamport's kind. You write the variables and the steps, and the checker works out the
 states:
 
-| | Hand-drawn FSM | TLA+, Quint, SpecCraft |
+| | Hand-drawn FSM | TLA+, Quint, TS model checkers |
 |---|---|---|
 | You write | Every state and every arrow | The variables and the steps |
 | States | You name all of them, maybe 5 to 20 | The checker finds them, thousands or millions |
@@ -81,5 +81,5 @@ model it checks is technically an FSM. The difference is that nobody writes its 
 
 - [Petri nets](/concepts/petri-nets): another way to describe concurrency, which also turns into a state machine when
   it is checked.
-- [Known methods](/approaches-to-correctness): the families of approaches SpecCraft draws on.
+- [Known methods](/approaches-to-correctness): the families of approaches to correctness.
 - Leslie Lamport, [Computation and State Machines](https://lamport.azurewebsites.net/pubs/state-machine.pdf).

@@ -1,6 +1,6 @@
 ---
-title: Hegel vs SpecCraft
-description: How to use Hegel, Hypothesis-style property-based testing for TypeScript, on a real stock reservation bug - install, generators, shrinking and real output - and how it compares with SpecCraft.
+title: Hegel
+description: How to use Hegel, Hypothesis-style property-based testing for TypeScript, on a real stock reservation bug - install, generators, shrinking and real output - and where its strengths and limits lie.
 tableOfContents: true
 adoption:
   github: hegeldev/hegel-typescript
@@ -24,7 +24,7 @@ most widely used property-based testing library, with libraries for Rust, Go, C+
 TypeScript library, `@hegeldev/hegel`, appeared in January 2026 and had about 37,000 npm downloads a month by
 September 2026. It is in beta.
 
-**How close to SpecCraft:** far. Like fast-check, it samples inputs and orders; it does not explore every state.
+Like fast-check, it samples inputs and orders; it does not explore every state.
 
 <Short>Hegel draws inputs and shrinks failures. Here it finds a quantity bug and an oversell in a stock reservation.</Short>
 
@@ -187,30 +187,24 @@ With the fix, both tests pass 100 test cases.
   Node, Bun and Deno, and through WebAssembly in the browser.
 - The Rust library has a stateful testing module; we found none in the TypeScript library yet.
 
-## Compared with SpecCraft
+## Strengths and limits
 
-| | Hegel | SpecCraft |
-|---|---|---|
-| What you write | Tests that draw generated values | A spec: state, actions with guards and effects, invariants |
-| Search | Random generation, guided by Hypothesis | Every reachable state, breadth-first |
-| A clean run means | Not found in the runs made | No reachable state breaks an invariant, within the spec's bounds |
-| Counterexample | A shrunk input, replayed from its database | The shortest trace |
-| Async orders | Not controlled | Every order of async replies, in inline specs |
-| Languages | Six, one engine | TypeScript; shared JSON formats for future engines |
+| | Hegel |
+|---|---|
+| What you write | Tests that draw generated values |
+| Search | Random generation, guided by Hypothesis |
+| A clean run means | Not found in the runs made |
+| Counterexample | A shrunk input, replayed from its database |
+| Async orders | Not controlled |
+| Languages | Six, one engine |
 
-On the same example, a SpecCraft spec on the `Inventory` class with 3 mugs visits all 25 reachable states and returns
-the shortest trace to negative stock: two reservations of 2 pass the check before either save comes back. With the
-fix it has 13 reachable states, the invariant holds in every one, and the real class matches the spec in all 13.
-
-- **Hegel found the data bug, and SpecCraft did not.** The spec only tries quantities 1 and 2, so a quantity of 0
-  never comes up. Hegel's generators and shrinking are the best known in the field.
-- **A clean run means different things.** Hegel's says 100 drawn cases passed in one order of events. SpecCraft's
-  says every order of two reservations and their saves was checked, but only for 3 mugs and at most 2 saves in
-  flight, where Hegel drew stock levels up to 100.
-- **SpecCraft checks the real code against the spec** over the whole state graph, and reports named steps instead
-  of inputs.
-- **They work together:** Hegel for functions over rich data, SpecCraft for the order of events around them, the
-  same split as with [fast-check](/vs/fast-check).
+- **Strong on data.** It found the quantity-0 bug from generated inputs. Hegel's generators and shrinking are the
+  best known in the field.
+- **A clean run is a sample.** It says 100 drawn cases passed in one order of events. Other orders of the
+  reservations and their saves were not tried.
+- **No control over async orders** in the TypeScript library yet. [fast-check](/vs/fast-check)'s scheduler samples
+  orders of wrapped promises, and exhaustive checkers such as [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or
+  [Quint](/tools/quint) cover every order in a model, with small, finite values.
 
 ## Who builds it
 

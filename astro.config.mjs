@@ -14,10 +14,12 @@ export default defineConfig({
 		'/state-of-formal-methods-market': '/market/',
 		'/vs/fake-timers': '/vs/other-ts-tools',
 		'/vs/effect': '/vs/other-ts-tools',
+		'/how-speccraft-compares': '/ts-tools',
+		'/tools/speccraft-vs-non-ts-tools': '/tools/non-ts-tools',
 	},
 	markdown: {
 		// External links (anything with a protocol, e.g. https://) open in a new tab;
-		// internal Starlight links stay relative (e.g. /how-speccraft-compares) so they're
+		// internal Starlight links stay relative (e.g. /ts-tools) so they're
 		// untouched. The visual "external link" icon is CSS, keyed off target="_blank"
 		// (see src/styles/custom.css).
 		remarkPlugins: [remarkGfm],
@@ -36,8 +38,8 @@ export default defineConfig({
 			pagefind: false,
 			title: 'SpecCraft',
 			description:
-				'SpecCraft: write specs in TypeScript, check every order of events exhaustively, then check your real code against the spec.',
-			tagline: 'Specs in TypeScript, checked in every order of events.',
+				'Formal methods for TypeScript: the concepts, the tools that exist, and how to use them from a TypeScript project.',
+			tagline: 'Formal methods for TypeScript.',
 			logo: { src: './src/assets/speccraft-logo.png', alt: 'SpecCraft' },
 			customCss: ['./src/styles/custom.css'],
 			components: {
@@ -90,7 +92,7 @@ export default defineConfig({
 				{
 					label: 'Formal TypeScript tools',
 					items: [
-						{ label: 'Overview', link: '/how-speccraft-compares' },
+						{ label: 'Overview', link: '/ts-tools' },
 						{ label: 'fast-check', link: '/vs/fast-check' },
 						{ label: 'Bombadil', link: '/vs/bombadil' },
 						{ label: 'effect-machine', link: '/vs/effect-machine' },
@@ -101,13 +103,14 @@ export default defineConfig({
 						{ label: 'stifinder', link: '/vs/stifinder' },
 						{ label: 'pnueli', link: '/vs/pnueli' },
 						{ label: 'stateproof', link: '/vs/stateproof' },
+						{ label: 'SpecCraft TS', link: '/vs/speccraft-ts' },
 						{ label: 'Some more TS Tools', link: '/vs/other-ts-tools' },
 					],
 				},
 				{
 					label: 'Formal non-TypeScript tools',
 					items: [
-						{ label: 'Overview', link: '/tools/speccraft-vs-non-ts-tools' },
+						{ label: 'Overview', link: '/tools/non-ts-tools' },
 						{ label: 'Lean', link: '/tools/lean' },
 						{ label: 'Dafny', link: '/tools/dafny' },
 						{ label: 'Quint', link: '/tools/quint' },
@@ -134,7 +137,6 @@ export default defineConfig({
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },
-				{ icon: 'npm', label: 'npm', href: 'https://www.npmjs.com/package/@speccraft-io/core' },
 				{ icon: 'linkedin', label: 'LinkedIn', href: 'https://www.linkedin.com/company/speccraft-io/' },
 				{ icon: 'blueSky', label: 'Bluesky', href: 'https://bsky.app/profile/speccraft.bsky.social' },
 			],

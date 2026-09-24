@@ -1,6 +1,6 @@
 ---
-title: Bombadil vs SpecCraft
-description: Bombadil, from Antithesis, is property-based testing for web and terminal UIs, with TypeScript specs of temporal properties and action generators. This page walks through using it on a checkout page that places an order twice, then compares it with SpecCraft.
+title: Bombadil
+description: Bombadil, from Antithesis, is property-based testing for web and terminal UIs, with TypeScript specs of temporal properties and action generators. This page walks through using it on a checkout page that places an order twice, and where its strengths and limits lie.
 tableOfContents: true
 adoption:
   github: antithesishq/bombadil
@@ -23,10 +23,7 @@ import Full from '../../../components/Full.astro';
 [Bombadil](https://github.com/antithesishq/bombadil) is property-based testing for web and terminal user
 interfaces, built by [Antithesis](https://antithesis.com) and open source since December 2025. Its specs are
 TypeScript modules, which makes it the best-known tool where TypeScript developers write temporal properties today.
-It is the tool most likely to be compared with SpecCraft first.
-
-**How close to SpecCraft:** far. It samples runs of a real UI against temporal properties; it does not explore every
-state of a spec.
+It samples runs of a real UI against temporal properties; it does not explore every state of a model.
 
 <Short>Bombadil clicks through a running web app and checks temporal properties. Here: a checkout that places an order twice.</Short>
 
@@ -215,25 +212,24 @@ From our runs:
 - Properties are a flavor of linear temporal logic, written as TypeScript function calls.
 - The engine is written in Rust. It runs locally, in CI, and inside the Antithesis platform.
 
-## Compared with SpecCraft
+## Strengths and limits
 
-| | Bombadil | SpecCraft |
-|---|---|---|
-| Spec | TypeScript module: temporal properties and action generators | Plain TypeScript object, or inline next to a real class |
-| What is explored | The real running web or terminal UI | The spec, and real code checked against it |
-| Search | Random, guided by action generators | Exhaustive BFS |
-| Properties | `always`, `eventually`, `next` | Invariants; liveness not yet |
-| A clean run means | Not found in this run | No reachable state breaks an invariant, within the spec's bounds |
-| Counterexample | A recorded run you can inspect and replay | The shortest trace |
+| | Bombadil |
+|---|---|
+| Spec | TypeScript module: temporal properties and action generators |
+| What is explored | The real running web or terminal UI |
+| Search | Random, guided by action generators |
+| Properties | `always`, `eventually`, `next` |
+| A clean run means | Not found in this run |
+| Counterexample | A recorded run you can inspect and replay |
 
 - **Bombadil tests the UI that ships.** It needs no model of the app to start, its defaults find bugs before you
   write a property, and `eventually` and `next` are there today.
-- **SpecCraft is exhaustive, with shortest traces.** A Bombadil run samples; a SpecCraft run covers every reachable
-  state of the spec and returns the shortest failing trace.
-- **SpecCraft checks the logic underneath.** Which reply may arrive when, what a retry does, which endings are
-  possible. Its explorer delivers async replies in every order, where Bombadil sees whatever timing the run produced.
-- **What SpecCraft takes from it:** temporal operators with small names for its liveness work, default properties
-  that apply to any spec (no stuck states, no unreachable actions), and a spec file the CLI runs directly.
+- **It samples.** A run covers the actions and timings it happened to try, so a clean run is not a statement about
+  every order. Exhaustive checkers such as [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or
+  [Quint](/tools/quint) cover every reachable state of a model instead, and return the shortest failing trace.
+- **It sees the UI, not the logic underneath.** Which reply may arrive when, or what a retry does, shows up only
+  through whatever timing the run produced.
 
 ## Who builds it
 

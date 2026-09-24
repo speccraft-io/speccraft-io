@@ -1,6 +1,6 @@
 ---
-title: tla-precheck vs SpecCraft
-description: tla-precheck compiles a restricted TypeScript DSL to both TLA+ and a TypeScript interpreter, proves the two state graphs identical, and generates the runtime code. This page walks through using it on a ticket shop with a per-customer limit bug, then compares it with SpecCraft, which runs a spec in full TypeScript and checks separate code against it.
+title: tla-precheck
+description: tla-precheck compiles a restricted TypeScript DSL to both TLA+ and a TypeScript interpreter, proves the two state graphs identical, and generates the runtime code. This page walks through using it on a ticket shop with a per-customer limit bug, and sets out its strengths and limits.
 tableOfContents: true
 adoption:
   github: kingbootoshi/tla-precheck
@@ -25,9 +25,6 @@ import Full from '../../../components/Full.astro';
 `tla-precheck` in March 2026. You write a state machine once in a restricted TypeScript DSL; it is model-checked with
 TLA+ and TLC, and the runtime code is generated from the same source. It is the most-used tool in this group, and the
 best answer so far to the translation problem that sinks [stateproof](/vs/stateproof).
-
-**How close to SpecCraft:** close in aim, different in form. Every state is checked, but the spec is a restricted
-DSL compiled to TLA+, not plain TypeScript.
 
 <Short>tla-precheck checks a small TypeScript DSL with TLC and generates the runtime code. Here: a ticket shop's one-seat limit.</Short>
 
@@ -253,27 +250,27 @@ went into both files.
 - Built for agents: an installed skill, and a loop where the agent edits the machine until `proofPassed: true` and
   `equivalent: true`. Its biggest example checks 29 million states in under 3 minutes.
 
-## Compared with SpecCraft
+## Strengths and limits
 
-| | tla-precheck | SpecCraft |
-|---|---|---|
-| Spec language | A restricted DSL of builder functions (13 expression kinds) | Full TypeScript |
-| Checker | TLC in Java, plus an in-process interpreter compared against it | In-process BFS |
-| Spec vs implementation | The same artifact: the runtime is generated from the machine | Kept apart: the code is checked against the spec |
-| Database | Generates Postgres constraints and transactional adapters | Not covered |
-| Async orderings in code | Out of scope: the machine is the code | Inline specs: the explorer delivers async replies in every order |
-| Scale controls | Proof tiers and state budgets | Not yet |
+| | tla-precheck |
+|---|---|
+| Spec language | A restricted DSL of builder functions (13 expression kinds) |
+| Checker | TLC in Java, plus an in-process interpreter compared against it |
+| Spec vs implementation | The same artifact: the runtime is generated from the machine |
+| Database | Generates Postgres constraints and transactional adapters |
+| Async orderings in code | Out of scope: the machine is the code |
+| Scale controls | Proof tiers and state budgets |
 
-- **tla-precheck is ahead on the pipeline.** A checked translation to TLA+ gets TLC's speed without trusting the
+- **It is ahead on the pipeline.** A checked translation to TLA+ gets TLC's speed without trusting the
   compiler, invariants reach Postgres as constraints, and budgets fail before a long run starts. It also has the most
   traction on these pages: about 113 stars and roughly 7,000 downloads a month in September 2026.
-- **SpecCraft is plain TypeScript.** Guards and effects can call your own helpers and use any language feature, and
-  there is no Java to install.
-- **SpecCraft leaves your code alone.** tla-precheck replaces your transition code with generated adapters and models
-  one transition at a time inside a database transaction. SpecCraft checks existing code against the spec, including
-  replies and background work landing in any order.
-- **What SpecCraft takes from it:** state budgets and tiers that fail fast, two backends that check each other if it
-  ever exports to TLA+ or Quint, and the idea that a checked rule can also become a database constraint.
+- **The spec is a restricted DSL.** Guards and effects are limited to the DSL's expression kinds, so they cannot call
+  your own helpers, and TLC needs Java. [pnueli](/vs/pnueli) checks a spec written in plain TypeScript in-process.
+- **It replaces your code.** tla-precheck replaces your transition code with generated adapters and models one
+  transition at a time inside a database transaction. It does not check existing code, or replies and background work
+  landing in any order; [fast-check](/vs/fast-check)'s scheduler tests async orderings in real code.
+- **Worth copying:** state budgets and tiers that fail fast, two backends that check each other, and the idea that a
+  checked rule can also become a database constraint.
 
 ## Who builds it
 
