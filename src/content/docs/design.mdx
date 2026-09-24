@@ -5,9 +5,29 @@ description: The design decisions behind speccraft.io - what the two brand color
 
 import Swatch from '../../components/Swatch.astro';
 
-The decisions behind how speccraft.io looks, and the reasons for them. New decisions go into the log at the bottom.
+## Colors
 
-<img class="design-banner" src="/assets/speccraft-linkedin-banner.webp" loading="lazy" alt="Thinking and correctness tools. A faint graph of explored states, with one highlighted path ending in a violation." />
+<img class="design-board" src="/assets/design/board-palette.webp" loading="lazy" alt="The SpecCraft palette in light and dark mode: pink means the problem, green means fine or fixed, everything else neutral. Swatches, a diff, buttons, status tags and the state graph." />
+
+## Wordmark
+
+<img class="design-board" src="/assets/design/board-wordmark.webp" loading="lazy" alt="The SC logo next to the name SpecCraft in the plain text color, on a light and a dark background." />
+
+## Fonts
+
+<img class="design-board" src="/assets/design/board-fonts.webp" loading="lazy" alt="Two heading font options, IBM Plex Sans (chosen) and Geist, with IBM Plex Sans body text and JetBrains Mono code." />
+
+## Code with a diff
+
+<img class="design-board" src="/assets/design/board-code-theme.webp" loading="lazy" alt="The quiet code theme with Before, Diff and After tabs: removed lines pink with strikethrough, added lines green, changed words highlighted, in light and dark mode." />
+
+## Plain code
+
+<img class="design-board" src="/assets/design/board-code-snippet.webp" loading="lazy" alt="A plain code block with a file name and a copy button, no diff and no gutter, in light and dark mode." />
+
+## Steps and example cards
+
+<img class="design-board" src="/assets/design/board-steps-block.webp" loading="lazy" alt="A card with three numbered steps, a green verdict tag and a pink trace tag, and four worked-example tiles with pink dots, in light and dark mode." />
 
 ## The story behind the colors
 
@@ -77,22 +97,8 @@ the color, so the name has no color tricks.
 - **Step numbers:** circles in the text color, dark in light mode and light in dark mode.
 - **Primary button:** a text-color background with background-color text.
 - **Links:** pink text.
-- **Code:** the quiet code theme (see the decision log). The "Before the fix" / "Diff" / "With the fix" tabs are pill buttons, at least 44px
+- **Code:** the quiet code theme: code in the text color, keywords bold, comments italic and muted, punctuation muted, strings plain, no ligatures; in diffs, removed lines are pink with a strikethrough and added lines green. The "Before the fix" / "Diff" / "With the fix" tabs are pill buttons, at least 44px
   tall.
 - **Status tags:** pill-shaped, with a tint background, colored text and an icon. Pink "✕ Counterexample found", green
   "✓ Invariant holds".
 - **Example cards** for a bug (late reply, timer race and so on) get a small brand-pink dot.
-
-## Decision log
-
-| Date | Decision | Why |
-|---|---|---|
-| 2026-09-24 | Pink means the problem, green means fine or fixed, everywhere. | The logo and the banner are both diffs; the colors should keep one meaning. |
-| 2026-09-24 | Structure stays neutral; no gradients or decorative color. | A calm site for long reading, where color always carries meaning. |
-| 2026-09-24 | Body in IBM Plex Sans, code in JetBrains Mono. | Readable body and code faces for long reading. |
-| 2026-09-24 | Headings and the name in IBM Plex Sans as well, replacing Space Grotesk. | One text face is the calmest choice; plain and technical fits a neutral guide. |
-| 2026-09-24 | The wordmark is plain text color, no split colors. | The logo already carries pink and green; a colored name would give them a meaning they don't have there. |
-| 2026-09-24 | The palette replaces Starlight's blue accent everywhere. Links are pink text; the current sidebar page and selected tabs use the text color. | One palette, and a neutral structure. |
-| 2026-09-24 | All images in `public/` redrawn in the dark palette with IBM Plex Sans and JetBrains Mono; the logo and favicons recolored to the brand pink, green and `#16131D`. | Terminal output, diagrams and banners follow the same palette as the pages. The HTML sources and `render.sh` in `public/assets` regenerate them. |
-| 2026-09-24 | A quiet code theme everywhere: code in the text color, keywords bold, comments italic and muted, punctuation muted, strings plain, no ligatures. In diffs, removed lines are pink with a strikethrough and added lines green. | Pink and green stay the only colors in code, so a diff reads at a glance. Applies to code blocks, every diff style and the VS Code view. |
-| 2026-09-24 | Diffs use the pink and green tints for lines and the stronger tints for changed words. | Old code is pink and new code is green, like the logo. |

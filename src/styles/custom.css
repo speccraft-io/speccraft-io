@@ -202,11 +202,12 @@ h1,
 }
 
 /* The banner at the top of the Design notes page. */
-.design-banner {
+.design-board {
 	display: block;
 	width: 100%;
 	height: auto;
-	border-radius: 0.5rem;
+	border: 1px solid var(--sc-border);
+	border-radius: 0.75rem;
 }
 
 /* Full / Code only views (src/components/PageTitle.astro). In "Code only", prose is hidden and only headings,
