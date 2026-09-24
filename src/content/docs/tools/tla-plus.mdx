@@ -218,18 +218,27 @@ writing "stays in the map" is most of the way to seeing the bug.
 
 <Short>The agent writes the TLA+. You do not read it: the agent maps it back to the text, and the checks do the rest.</Short>
 
-Give the text file to a coding agent: "Write `spec/SingleFlight.tla` and `spec/SingleFlight.cfg` from
-`spec/single-flight.md`. One variable per variable, one action per action, guards as conditions, the invariant and the
-temporal property as operators, fairness as the text grants it. Above each part, put the line of the text it comes from as a comment. List anything
-you had to guess." You do not need to read TLA+. Answer the guesses by fixing the text, not the spec. TLC then checks
-the spec, and the replay in Step 6 checks that the real code does what the spec says.
+Give the text file to a coding agent:
+
+> Write `spec/SingleFlight.tla` and `spec/SingleFlight.cfg` from `spec/single-flight.md`. One variable per variable,
+> one action per action, guards as conditions, the invariant and the temporal property as operators, fairness as the
+> text grants it. Above each part, put the line of the text it comes from as a comment. List anything you had to
+> guess.
+
+You do not need to read TLA+. To check the result:
+
+- TLC parses it: `java -jar tla2tools.jar spec/SingleFlight.tla` starts checking instead of stopping at a parse error.
+- Every action and rule in the text has its part in the spec, with the text line above it.
+- The agent's guesses are answered in the text, not in the spec. Then regenerate.
+
+TLC then checks the spec (Step 3), and the replay checks that the real code does what the spec says (Step 6).
+
+<details>
+<summary>The generated spec, and how to read it</summary>
 
 A TLA+ spec has variables (the state) and actions (the steps that change it). An action is a list of conditions joined
 by `/\` (and). A line without `'` is a condition: if it is false, the action cannot happen now. `x'` means "the value
 of `x` after this step". Every action must say what every variable becomes, which is what `UNCHANGED` is for.
-
-<details>
-<summary>The TLA+ spec: <code>spec/SingleFlight.tla</code> (52 lines)</summary>
 
 ```text
 ---- MODULE SingleFlight ----
@@ -286,7 +295,6 @@ NoFailedEntry == entry /= "failed"
 ====
 ```
 
-</details>
 
 And the config file TLC reads next to it:
 
@@ -308,6 +316,8 @@ How to read it:
 - `Spec` is the whole system: start in `Init`, then take `Next` steps. `WF` and `SF` are fairness: callers do call
   and retry, and `fn()` may reject, but not every time. `SF` (strong fairness) is what says "not every time".
 - `EveryoneGetsIt` is a liveness property: `<>` means "at some point". It says every caller gets a value in the end.
+
+</details>
 
 ## Step 3: let TLC find the bad order
 

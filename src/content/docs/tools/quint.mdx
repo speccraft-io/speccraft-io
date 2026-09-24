@@ -216,16 +216,26 @@ q, for any q" is most of the way to seeing the bug.
 
 <Short>The agent writes the Quint. You do not read it: the agent maps it back to the text, and the checks do the rest.</Short>
 
-Give the text file to a coding agent: "Write `quint/search.qnt` from `quint/search.md`. One `var` per variable, one
-action per action, guards as conditions, the invariant as a `val`. Above each part, put the line of the text it comes from as a comment. List anything you
-had to guess." You do not need to read Quint. Answer the guesses by fixing the text, not the model. Quint then checks
-the model, and the replay in Step 5 checks that the real code does what the model says.
+Give the text file to a coding agent:
+
+> Write `quint/search.qnt` from `quint/search.md`. One `var` per variable, one action per action, guards as
+> conditions, the invariant as a `val`. Above each part, put the line of the text it comes from as a comment. List
+> anything you had to guess.
+
+You do not need to read Quint. To check the result:
+
+- `quint typecheck quint/search.qnt` passes.
+- Every action and rule in the text has its part in the model, with the text line above it.
+- The agent's guesses are answered in the text, not in the model. Then regenerate.
+
+The checker then checks the model (Step 3), and the replay checks that the real code does what the model says
+(Step 5).
+
+<details>
+<summary>The generated model, and how to read it</summary>
 
 A Quint model has variables (the state) and actions (the steps that change it). Each action has a condition for when
 it can happen, and says what the variables become. `x'` means "the value of `x` after this step".
-
-<details>
-<summary>The Quint model: <code>quint/search.qnt</code> (42 lines)</summary>
 
 ```text
 // quint/search.qnt
@@ -272,7 +282,6 @@ module search {
 }
 ```
 
-</details>
 
 How to read it:
 
@@ -282,6 +291,8 @@ How to read it:
 - `step` is what can happen next: the user types, or any request in flight replies. `nondet q = oneOf(inFlight)` means
   "any of them". The checker tries each choice.
 - `listMatchesBox` is the rule, checked in every state.
+
+</details>
 
 ## Step 3: let Quint find the bad order
 
