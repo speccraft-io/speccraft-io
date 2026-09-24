@@ -138,6 +138,7 @@ export default defineConfig({
 						{ label: 'fast-check', link: '/vs/fast-check' },
 						{ label: 'Bombadil', link: '/vs/bombadil' },
 						{ label: 'effect-machine', link: '/vs/effect-machine' },
+						{ label: 'XState', link: '/vs/xstate' },
 						{ label: 'Hegel', link: '/vs/hegel' },
 						{ label: 'LemmaScript', link: '/vs/lemmascript' },
 						{ label: 'tla-precheck', link: '/vs/tla-precheck' },

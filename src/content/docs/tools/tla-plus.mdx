@@ -39,28 +39,11 @@ One `.tla` file works with both, which is why this is one page and not three. [Q
 language that compiles to TLA+ and runs these same two checkers underneath. This page uses TLA+ directly.
 
 TLA+ describes a system as state, steps and "must never happen" rules, checked in every order. It has its own
-language and checks the spec, not the real code.
+language and checks the spec, not the real code. The spec is a separate, much smaller file with only the state and
+steps that matter, so bugs are easier to see. The cost is a second file to keep in sync with the code; the replay test
+in Step 6 does that.
 
 <Short>Write the spec as plain text, let an agent turn it into TLA+, let TLC find the double connect, then replay every behavior of the spec against the real TS code.</Short>
-
-<Full>
-
-## Why a separate spec
-
-TLA+ asks for a second, much smaller description of the system in a `.tla` file. You do not annotate your TS code.
-That is extra work, and it helps in three ways:
-
-- Isolation. The spec has no framework, no network, no `async`. Only the state and the steps that matter for the rule.
-  Each `await` in the real code becomes a point where the spec can switch to another step.
-- Freedom. You choose what to leave out and how coarse the steps are. You can try a different design in minutes and
-  check it before anyone changes production code.
-- A thinking tool. To write the spec you have to name every state, every step, every "must never happen" and every
-  "must eventually happen". Many design bugs show up while writing it, before TLC runs.
-
-The cost is a second artifact that must keep matching the code. The rest of this page shows how to do that with a replay
-test in vitest.
-
-</Full>
 
 ## Why you would want this
 

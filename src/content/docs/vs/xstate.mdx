@@ -1,0 +1,200 @@
+---
+title: XState
+description: XState is a state machine library for JavaScript and TypeScript, and its xstate/graph module walks every reachable state of a machine. This page uses it on a signup where the terms can be unticked on the review page, compares XState machines with TLA+ and Quint state machines, and sets out its limits.
+tableOfContents: true
+adoption:
+  github: statelyai/xstate
+  npm: 'xstate'
+  created: 2015-09-14
+views: true
+useCases:
+  - 'One flow as a state machine: wizards, forms, UI and workflow states'
+requires:
+  - 'xstate 5 (xstate/graph is included)'
+---
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/xstate/before.ts.txt?raw';
+import after from '../../../fixes/xstate/after.ts.txt?raw';
+import Short from '../../../components/Short.astro';
+import Full from '../../../components/Full.astro';
+
+[XState](https://stately.ai/docs/xstate) is a library for state machines and statecharts in JavaScript and
+TypeScript. The app runs the machine itself. Its `xstate/graph` module walks the machine: for the events you list, it
+finds every state the machine can reach, and a shortest path to each one. You check your rule on those states in a
+normal test.
+
+It is formal-ish. The walk covers every reachable state, but only of one machine, and only for the events you list.
+
+<Short>xstate/graph walks every reachable state of an XState machine. Here: a signup without the terms.</Short>
+
+## Using XState
+
+The code below is in [formal-methods-samples/xstate-signup](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/xstate-signup).
+We ran it with XState 5.33.2 and Node 24. The output is from our run.
+
+### The problem
+
+<Short>The review page shows the checkbox again, and Submit does not check it.</Short>
+
+A signup has a terms step and a review step. You cannot leave the terms step without ticking the box. The review page
+shows the checkbox again, so users can change their mind:
+
+```ts
+// signup.ts
+import { assign, setup } from 'xstate';
+
+export const signup = setup({
+  types: {
+    context: {} as { accepted: boolean },
+    events: {} as { type: 'TOGGLE' } | { type: 'NEXT' } | { type: 'SUBMIT' },
+  },
+  actions: { toggle: assign({ accepted: ({ context }) => !context.accepted }) },
+}).createMachine({
+  initial: 'terms',
+  context: { accepted: false },
+  states: {
+    terms: {
+      on: {
+        TOGGLE: { actions: 'toggle' },
+        NEXT: { target: 'review', guard: ({ context }) => context.accepted },
+      },
+    },
+    // The review page shows the checkbox again, so users can change their mind.
+    review: {
+      on: {
+        TOGGLE: { actions: 'toggle' },
+        SUBMIT: 'submitted',
+      },
+    },
+    submitted: { type: 'final' },
+  },
+});
+```
+
+```ts
+// signup.test.ts
+test('you cannot get past the terms without accepting them', () => {
+  const actor = createActor(signup).start();
+  actor.send({ type: 'NEXT' }); // not accepted: blocked
+  expect(actor.getSnapshot().value).toBe('terms');
+});
+```
+
+The test passes. The guard on the terms step works. But a user can tick the box, go to review, untick it there, and
+submit.
+
+### Install
+
+```sh
+npm install xstate
+```
+
+`xstate/graph` ships with it.
+
+### Writing the check
+
+<Short>getShortestPaths returns a path to every reachable state; the test checks the rule on each one.</Short>
+
+```ts
+// signup.graph.test.ts (shortened)
+import { getShortestPaths } from 'xstate/graph';
+
+test('nobody is signed up without accepting the terms', () => {
+  // One shortest path to every state (value and context) these events can reach.
+  const paths = getShortestPaths(signup, { events: [{ type: 'TOGGLE' }, { type: 'NEXT' }, { type: 'SUBMIT' }] });
+  console.log(`${paths.length} reachable states`);
+
+  // Check the rule on every one of them, and print the path to any that breaks it.
+  const broken = paths
+    .filter((p) => p.state.value === 'submitted' && !p.state.context.accepted)
+    .map((p) => p.steps.map((s) => s.event.type).join(' → '));
+  expect(broken).toEqual([]);
+});
+```
+
+### Running it
+
+<Short>6 reachable states, and one 4-step path to a signup without the terms.</Short>
+
+```text
+$ npx vitest run signup.graph.test.ts
+6 reachable states
+
+ × nobody is signed up without accepting the terms
+
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "xstate.init → TOGGLE → NEXT → TOGGLE → SUBMIT",
++ ]
+```
+
+The path is a list of events. Send them to the real actor and you get the same bad state, so it doubles as a
+regression test.
+
+### Fixing the bug
+
+<Short>Submit checks the box too. 5 reachable states, and the rule holds in all of them.</Short>
+
+The fix: Submit checks the box too.
+
+<CodeFix before={before} after={after} title="signup.ts" />
+
+With the fix, the machine has 5 reachable states, none of them breaks the rule, and the test passes.
+
+<Full>
+
+## XState machines and TLA+ state machines
+
+<Short>Both are called state machines. XState lists named states of one machine; TLA+ and Quint describe variables and try every order of many actors.</Short>
+
+Both are called state machines, but they describe different things:
+
+| | XState machine | TLA+ or Quint state machine |
+|---|---|---|
+| What you write | Named states and the events that move between them, plus some context data | Variables, and actions that change them |
+| Who lists the states | You, one by one | The checker, from every combination of values |
+| Concurrency | One machine; other machines are separate actors | All actors in one state; every order of their steps is tried |
+| Async work | `invoke` and promises, outside the walk | Written as steps, so every order is tried |
+| Checking | `xstate/graph` walks the states; your test checks the rule | A model checker checks invariants and "eventually" rules |
+| Runs in production | Yes, it is the app code | No, it is a separate spec |
+
+XState fits when the flow of one component or one process is the problem. When the problem is several things running
+at once (two tabs, a retry and a timer, two workers), see [TLA+](/tools/tla-plus) and [Quint](/tools/quint). More on
+the difference in [State machines and FSMs](/concepts/state-machines).
+
+## Strengths and limits
+
+| | XState |
+|---|---|
+| Model | The XState machine the app runs |
+| Event choice | You list the events |
+| Search | Every reachable state, with a shortest path to each |
+| Rules | Checked by you, in a test, on the states it returns |
+| Async work | Not walked |
+| Counterexample | A list of events you can send to the real actor |
+
+- **It checks the machine that runs.** There is no separate model, and the path it finds replays on the real actor.
+- **It sees only the machine's own states and events.** The async code the machine calls (`invoke`, promises) is not
+  walked, and neither are two machines running side by side.
+- **It walks, you check.** `xstate/graph` returns states and paths; it has no invariants of its own. The rule is plain
+  code in your test.
+- **Only the events you list.** An event missing from `events` is never tried. Context with many values (counters,
+  text) makes the number of states grow fast, so keep it small in the check.
+- **No "eventually" rules.** It checks what is true in each state, not whether something always happens in the end.
+
+## Links
+
+Built by [Stately](https://stately.ai/), the company of David Khourshid; open source.
+
+- Stately: https://stately.ai/
+- XState: https://stately.ai/docs/xstate
+- xstate/graph: https://stately.ai/docs/xstate-graph
+- XState on GitHub: https://github.com/statelyai/xstate
+- XState on npm: https://www.npmjs.com/package/xstate
+
+</Full>

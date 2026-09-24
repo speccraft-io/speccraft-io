@@ -14,6 +14,7 @@ Small, self-contained case studies used on [speccraft.io](https://speccraft.io).
 - [stateproof-subscription](stateproof-subscription): A subscription where a renewal reactivates a plan the customer canceled. Checked with stateproof.
 - [bombadil-checkout](bombadil-checkout): A checkout page where a second click before the first reply places a second order. Checked with Bombadil.
 - [effect-machine-checkout](effect-machine-checkout): A checkout statechart where a late payment reply marks a changed cart paid. Checked with effect-machine.
+- [xstate-signup](xstate-signup): A signup where the terms can be unticked on the review page and still submitted. Checked with xstate/graph.
 
 Each one runs on its own:
 

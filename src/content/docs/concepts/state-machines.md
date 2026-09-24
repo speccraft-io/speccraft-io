@@ -45,7 +45,7 @@ These are the libraries TypeScript teams use to write states by hand:
 
 | Library | What it is |
 |---|---|
-| [XState](https://stately.ai/docs/xstate) | Statecharts and actors. [`xstate/graph`](https://stately.ai/docs/xstate-graph) walks a machine's graph to generate test paths |
+| [XState](/vs/xstate) | Statecharts and actors. [`xstate/graph`](https://stately.ai/docs/xstate-graph) walks a machine's graph to generate test paths |
 | [Robot](https://github.com/matthewp/robot) (`robot3`) | A small, functional FSM library |
 | [Zag.js](https://zagjs.com) | State machines behind UI components: menus, dialogs, date pickers |
 | [javascript-state-machine](https://github.com/jakesgordon/javascript-state-machine) | The classic FSM library: named states and transitions |

@@ -27,35 +27,15 @@ check every order in which those moves can happen. It is built on TLA+, the meth
 distributed systems, but with a syntax that reads more like TypeScript.
 
 Quint describes a system as state, steps and "must never happen" rules, and checks every order in which the steps
-can run. It has its own language and checks the model, not the real code.
+can run. It has its own language and checks the model, not the real code. The model is a separate, much smaller
+file with only the state and steps that matter, so bugs are easier to see. The cost is a second file to keep in sync
+with the code; the replay test in Step 5 does that.
 
 Dafny and Lean prove that one function is right for every input. Quint answers a different question: what happens when
 several things run at the same time, in every possible order? This page shows how to use it next to a normal
 TypeScript project, with one small example: a search box. No math background needed.
 
 <Short>Write the model as plain text, let an agent turn it into Quint, let Quint find the order that shows the wrong results, then replay its traces against the real TS code.</Short>
-
-<Full>
-
-## A separate model, on purpose
-
-The first thing Quint asks of you is a separate model. You do not annotate your TS code. You write a second, much
-smaller description of the system in a `.qnt` file. That sounds like extra work, and it is, but it is worth it for three
-reasons:
-
-- Isolation. The model has no framework, no database driver, no HTTP, no `async`. Only the state and the steps that
-  matter for the rule. The search box and the server become two actions, and the bug is easier to see there
-  than in the real code.
-- Freedom. You choose what to leave out and how large the steps are. You can try a different design (a request
-  counter, an abort, a debounce) in minutes, and check it, before anyone writes or changes production code.
-- A thinking tool. To write the model you have to name every state, every step and every "must never happen". Many
-  design bugs show up while writing it, before the checker even runs. The model is also a precise design doc that
-  cannot get out of date without CI noticing, once the replay in Step 5 is in place.
-
-The cost is a second artifact to keep in sync with the code. The rest of this page shows how to do that with a replay
-test in vitest.
-
-</Full>
 
 ## Why you would want this
 

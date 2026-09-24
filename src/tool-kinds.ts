@@ -20,7 +20,10 @@ export const toolKinds: { kind: string; tools: Tool[] }[] = [
 	},
 	{
 		kind: 'Explore statecharts',
-		tools: [{ label: 'effect-machine', link: '/vs/effect-machine' }],
+		tools: [
+			{ label: 'effect-machine', link: '/vs/effect-machine' },
+			{ label: 'XState', link: '/vs/xstate' },
+		],
 	},
 	{
 		kind: 'Sample inputs and orders',
