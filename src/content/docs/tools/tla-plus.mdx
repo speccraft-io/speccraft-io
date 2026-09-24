@@ -382,9 +382,16 @@ The entry must go when the call settles, whether it resolves or rejects. Change 
 
 <CodeFix before={textBefore} after={textAfter} lang="md" title="spec/single-flight.md" />
 
-The agent updates the spec to match. `Reject` now sets the entry back to `"none"`, like `Resolve`:
+The agent updates the spec to match.
+
+<details>
+<summary>The spec change: <code>spec/SingleFlight.tla</code> (1 line)</summary>
+
+`Reject` now sets the entry back to `"none"`, like `Resolve`:
 
 <CodeFix before={modelBefore} after={modelAfter} lang="text" title="spec/SingleFlight.tla" />
+
+</details>
 
 In the TS code, that is `.finally()`:
 
@@ -404,8 +411,10 @@ Every caller gets a value in the end, in every run.
 
 <Short>Add a type comment to each variable; Apalache checks the "never" rule with Z3.</Short>
 
-Apalache reads the same file. It needs one type comment per variable, and ignores them otherwise, so TLC still runs
-the annotated file:
+Apalache reads the same file. It needs one type comment per variable, which the agent adds. TLC ignores them.
+
+<details>
+<summary>The type comments</summary>
 
 ```text
 VARIABLES
@@ -414,6 +423,8 @@ VARIABLES
     \* @type: Str -> Str;
     pc
 ```
+
+</details>
 
 Apalache checks "must never happen" rules; it has no fairness, so it cannot check `EveryoneGetsIt`. The same bug as a
 "never" rule is the last line of the spec: `NoFailedEntry`, no failed call is left in the map. On the Step 2 spec:

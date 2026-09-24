@@ -322,9 +322,14 @@ A reply should only replace the list if it is for the latest request. Change the
 
 <CodeFix before={quintTextBefore} after={quintTextAfter} lang="md" title="quint/search.md" />
 
-The agent updates the model. It is one line:
+The agent updates the model to match.
+
+<details>
+<summary>The model change: <code>quint/search.qnt</code> (1 line)</summary>
 
 <CodeFix before={quintModelBefore} after={quintModelAfter} lang="text" title="quint/search.qnt" />
+
+</details>
 
 <a href="/assets/tools/quint/quint-verify-fixed.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-verify-fixed.webp" alt="quint verify with the TLC backend: 10 states generated, 8 distinct states found, 0 states left on queue. No violation found." /></a>
 
