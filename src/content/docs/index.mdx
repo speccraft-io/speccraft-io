@@ -21,18 +21,17 @@ import leanAfter from '../../fixes/lean-ts/after.txt?raw';
 import dafnyBefore from '../../fixes/dafny-ts/before.txt?raw';
 import dafnyAfter from '../../fixes/dafny-ts/after.txt?raw';
 
-## Can a retried webhook charge the card twice?
+<p class="home-lead">Below are some bugs TypeScript developers run into all the time. See if any of them look familiar, and learn how formal methods (and other modern tools) can help.</p>
 
-The first delivery is slow, so the sender retries. Two workers get the two deliveries. Both read `unpaid` before
-either one writes `paid`, and both charge the card.
+## Can a slow response overwrite newer search results?
 
-<CodeFix before={quintBefore} after={quintAfter} title="src/webhook.ts" />
+A search-as-you-type box sends a request on every keystroke and shows whatever comes back. Type "rea", then "react",
+and two requests are in flight. If the one for "rea" is slower, it arrives last and replaces the results: the box says
+"react", the list shows results for "rea".
 
-**Found with Quint.** `quint verify` checks every state of a model with two workers and two deliveries, and prints
-the order of steps that charges twice. The fix makes the read and the claim one step, as a conditional
-`UPDATE ... WHERE status = 'unpaid'` in the database.
+<CodeFix before={quintBefore} after={quintAfter} title="src/search.ts" />
 
-Full walkthrough: [Quint for TypeScript developers](/tools/quint)
+See how this is diagnosed with [Quint](/tools/quint).
 
 ## What if the approval and the 24h timeout fire at the same time?
 
@@ -41,11 +40,7 @@ sets it. The money is captured and released.
 
 <CodeFix before={tlaBefore} after={tlaAfter} title="src/payment-hold.ts" />
 
-**Found with TLA+.** TLC finds the race in 13 states. The obvious fix, setting the flag before the `await`, removes
-the race but leaves the hold stuck forever when the card is declined. TLC finds that too, with a liveness check. The
-final version releases the hold itself when the capture fails.
-
-Full walkthrough: [TLA+ for TypeScript developers](/tools/tla-plus)
+See how this is diagnosed with [TLA+](/tools/tla-plus).
 
 ## Can this discount make the price negative?
 
@@ -54,11 +49,7 @@ catch it.
 
 <CodeFix before={leanBefore} after={leanAfter} title="src/pricing.ts" />
 
-**Found with Lean.** The proof that the result is never negative fails, and Lean shows the kind of input that breaks
-it. After the clamp, three rules are proven for every whole-number input. The proof also shows a precondition nobody
-wrote down: a negative cap makes the price go up.
-
-Full walkthrough: [Lean for TypeScript developers](/tools/lean)
+See how this is diagnosed with [Lean](/tools/lean).
 
 ## Does this binary search find every id?
 
@@ -67,8 +58,4 @@ narrows down to one last element, the loop stops before looking at it.
 
 <CodeFix before={dafnyBefore} after={dafnyAfter} title="src/ids.ts" />
 
-**Found with Dafny.** The verifier cannot prove that `return -1` means "the id is not in the list", and points at
-that line. With `while lo <= hi` it proves the function for every sorted list and every target, and compiles the
-proven code to JavaScript you import from TS.
-
-Full walkthrough: [Dafny for TypeScript developers](/tools/dafny)
+See how this is diagnosed with [Dafny](/tools/dafny).

@@ -6,6 +6,7 @@ import rehypeImageAttrs from './src/plugins/rehype-image-attrs.mjs';
 import sitemap from '@astrojs/sitemap';
 import remarkGfm from 'remark-gfm';
 import { lastModified } from './src/plugins/last-modified.mjs';
+import { quietDark, quietLight } from './src/code-theme/quiet.mjs';
 
 // https://astro.build/config
 export default defineConfig({
@@ -36,11 +37,24 @@ export default defineConfig({
 		starlight({
 			// No site search: hides the header search bar and skips the Pagefind index.
 			pagefind: false,
-			// Code blocks: flat frames, and diff lines in the palette's pink and green (see /design).
+			// Code blocks: the quiet code theme, flat frames, and diff lines in the palette's pink and green (see /design).
 			expressiveCode: {
+				themes: [quietDark, quietLight],
 				styleOverrides: {
 					borderColor: 'var(--sc-border)',
-					frames: { frameBoxShadowCssValue: 'none' },
+					codeBackground: 'var(--sc-surface)',
+					frames: {
+						frameBoxShadowCssValue: 'none',
+						editorTabBarBackground: 'var(--sc-surface)',
+						editorActiveTabBackground: 'var(--sc-surface)',
+						editorActiveTabForeground: 'var(--sc-muted)',
+						editorActiveTabIndicatorTopColor: 'transparent',
+						editorActiveTabIndicatorBottomColor: 'transparent',
+						editorTabBarBorderBottomColor: 'var(--sc-border)',
+						terminalTitlebarBackground: 'var(--sc-surface)',
+						terminalBackground: 'var(--sc-surface)',
+						terminalTitlebarBorderBottomColor: 'var(--sc-border)',
+					},
 					textMarkers: {
 						insBackground: 'var(--sc-green-tint)',
 						insBorderColor: 'var(--sc-green)',

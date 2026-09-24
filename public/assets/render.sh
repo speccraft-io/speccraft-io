@@ -30,7 +30,7 @@ for f in dafny-step1:642 dafny-step2:402 dafny-loop:282 dafny-build:210 vitest-o
     --screenshot=tools/dafny/$n.png --window-size=$w,$h "file://$PWD/tools/dafny/$n.html"
 done
 
-for f in quint-run-bug:1434:1000 quint-verify-bug:210:1000 quint-verify-fixed:186:1000 vitest-replay-fails:282:1000 vitest-replay-ok:234:1000 quint-bug-timeline:620:1200 quint-workflow:490:1200; do
+for f in quint-run-bug:1342:1000 quint-verify-bug:210:1000 quint-verify-fixed:186:1000 vitest-replay-fails:282:1000 vitest-replay-ok:258:1000 quint-bug-timeline:560:1200 quint-workflow:490:1200; do
   n=$(echo "$f" | cut -d: -f1); h=$(echo "$f" | cut -d: -f2); w=$(echo "$f" | cut -d: -f3)
   "$CHROME" --headless --disable-gpu --hide-scrollbars --virtual-time-budget=5000 --force-device-scale-factor=2 \
     --screenshot=tools/quint/$n.png --window-size=$w,$h "file://$PWD/tools/quint/$n.html"

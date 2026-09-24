@@ -70,6 +70,26 @@ h1,
 	font-family: var(--sc-font-heading);
 }
 
+/* Code (quiet code theme, see /design): no ligatures, file names in the code face, and removed diff lines in pink
+   with a strikethrough, added ones in green. */
+.expressive-code pre,
+.code-fix pre,
+.code-fix-columns {
+	font-variant-ligatures: none;
+}
+.expressive-code .frame .header .title {
+	font-family: var(--__sl-font-mono);
+}
+.expressive-code .ec-line.del .code,
+.expressive-code .ec-line.del .code span {
+	color: var(--sc-pink-text) !important;
+	text-decoration: line-through;
+}
+.expressive-code .ec-line.ins .code,
+.expressive-code .ec-line.ins .code span {
+	color: var(--sc-green-text) !important;
+}
+
 /* The current sidebar page, like the primary button: text-color background, background-color text. */
 .sidebar-content a[aria-current='page'],
 .sidebar-content a[aria-current='page']:hover,
@@ -171,6 +191,14 @@ h1,
 	height: auto;
 	border-radius: 0.5rem;
 	margin-top: 1.5rem;
+}
+
+/* The one-line invitation above the home page examples. */
+.sl-markdown-content .home-lead {
+	margin-bottom: 2rem;
+	font-size: var(--sl-text-lg);
+	line-height: 1.6;
+	color: var(--sc-muted);
 }
 
 /* The banner at the top of the Design notes page. */

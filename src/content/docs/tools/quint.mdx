@@ -1,12 +1,12 @@
 ---
 title: Quint for TypeScript developers
-description: A practical first look at Quint from a TypeScript project. Model a webhook handler with retries and two workers, let Quint find the double charge, then replay its traces against the real TS code in vitest.
+description: A practical first look at Quint from a TypeScript project. Model a search box where a late reply overwrites newer results, let Quint find the order that breaks it, and check the fix in every state.
 views: true
 tableOfContents: true
 trend:
   jobs: 0
 useCases:
-  - 'Concurrent and distributed flows: races, retries'
+  - 'Async flows where order matters: late replies, races, retries'
 requires:
   - 'Quint (npm)'
   - 'Java 17+ for quint verify'
@@ -32,9 +32,9 @@ checking with the model written in TypeScript, see [TypeScript tools](/ts-tools)
 
 Lean and Dafny prove that one function is right for every input. Quint answers a different question: what happens when
 several things run at the same time, in every possible order? This page shows how to use it next to a normal
-TypeScript project, with one small example. No math background needed.
+TypeScript project, with one small example: a search box. No math background needed.
 
-<Short>Model the system in Quint, let it find the bad order of events, then replay its traces against the real TS code.</Short>
+<Short>Model the search box in Quint, let it find the order that shows the wrong results, then replay its traces against the real TS code.</Short>
 
 <Full>
 
@@ -45,10 +45,10 @@ smaller description of the system in a `.qnt` file. That sounds like extra work,
 ways:
 
 - Isolation. The model has no framework, no database driver, no HTTP, no `async`. Only the state and the steps that
-  matter for the rule. The handler and its dependencies become two actions, and the bug is easier to see there
+  matter for the rule. The search box and the server become two actions, and the bug is easier to see there
   than in the real code.
-- Freedom. You choose what to leave out and how coarse the steps are. You can try a different design (an atomic
-  claim, a lock, a queue per order) in minutes, and check it, before anyone writes or changes production code.
+- Freedom. You choose what to leave out and how coarse the steps are. You can try a different design (a request
+  counter, an abort, a debounce) in minutes, and check it, before anyone writes or changes production code.
 - A thinking tool. To write the model you have to name every state, every step and every "must never happen". Many
   design bugs show up while writing it, before the checker even runs. The model is also a precise design doc that
   cannot go stale without CI noticing, once the replay in Step 4 is in place.
@@ -60,57 +60,47 @@ test in vitest.
 
 ## Why you would want this
 
-<Short>Both tests pass, but two workers can both read `unpaid` and charge the card twice.</Short>
+<Short>The test passes, but a late reply for "rea" can replace the results for "react".</Short>
 
-A service receives an `order.confirmed` webhook and charges the customer's card. The sender retries when it does not
-get a reply in time. The handler checks the order first, so a retry should not charge twice:
+A search box asks the server for results on every input:
 
 ```ts
-// src/webhook.ts
-export type OrderStatus = 'unpaid' | 'charging' | 'paid';
+// src/search.ts
+export function createSearch(fetchResults: (query: string) => Promise<string[]>) {
+  const state = { query: '', results: [] as string[] };
 
-export interface Deps {
-  getStatus(orderId: string): Promise<OrderStatus>;
-  chargeCard(orderId: string): Promise<void>;
-  setStatus(orderId: string, status: OrderStatus): Promise<void>;
-}
-
-export async function handleOrderConfirmed(orderId: string, deps: Deps): Promise<void> {
-  const status = await deps.getStatus(orderId);
-  if (status === 'unpaid') {
-    await deps.chargeCard(orderId);
-    await deps.setStatus(orderId, 'paid');
+  async function onInput(query: string): Promise<void> {
+    state.query = query;
+    const results = await fetchResults(query);
+    state.results = results;
   }
+
+  return { state, onInput };
 }
 ```
 
 ```ts
-// src/webhook.test.ts
-test('charges an unpaid order once', async () => {
-  const { db, deps } = fakeDeps();
-  await handleOrderConfirmed('o1', deps);
-  expect(db).toEqual({ status: 'paid', charges: 1 });
-});
-
-test('a retried delivery does not charge again', async () => {
-  const { db, deps } = fakeDeps();
-  await handleOrderConfirmed('o1', deps);
-  await handleOrderConfirmed('o1', deps);
-  expect(db.charges).toBe(1);
+// src/search.test.ts
+test('shows results for what you typed', async () => {
+  const search = createSearch(async (query) => [`results for ${query}`]);
+  await search.onInput('rea');
+  await search.onInput('react');
+  expect(search.state.results).toEqual(['results for react']);
 });
 ```
 
-Both tests pass. The retry test runs the two deliveries one after the other. In production they run on two workers at
-the same time, and each `await` is a point where the other worker can run. The tests never try that order. Quint
-tries all of them.
+The test passes. It waits for each reply before typing again. A real user doesn't: they type "rea", then "react",
+and both requests are in flight at once. If the reply for "rea" is slower, it lands last. The box says "react" and the
+list shows results for "rea". The test never tries that order. Quint tries all of them.
 
 <Full>
 
 ## When Quint fits
 
-- Several actors change shared state: workers, retries, queues, webhooks, timeouts, locks, leader election, sagas.
-- The bug you fear is about order: "what if B happens between A's read and A's write?"
-- The rule can be said as "this must never happen": never charged twice, never two leaders, never a lost message.
+- Several things can happen in any order: replies, user input, workers, retries, queues, timeouts, locks.
+- The bug you fear is about order: "what if the reply for A comes back after the reply for B?"
+- The rule can be said as "this must never happen": never stale results on screen, never charged twice, never a
+  lost message.
 
 Quint is not the tool for proving one function's math right for every input. See the [Lean](/tools/lean) and
 [Dafny](/tools/dafny) pages for that.
@@ -135,7 +125,7 @@ REPL. `quint verify` needs Java 17 or newer, and downloads its checker the first
 
 What runs underneath each `quint` command:
 
-<a href="/assets/tools/quint/quint-architecture.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-architecture.webp" alt="Architecture diagram. webhook.qnt goes into the quint CLI, an npm package that runs in Node, where typecheck happens. quint run goes to the Rust evaluator in ~/.quint, with no Java, which produces random runs as ITF JSON traces. quint verify goes into the TLA+ stack, apalache.jar in ~/.quint, which needs Java 17 or newer: the Apalache server on localhost:8822 compiles Quint to TLA+, SANY parses the generated webhook.tla, then either the Apalache checker with Z3 (the default backend, checking up to --max-steps, 10 by default) or TLC (--backend tlc, every reachable state) does the check." /></a>
+<a href="/assets/tools/quint/quint-architecture.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-architecture.webp" alt="Architecture diagram. search.qnt goes into the quint CLI, an npm package that runs in Node, where typecheck happens. quint run goes to the Rust evaluator in ~/.quint, with no Java, which produces random runs as ITF JSON traces. quint verify goes into the TLA+ stack, apalache.jar in ~/.quint, which needs Java 17 or newer: the Apalache server on localhost:8822 compiles Quint to TLA+, SANY parses the generated search.tla, then either the Apalache checker with Z3 (the default backend, checking up to --max-steps, 10 by default) or TLC (--backend tlc, every reachable state) does the check." /></a>
 
 - `quint typecheck` runs in Node, inside the npm package.
 - `quint run` uses a small Rust program that Quint downloads to `~/.quint` the first time. No Java.
@@ -178,157 +168,118 @@ reuse of existing TLA+ modules, write it in TLA+ directly: see [TLA+ for TypeScr
 
 </Full>
 
-## Step 1: describe the system as state and steps (use AI)
+## Step 1: describe the search as state and steps (use AI)
 
-<Short>Variables are the state; each action has a condition and says what the variables become.</Short>
+<Short>Four variables, two steps, and one rule: once nothing is loading, the list matches the box.</Short>
 
-A Quint model has two parts: variables (the state) and actions (the steps that change it). Each action has a
-condition for when it can happen, and says what the variables become. `x'` means "the value of `x` after this step".
+A Quint model has variables (the state) and actions (the steps that change it). Each action has a condition for when
+it can happen, and says what the variables become. `x'` means "the value of `x` after this step".
 
 ```text
-// quint/webhook.qnt
-module webhook {
-  type Phase = Idle | Read
+// quint/search.qnt
+module search {
+  // The user types "rea", then "react".
+  pure val QUERIES = ["rea", "react"]
 
-  pure val WORKERS = Set("w1", "w2")
-  pure val MAX_DELIVERIES = 2
-
-  var status: str
-  var charges: int
-  var sent: int
-  var queued: int
-  var acked: bool
-  var phase: str -> Phase
-  var seen: str -> str
+  var typed: int          // how many queries the user has typed
+  var query: str          // what the search box shows
+  var inFlight: Set[str]  // requests sent, reply not back yet
+  var shownFor: str       // which query the list shows results for
 
   action init = all {
-    status' = "unpaid",
-    charges' = 0,
-    sent' = 1,
-    queued' = 1,
-    acked' = false,
-    phase' = WORKERS.mapBy(_ => Idle),
-    seen' = WORKERS.mapBy(_ => ""),
+    typed' = 0,
+    query' = "",
+    inFlight' = Set(),
+    shownFor' = "",
   }
 
-  action retry = all {
-    not(acked),
-    sent < MAX_DELIVERIES,
-    sent' = sent + 1,
-    queued' = queued + 1,
-    status' = status, charges' = charges, acked' = acked, phase' = phase, seen' = seen,
+  action typeNext = all {
+    typed < QUERIES.length(),
+    typed' = typed + 1,
+    query' = QUERIES[typed],
+    inFlight' = inFlight.union(Set(QUERIES[typed])),
+    shownFor' = shownFor,
   }
 
-  action readOrder(w: str): bool = all {
-    phase.get(w) == Idle,
-    queued > 0,
-    queued' = queued - 1,
-    phase' = phase.set(w, Read),
-    seen' = seen.set(w, status),
-    status' = status, charges' = charges, sent' = sent, acked' = acked,
-  }
-
-  action chargeIfUnpaid(w: str): bool = all {
-    phase.get(w) == Read,
-    if (seen.get(w) == "unpaid") all {
-      charges' = charges + 1,
-      status' = "paid",
-    } else all {
-      charges' = charges,
-      status' = status,
-    },
-    phase' = phase.set(w, Idle),
-    acked' = true,
-    seen' = seen, sent' = sent, queued' = queued,
+  action reply(q: str): bool = all {
+    inFlight.contains(q),
+    inFlight' = inFlight.exclude(Set(q)),
+    shownFor' = q,
+    typed' = typed,
+    query' = query,
   }
 
   action step = any {
-    retry,
-    nondet w = oneOf(WORKERS)
-    any { readOrder(w), chargeIfUnpaid(w) },
+    typeNext,
+    nondet q = oneOf(inFlight)
+    reply(q),
   }
 
-  val chargedAtMostOnce = charges <= 1
+  // Once nothing is loading, the list shows results for what is in the box.
+  val listMatchesBox = inFlight == Set() implies shownFor == query
 }
 ```
 
 How to read it:
 
-- The variables are the whole world, not just the database: `status` and `charges` (the order and the card), `sent`
-  and `queued` (deliveries from the sender), `acked` (did the sender get a reply), `phase` and `seen` (what each
-  worker is doing, and the status it read).
-- `str -> Phase` is a map, like `Record<string, Phase>`. `phase.get(w)` reads it, `phase.set(w, Read)` returns an
-  updated copy.
-- `all { ... }` means every line must hold. A line without `'` is a condition: if it is false, the action cannot
-  happen now. Lines with `'` set the new values. Every variable must get a new value, which is why unchanged ones are
-  listed as `x' = x`.
-- `retry`: the sender sends another delivery if it has had no reply yet.
-- The handler is split into two steps, exactly where the TS code has an `await` between reading and writing:
-  `readOrder` (the `getStatus` call) and `chargeIfUnpaid` (the charge and the `setStatus`).
-- `step` is what can happen next: a retry, or any worker taking its next step. `nondet w = oneOf(WORKERS)` means
-  "any worker". The checker tries each choice.
-- `chargedAtMostOnce` is the rule: an invariant that must be true in every state.
+- `typeNext` is the user typing the next query. It sends a request, so the query goes into `inFlight`.
+- `reply(q)` is the reply for `q` coming back, in any order. It updates the list, just like
+  `state.results = results` in the TS code.
+- `step` is what can happen next: the user types, or any request in flight replies. `nondet q = oneOf(inFlight)` means
+  "any of them". The checker tries each choice.
+- `listMatchesBox` is the rule, checked in every state.
 
 ## Step 2: let Quint find the bad order
 
-<Short>`quint run` finds the double charge in 9 ms.</Short>
+<Short>`quint run` finds the late reply in milliseconds; `quint verify` confirms it over all 8 states.</Short>
 
-`quint run` makes random runs through the model and stops at the first state that breaks the rule. `--mbt` adds the
-name of each step to the output, and `--hide` leaves out variables to keep it short:
+`quint run` makes random runs and stops at the first state that breaks the rule. `--mbt` adds the name of each step to
+the output:
 
-<a href="/assets/tools/quint/quint-run-bug.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-run-bug.webp" alt="quint run output: an example execution from State 0 to State 5. The steps are init, retry, readOrder by w2, readOrder by w1, chargeIfUnpaid by w2 with charges 1 and status paid, then chargeIfUnpaid by w1 with charges 2. Violation found in 9 ms. Error: invariant violated." /></a>
+<a href="/assets/tools/quint/quint-run-bug.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-run-bug.webp" alt="quint run output: from State 0 to State 4. The user types rea, then react, so both are in flight. The reply for react comes back and the list shows react. Then the reply for rea comes back and the list shows rea while the box still says react. Violation found. Error: invariant violated." /></a>
 
-It took 9 ms. Here is the same trace as a timeline:
+The same trace as a timeline:
 
-<a href="/assets/tools/quint/quint-bug-timeline.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-bug-timeline.webp" alt="Timeline with four lanes: webhook sender, worker 1, worker 2, database. 1: sender sends delivery 1. 2: no reply yet, sends delivery 2. 3: worker 2 reads status unpaid. 4: worker 1 reads status unpaid. 5: worker 2 charges the card and sets paid, charges 1. 6: worker 1 charges the card again, charges 2." /></a>
+<a href="/assets/tools/quint/quint-bug-timeline.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-bug-timeline.webp" alt="Timeline with three lanes: you, server, list. 1: you type rea. 2: you type react. The react request is fast and the rea request is slow. 3: the list shows results for react. 4: the late reply shows results for rea. The screen ends up with react in the box and results for rea below it." /></a>
 
-The first delivery is slow, so the sender retries. Both workers read `unpaid` before either one writes `paid`. The
-`if (status === 'unpaid')` check in the TS code does not help, because both workers pass it.
+`quint run` is random, so a clean run would not prove much. `quint verify` walks every reachable state:
 
-`quint run` is random, so a clean run does not prove much. `quint verify` walks every reachable state:
+<a href="/assets/tools/quint/quint-verify-bug.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-verify-bug.webp" alt="quint verify with the TLC backend: 9 states generated, 8 distinct states found, 0 states left on queue. Violation found. Error: found a counterexample." /></a>
 
-<a href="/assets/tools/quint/quint-verify-bug.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-verify-bug.webp" alt="quint verify with the TLC backend: 26 states generated, 22 distinct states found, 0 states left on queue. Violation found in 597 ms. Error: found a counterexample." /></a>
-
-With 2 workers and up to 2 deliveries, the model has only 22 distinct states. That is enough to hold this bug. Most
-concurrency bugs need only two or three actors to show up.
+Two queries give only 8 states. That is enough to hold this bug. Most ordering bugs need only two or three events to
+show up.
 
 ## Step 3: fix the model
 
-<Short>Make the read and the claim one step. The rule holds.</Short>
+<Short>Show a reply only if it answers what is in the box now. The rule holds in every state.</Short>
 
-The read and the write must be one step that nobody can get in between. In a database that is a conditional update:
-`UPDATE orders SET status = 'charging' WHERE id = $1 AND status = 'unpaid'`, and the worker charges only if one row
-changed. In the model, the read-then-decide pair becomes one `claimOrder` step:
+A reply should only replace the list if it is for the latest request. In the model, that is one line:
 
-<CodeFix before={quintModelBefore} after={quintModelAfter} lang="text" title="quint/webhook.qnt" />
+<CodeFix before={quintModelBefore} after={quintModelAfter} lang="text" title="quint/search.qnt" />
 
-`seen` is gone, since nothing reads first any more, and `step` now picks between `claimOrder(w)` and `charge(w)`.
-Check every state again:
+<a href="/assets/tools/quint/quint-verify-fixed.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-verify-fixed.webp" alt="quint verify with the TLC backend: 10 states generated, 8 distinct states found, 0 states left on queue. No violation found." /></a>
 
-<a href="/assets/tools/quint/quint-verify-fixed.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-verify-fixed.webp" alt="quint verify with the TLC backend: 18 states generated, 11 distinct states found, 0 states left on queue. No violation found in 626 ms." /></a>
+No state breaks the rule. The matching TS change keeps a request counter and drops replies that are not the latest:
 
-No state breaks the rule. Raise the numbers to 3 workers and 3 deliveries and it still holds (27 distinct states),
-while the old model fails there too. Small numbers first, then bigger ones, is the normal way to work.
+<CodeFix before={quintTsBefore} after={quintTsAfter} lang="ts" title="src/search.ts" />
 
-The matching TS change:
-
-<CodeFix before={quintTsBefore} after={quintTsAfter} lang="ts" title="src/webhook.ts" />
+Cancelling the old request with an `AbortController` works too; the model is the same.
 
 ## Step 4: replay Quint's traces against the real TS code (use AI)
 
-<Short>Quint writes its runs as JSON traces; vitest replays each one against the real handler.</Short>
+<Short>Quint writes its runs as JSON traces; vitest replays each one against the real search code.</Short>
 
 The model is fixed. Nothing yet says the TS code behaves like the model. The bridge: Quint writes its runs as JSON
-traces, and a vitest file plays each trace against the real handler, step by step, checking the state after every
-step.
+traces, and a vitest file plays each trace against the real `createSearch`, step by step, checking the state after
+every step.
 
-<a href="/assets/tools/quint/quint-workflow.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-workflow.webp" alt="Workflow diagram: webhook.qnt, the model, goes to quint verify, which checks every reachable state, and to quint run --mbt --out-itf, which writes sample traces as JSON into traces/*.itf.json with the steps and the expected state. A vitest replay reads the traces and calls webhook.ts, the real code." /></a>
+<a href="/assets/tools/quint/quint-workflow.webp" class="lightbox-trigger"><img src="/assets/tools/quint/quint-workflow.webp" alt="Workflow diagram: search.qnt, the model, goes to quint verify, which checks every reachable state, and to quint run --mbt --out-itf, which writes sample traces as JSON into traces/*.itf.json with the steps and the expected state. A vitest replay reads the traces and calls search.ts, the real code." /></a>
 
-Write the traces. `--out-itf` saves them in ITF, a JSON trace format. `--mbt` adds which action ran and which worker
+Write the traces. `--out-itf` saves them in ITF, a JSON trace format. `--mbt` adds which action ran and which reply
 it picked:
 
 ```sh
-quint run quint/webhook.qnt --invariant chargedAtMostOnce --mbt \
+quint run quint/search.qnt --invariant listMatchesBox --mbt \
   --seed 1 --max-samples 1000 --max-steps 10 \
   --n-traces 50 --out-itf 'quint/traces/run_{seq}.itf.json'
 ```
@@ -336,104 +287,92 @@ quint run quint/webhook.qnt --invariant chargedAtMostOnce --mbt \
 `--seed` makes the runs repeatable: the same seed gives the same 50 traces on every machine, so a trace that fails in
 CI fails the same way on your laptop. `--max-samples` must be at least `--n-traces`.
 
-The replay test gives each worker its own fake deps over one shared fake database. `chargeCard` does not finish until
-the trace says that worker's charge step happens, which is how the test controls the order of the `await`s:
+The replay test gives the search a fake `fetchResults`. Each request waits until the trace says its reply comes back,
+which is how the test controls the order of the replies:
 
 ```ts
-// src/webhook.quint.test.ts
+// src/search.quint.test.ts
 import { readdirSync, readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import { handleOrderConfirmed, type OrderStatus } from './webhook';
+import { createSearch } from './search';
 
 interface ItfState {
   'mbt::actionTaken': string;
-  'mbt::nondetPicks': { w?: { tag: 'Some' | 'None'; value?: string } };
-  status: OrderStatus;
-  charges: { '#bigint': string };
+  'mbt::nondetPicks': { q?: { tag: 'Some' | 'None'; value?: string } };
+  query: string;
+  inFlight: { '#set': string[] };
+  shownFor: string;
 }
 
 const dir = new URL('../quint/traces/', import.meta.url);
 const files = readdirSync(dir).filter((f) => f.endsWith('.itf.json'));
 
 function world() {
-  const db = { status: 'unpaid' as OrderStatus, charges: 0 };
-  const gates = new Map<string, () => void>();
-  const depsFor = (worker: string) => ({
-    getStatus: async () => db.status,
-    claimOrder: async () => {
-      if (db.status !== 'unpaid') return false;
-      db.status = 'charging';
-      return true;
-    },
-    chargeCard: () =>
-      new Promise<void>((resolve) => {
-        gates.set(worker, () => {
-          db.charges += 1;
-          resolve();
-        });
+  const replies = new Map<string, () => void>();
+  const search = createSearch(
+    (query) =>
+      new Promise<string[]>((resolve) => {
+        replies.set(query, () => resolve([`results for ${query}`]));
       }),
-    setStatus: async (_id: string, status: OrderStatus) => {
-      db.status = status;
-    },
-  });
-  return { db, gates, depsFor };
+  );
+  const shownFor = () => search.state.results[0]?.replace('results for ', '') ?? '';
+  return { search, replies, shownFor };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-test.each(files)('%s: the handler follows the model and never charges twice', async (file) => {
+test.each(files)('%s: the search follows the model and the list matches the box', async (file) => {
   const states: ItfState[] = JSON.parse(readFileSync(new URL(file, dir), 'utf8')).states;
-  const { db, gates, depsFor } = world();
+  const { search, replies, shownFor } = world();
 
   for (const state of states.slice(1)) {
     const action = state['mbt::actionTaken'];
-    const worker = state['mbt::nondetPicks'].w?.value ?? '';
+    const q = state['mbt::nondetPicks'].q?.value ?? '';
 
-    if (action === 'readOrder' || action === 'claimOrder') {
-      handleOrderConfirmed('o1', depsFor(worker)).then(
-        () => {},
-        () => {},
-      );
-    } else if (action === 'chargeIfUnpaid' || action === 'charge') {
-      gates.get(worker)?.();
-      gates.delete(worker);
+    if (action === 'typeNext') {
+      search.onInput(state.query);
+    } else if (action === 'reply') {
+      replies.get(q)?.();
+      replies.delete(q);
     }
     await settle();
 
-    expect({ action, worker, status: db.status, charges: db.charges }).toEqual({
+    expect({ action, q, query: search.state.query, shownFor: shownFor() }).toEqual({
       action,
-      worker,
-      status: state.status,
-      charges: Number(state.charges['#bigint']),
+      q,
+      query: state.query,
+      shownFor: state.shownFor,
     });
-    expect(db.charges).toBeLessThanOrEqual(1);
+    if (state.inFlight['#set'].length === 0) expect(shownFor()).toBe(search.state.query);
   }
 });
 ```
 
 What it does for each step of a trace:
 
-- A read or claim step starts the real `handleOrderConfirmed` for that worker. It runs until it waits on
-  `chargeCard`.
-- A charge step lets that worker's `chargeCard` finish, so the handler goes on to `setStatus`.
-- A `retry` step changes nothing on our side; it is the sender's move.
-- After each step, the fake database must match the model's `status` and `charges`, and the card must not be charged
-  twice.
+- A `typeNext` step calls the real `onInput` with the query the model typed. It runs until it waits on
+  `fetchResults`.
+- A `reply` step lets that query's request finish, so `onInput` goes on and updates the list (or, after the fix,
+  drops a stale reply).
+- After each step, the search box and the list must match the model's `query` and `shownFor`. Once nothing is in
+  flight, the list must match the box.
 
-First, save the counterexample from Step 2 as a trace and replay it against the original handler:
+First, save the counterexample from Step 2 as a trace (`--out-itf quint/traces/bug.itf.json` with the seed Quint
+printed) and replay it against the original code:
 
-<a href="/assets/tools/quint/vitest-replay-fails.webp" class="lightbox-trigger"><img src="/assets/tools/quint/vitest-replay-fails.webp" alt="vitest output: bug.itf.json: the handler follows the model and never charges twice, failed with AssertionError expected 2 to be less than or equal to 1. 1 failed, 2 passed." /></a>
+<a href="/assets/tools/quint/vitest-replay-fails.webp" class="lightbox-trigger"><img src="/assets/tools/quint/vitest-replay-fails.webp" alt="vitest output: search.test.ts passed. search.quint.test.ts: bug.itf.json: the search follows the model and the list matches the box, failed with expected rea to be react. 1 failed, 1 passed." /></a>
 
-The real handler followed the model at every step, and then charged twice. The Quint counterexample is now a failing
-vitest on your real code, with the exact order that breaks it. That is a bug report nobody has to reproduce by hand.
+The real code followed the model at every step, and then left the results for "rea" under a box that says "react".
+The Quint counterexample is now a failing vitest on your real code, with the exact order that breaks it. That is a bug
+report nobody has to reproduce by hand.
 
-After the fix, replace the traces with 50 runs of the fixed model and replay them against the fixed handler:
+After the fix, replace the traces with 50 runs of the fixed model and replay them against the fixed code:
 
-<a href="/assets/tools/quint/vitest-replay-ok.webp" class="lightbox-trigger"><img src="/assets/tools/quint/vitest-replay-ok.webp" alt="vitest output: 2 test files passed, 52 tests passed." /></a>
+<a href="/assets/tools/quint/vitest-replay-ok.webp" class="lightbox-trigger"><img src="/assets/tools/quint/vitest-replay-ok.webp" alt="vitest output: search.test.ts, 1 test passed. search.quint.test.ts, 50 tests passed. 2 test files passed, 51 tests passed." /></a>
 
-To check the replay is not passing by accident: the old bug trace against the fixed handler fails on the first read
-step. The model expected `status: "unpaid"`, the fixed code had already written `"charging"`. The replay notices when
-the code and the model differ, not just when the rule breaks.
+To check the replay is not passing by accident: the old bug trace against the fixed code fails on the last reply step.
+The model expected the list to show "rea", the fixed code had dropped that stale reply and still showed "react". The
+replay notices when the code and the model differ, not just when the rule breaks.
 
 ## Project layout and CI
 
@@ -445,12 +384,12 @@ One repo. The model sits in its own folder. The traces are built from it on ever
 ./
 ├── .github/workflows/ci.yml
 ├── quint/
-│   ├── webhook.qnt              the model: state, steps, the chargedAtMostOnce rule
+│   ├── search.qnt               the model: state, steps, the listMatchesBox rule
 │   └── traces/                  generated before every test run, git-ignored
 ├── src/
-│   ├── webhook.ts               the real handler
-│   ├── webhook.test.ts          normal unit tests
-│   └── webhook.quint.test.ts    replays quint/traces/ against webhook.ts
+│   ├── search.ts                the real search code
+│   ├── search.test.ts           normal unit tests
+│   └── search.quint.test.ts     replays quint/traces/ against search.ts
 ├── .gitignore                   node_modules, quint/traces/, _apalache-out/
 ├── package.json
 └── tsconfig.json
@@ -466,8 +405,8 @@ Scripts in `package.json`:
 
 ```json
 "scripts": {
-  "quint:check": "quint typecheck quint/webhook.qnt && quint verify quint/webhook.qnt --invariant chargedAtMostOnce --backend tlc",
-  "quint:traces": "rm -rf quint/traces && mkdir -p quint/traces && quint run quint/webhook.qnt --invariant chargedAtMostOnce --mbt --seed 1 --max-samples 1000 --max-steps 10 --n-traces 50 --out-itf 'quint/traces/run_{seq}.itf.json' > /dev/null",
+  "quint:check": "quint typecheck quint/search.qnt && quint verify quint/search.qnt --invariant listMatchesBox --backend tlc",
+  "quint:traces": "rm -rf quint/traces && mkdir -p quint/traces && quint run quint/search.qnt --invariant listMatchesBox --mbt --seed 1 --max-samples 1000 --max-steps 10 --n-traces 50 --out-itf 'quint/traces/run_{seq}.itf.json' > /dev/null",
   "pretest": "npm run quint:traces",
   "typecheck": "tsc",
   "test": "vitest run"
@@ -527,7 +466,7 @@ jobs:
           key: quint-${{ hashFiles('package-lock.json') }}
       - run: npm ci
       - run: npm run typecheck
-      - name: Replay model traces against the real handler
+      - name: Replay model traces against the real code
         run: npm test
 ```
 
@@ -541,33 +480,33 @@ What fails when:
 | Change | Where CI fails |
 |---|---|
 | A model change breaks the rule | `quint` job, `quint verify`: the counterexample is in the log. The `ts` job fails too, since `quint run` stops at the violation |
-| The handler changes and no longer follows the model | `ts` job, `webhook.quint.test.ts`: the first step where the database and the model differ |
-| The model changes, the handler does not | `ts` job: the new traces no longer match the old handler |
-| The fake deps in the replay drift from the real `Deps` type | `ts` job, `tsc` |
+| The search code changes and no longer follows the model | `ts` job, `search.quint.test.ts`: the first step where the screen and the model differ |
+| The model changes, the code does not | `ts` job: the new traces no longer match the old code |
+| The fake `fetchResults` in the replay drifts from the real signature | `ts` job, `tsc` |
 
 ## Making changes
 
 <Short>Change the model first and check it, then change the code until the replay passes.</Short>
 
-Changing the flow (for example, adding a refund step):
+Changing the flow (for example, clearing the list when the box is emptied):
 
 1. Change the model first: a new action, the variables it touches, and a rule if there is a new "must never happen".
-2. Run `npm run quint:check` with 2 workers, then raise the numbers once it passes.
-3. Change the handler. Map the new action to a step in `webhook.quint.test.ts` (which call to start, which promise to
+2. Run `npm run quint:check` with the two queries, then add a third once it passes.
+3. Change the code. Map the new action to a step in `search.quint.test.ts` (which call to make, which reply to
    release).
-4. Run `npm test` until the replay passes. Commit the model, the handler and the replay test together.
+4. Run `npm test` until the replay passes. Commit the model, the code and the replay test together.
 
 Adding a rule: add a `val` to the model and add it to `--invariant` in both scripts. If the real code can break it
-without breaking the model, the replay test needs the same check (like `charges <= 1` there).
+without breaking the model, the replay test needs the same check (like the list-matches-box check there).
 
 When CI finds a counterexample: copy the trace from the `quint verify` log or rerun `quint run` with the seed it
-prints. Write it to a file with `--out-itf` to replay it locally against the handler. Fix the model or the code, and
+prints. Write it to a file with `--out-itf` to replay it locally against the code. Fix the model or the code, and
 the next run checks every state again.
 
 Upgrading Quint: bump `@informalsystems/quint` in `package.json`. The lockfile changes, so CI gets a fresh cache and
 downloads the matching checker.
 
-Reviewing a pull request: read the model diff first. A new `await` in the handler with no new step in the model means
+Reviewing a pull request: read the model diff first. A new `await` in the code with no new step in the model means
 the model no longer splits the code where it can interleave. That is the one mistake the replay cannot catch, because
 the replay follows the model's steps.
 
@@ -586,12 +525,13 @@ You do not get:
 
 - A proof about the TS code. `quint verify` checks the model. The replay checks the code only on the traces you
   replay: 50 random runs here, not every path. The model and the code can still differ on a path no trace took.
-- A free model. You choose where the steps split. This model splits the handler at the one `await` that matters. If
-  you merge steps that the real code keeps apart, the model hides the bug.
-- Anything the model leaves out. Here: a worker that crashes after `claimOrder` leaves the order in `"charging"`
-  forever. The model has no crash step, so Quint says nothing about it. Adding one is the next exercise.
-- Big numbers. Checking every state works for a few workers and a few messages. That is usually enough to find the
-  bug, but it is not a load test.
+- A free model. You choose where the steps split. This model splits `onInput` at its one `await`. If you merge steps
+  that the real code keeps apart, the model hides the bug.
+- Anything the model leaves out. Here: a request that fails. `onInput` rejects, the list keeps the old results and
+  nothing tells the user. The model has no failure step, so Quint says nothing about it. Adding one is the next
+  exercise.
+- Big numbers. Checking every state works for a few events and a few actors. That is usually enough to find the bug,
+  but it is not a load test.
 
 </Full>
 
@@ -599,9 +539,9 @@ You do not get:
 
 ## How to start in your own project
 
-1. Pick one flow where order matters: a webhook, a job queue, a retry loop, a lock.
+1. Pick one flow where order matters: a search box, a webhook, a job queue, a retry loop, a lock.
 2. Write the rule as "this must never happen".
-3. List the variables, including the ones outside your code: messages in flight, retries, what each worker has seen.
+3. List the variables, including the ones outside your code: requests in flight, retries, what each actor has seen.
 4. Make one action per step between two `await`s in the real code.
 5. Run `quint run` first (fast), then `quint verify` (every state), with 2 or 3 actors.
 6. Export traces with `--mbt --out-itf` and a fixed `--seed`, and replay them against the real code with controlled fakes.

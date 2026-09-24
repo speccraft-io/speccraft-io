@@ -77,9 +77,11 @@ the color, so the name has no color tricks.
 - **Step numbers:** circles in the text color, dark in light mode and light in dark mode.
 - **Primary button:** a text-color background with background-color text.
 - **Links:** pink text.
+- **Code:** the quiet code theme (see the decision log). The Before / Diff / After tabs are pill buttons, at least 44px
+  tall.
 - **Status tags:** pill-shaped, with a tint background, colored text and an icon. Pink "✕ Counterexample found", green
   "✓ Invariant holds".
-- **Example cards** for a bug (double charge, timer race and so on) get a small brand-pink dot.
+- **Example cards** for a bug (late reply, timer race and so on) get a small brand-pink dot.
 
 ## Decision log
 
@@ -92,5 +94,5 @@ the color, so the name has no color tricks.
 | 2026-09-24 | The wordmark is plain text color, no split colors. | The logo already carries pink and green; a colored name would give them a meaning they don't have there. |
 | 2026-09-24 | The palette replaces Starlight's blue accent everywhere. Links are pink text; the current sidebar page and selected tabs use the text color. | One palette, and a neutral structure. |
 | 2026-09-24 | All images in `public/` redrawn in the dark palette with IBM Plex Sans and JetBrains Mono; the logo and favicons recolored to the brand pink, green and `#16131D`. | Terminal output, diagrams and banners follow the same palette as the pages. The HTML sources and `render.sh` in `public/assets` regenerate them. |
-| 2026-09-24 | Syntax highlighting keeps its default colors for now. | Open question: a grey-scale code theme would leave pink and green as the only colors in code. |
+| 2026-09-24 | A quiet code theme everywhere: code in the text color, keywords bold, comments italic and muted, punctuation muted, strings plain, no ligatures. In diffs, removed lines are pink with a strikethrough and added lines green. | Pink and green stay the only colors in code, so a diff reads at a glance. Applies to code blocks, every diff style and the VS Code view. |
 | 2026-09-24 | Diffs use the pink and green tints for lines and the stronger tints for changed words. | Old code is pink and new code is green, like the logo. |

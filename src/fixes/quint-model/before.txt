@@ -1,63 +1,41 @@
-module webhook {
-  type Phase = Idle | Read
+module search {
+  // The user types "rea", then "react".
+  pure val QUERIES = ["rea", "react"]
 
-  pure val WORKERS = Set("w1", "w2")
-  pure val MAX_DELIVERIES = 2
-
-  var status: str
-  var charges: int
-  var sent: int
-  var queued: int
-  var acked: bool
-  var phase: str -> Phase
-  var seen: str -> str
+  var typed: int          // how many queries the user has typed
+  var query: str          // what the search box shows
+  var inFlight: Set[str]  // requests sent, reply not back yet
+  var shownFor: str       // which query the list shows results for
 
   action init = all {
-    status' = "unpaid",
-    charges' = 0,
-    sent' = 1,
-    queued' = 1,
-    acked' = false,
-    phase' = WORKERS.mapBy(_ => Idle),
-    seen' = WORKERS.mapBy(_ => ""),
+    typed' = 0,
+    query' = "",
+    inFlight' = Set(),
+    shownFor' = "",
   }
 
-  action retry = all {
-    not(acked),
-    sent < MAX_DELIVERIES,
-    sent' = sent + 1,
-    queued' = queued + 1,
-    status' = status, charges' = charges, acked' = acked, phase' = phase, seen' = seen,
+  action typeNext = all {
+    typed < QUERIES.length(),
+    typed' = typed + 1,
+    query' = QUERIES[typed],
+    inFlight' = inFlight.union(Set(QUERIES[typed])),
+    shownFor' = shownFor,
   }
 
-  action readOrder(w: str): bool = all {
-    phase.get(w) == Idle,
-    queued > 0,
-    queued' = queued - 1,
-    phase' = phase.set(w, Read),
-    seen' = seen.set(w, status),
-    status' = status, charges' = charges, sent' = sent, acked' = acked,
-  }
-
-  action chargeIfUnpaid(w: str): bool = all {
-    phase.get(w) == Read,
-    if (seen.get(w) == "unpaid") all {
-      charges' = charges + 1,
-      status' = "paid",
-    } else all {
-      charges' = charges,
-      status' = status,
-    },
-    phase' = phase.set(w, Idle),
-    acked' = true,
-    seen' = seen, sent' = sent, queued' = queued,
+  action reply(q: str): bool = all {
+    inFlight.contains(q),
+    inFlight' = inFlight.exclude(Set(q)),
+    shownFor' = q,
+    typed' = typed,
+    query' = query,
   }
 
   action step = any {
-    retry,
-    nondet w = oneOf(WORKERS)
-    any { readOrder(w), chargeIfUnpaid(w) },
+    typeNext,
+    nondet q = oneOf(inFlight)
+    reply(q),
   }
 
-  val chargedAtMostOnce = charges <= 1
+  // Once nothing is loading, the list shows results for what is in the box.
+  val listMatchesBox = inFlight == Set() implies shownFor == query
 }

@@ -117,6 +117,25 @@ for (const [left, right] of rows) {
 }
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
+// The quiet code theme for the two diff styles rendered here (see /design): keywords bold, comments italic and
+// muted, punctuation muted, everything else in the text color. Only for TypeScript; other languages stay plain.
+const KEYWORDS = new Set(
+	'export import from interface type async function const let await if else return new class throw try catch for of while'.split(' '),
+);
+type Token = { text: string; kind: '' | 'k' | 'c' | 'p' };
+function tokenize(text: string): Token[] {
+	if (lang !== 'ts') return [{ text, kind: '' }];
+	const tokens: Token[] = [];
+	for (const m of text.matchAll(/(\/\/.*$)|('[^']*'|`[^`]*`|"[^"]*")|([A-Za-z_$][\w$]*)|(\s+)|([^\sA-Za-z_$'"`])/g)) {
+		if (m[1]) tokens.push({ text: m[1], kind: 'c' });
+		else if (m[2]) tokens.push({ text: m[2], kind: '' });
+		else if (m[3]) tokens.push({ text: m[3], kind: KEYWORDS.has(m[3]) ? 'k' : '' });
+		else if (m[4]) tokens.push({ text: m[4], kind: '' });
+		else tokens.push({ text: m[5]!, kind: 'p' });
+	}
+	return tokens;
+}
+
 const titleMeta = title ? ` title="${title}"` : '';
 const lines = Math.max(trimmed(before).split('\n').length, trimmed(after).split('\n').length);
 const height = `${Math.min(40, lines) * 19 + 16}px`;
@@ -176,7 +195,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 							{[left, right].map((cell) => (
 								<div class={`cell ${cell.kind}`}>
 									<span class="number">{cell.number ?? ''}</span>
-									<span class="text">{cell.segments.map((segment) => (segment.changed ? <mark>{segment.text}</mark> : segment.text))}</span>
+									<span class="text">{cell.segments.map((segment) => (segment.changed ? <mark>{tokenize(segment.text).map((token) => (token.kind ? <span class={`tk-${token.kind}`}>{token.text}</span> : token.text))}</mark> : tokenize(segment.text).map((token) => (token.kind ? <span class={`tk-${token.kind}`}>{token.text}</span> : token.text))))}</span>
 								</div>
 							))}
 						</div>
@@ -185,7 +204,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 			</div>
 		</div>
 		<div data-style="words" class="code-fix-words not-content">
-			<pre>{wordLines.map((line) => <div class={`line ${line.kind}`}>{line.parts.map((part) => (part.mark === 'ins' ? <ins>{part.text}</ins> : part.mark === 'del' ? <del>{part.text}</del> : part.text))}</div>)}</pre>
+			<pre>{wordLines.map((line) => <div class={`line ${line.kind}`}>{line.parts.map((part) => (part.mark === 'ins' ? <ins>{tokenize(part.text).map((token) => (token.kind ? <span class={`tk-${token.kind}`}>{token.text}</span> : token.text))}</ins> : part.mark === 'del' ? <del>{tokenize(part.text).map((token) => (token.kind ? <span class={`tk-${token.kind}`}>{token.text}</span> : token.text))}</del> : tokenize(part.text).map((token) => (token.kind ? <span class={`tk-${token.kind}`}>{token.text}</span> : token.text))))}</div>)}</pre>
 		</div>
 		<div data-style="vscode" class="code-fix-vscode not-content" style={`height: ${height}`} hidden></div>
 	</div>
@@ -247,7 +266,18 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 			m.editor.defineTheme(`speccraft-${theme}`, {
 				base: theme === 'dark' ? 'vs-dark' : 'vs',
 				inherit: true,
-				rules: [],
+				// The quiet code theme: text color, bold keywords, italic muted comments, muted punctuation.
+				rules: [
+					{ token: '', foreground: value('--p-text').slice(1) },
+					{ token: 'identifier', foreground: value('--p-text').slice(1) },
+					{ token: 'type', foreground: value('--p-text').slice(1) },
+					{ token: 'string', foreground: value('--p-text').slice(1) },
+					{ token: 'number', foreground: value('--p-text').slice(1) },
+					{ token: 'keyword', foreground: value('--p-text').slice(1), fontStyle: 'bold' },
+					{ token: 'comment', foreground: value('--p-muted').slice(1), fontStyle: 'italic' },
+					{ token: 'delimiter', foreground: value('--p-muted').slice(1) },
+					{ token: 'operator', foreground: value('--p-muted').slice(1) },
+				],
 				colors: {
 					'editor.background': value('--p-surface'),
 					'editor.foreground': value('--p-text'),
@@ -337,6 +367,8 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 				scrollBeyondLastLine: false,
 				minimap: { enabled: false },
 				fontSize: 13,
+				fontFamily: "'JetBrains Mono', monospace",
+				fontLigatures: false,
 				theme: isDark() ? 'speccraft-dark' : 'speccraft-light',
 			});
 			const language = ({ ts: 'typescript' } as Record<string, string>)[sources.lang] ?? 'plaintext';
@@ -429,8 +461,10 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 	}
 	.code-fix-tabs button {
 		font: inherit;
-		font-size: var(--sl-text-sm);
-		padding: 0.2rem 0.75rem;
+		font-size: var(--sl-text-base);
+		font-weight: 500;
+		min-height: 2.75rem;
+		padding: 0 1.25rem;
 		border: 1px solid var(--sl-color-gray-5);
 		border-radius: 999px;
 		background: transparent;
@@ -554,6 +588,13 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 	.code-fix-columns .cell.added {
 		background: var(--added-bg);
 	}
+	.code-fix-columns .cell.removed .text {
+		color: var(--sc-pink-text);
+		text-decoration: line-through;
+	}
+	.code-fix-columns .cell.added .text {
+		color: var(--sc-green-text);
+	}
 	.code-fix-columns .cell.empty {
 		background: repeating-linear-gradient(-45deg, transparent 0 6px, var(--sl-color-gray-6) 6px 7px);
 	}
@@ -578,6 +619,29 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 		color: inherit;
 		border-radius: 0.15rem;
 	}
+	.tk-k {
+		font-weight: 700;
+	}
+	.tk-c {
+		font-style: italic;
+		color: var(--sc-muted);
+	}
+	.tk-p {
+		color: var(--sc-muted);
+	}
+	/* On removed and added lines, and in changed words, everything takes the pink or green; bold and italic stay. */
+	.removed .tk-c,
+	.removed .tk-p,
+	.added .tk-c,
+	.added .tk-p,
+	del .tk-c,
+	del .tk-p,
+	ins .tk-c,
+	ins .tk-p,
+	mark .tk-c,
+	mark .tk-p {
+		color: inherit;
+	}
 	.code-fix-words pre {
 		border: 1px solid var(--sl-color-hairline);
 		border-radius: 0.75rem;
@@ -595,9 +659,12 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 	}
 	.code-fix-words .line.removed {
 		background: var(--sc-pink-tint);
+		color: var(--sc-pink-text);
+		text-decoration: line-through;
 	}
 	.code-fix-words .line.added {
 		background: var(--sc-green-tint);
+		color: var(--sc-green-text);
 	}
 	.code-fix-words del {
 		background: var(--sc-pink-word);

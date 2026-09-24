@@ -7,7 +7,7 @@ const steps = [
 ];
 // One tile per example on the home page, linking to its section. The pink dot marks a problem.
 const examples = [
-	['Quint', 'double charge', '#can-a-retried-webhook-charge-the-card-twice'],
+	['Quint', 'late reply', '#can-a-slow-response-overwrite-newer-search-results'],
 	['TLA+', 'timer race', '#what-if-the-approval-and-the-24h-timeout-fire-at-the-same-time'],
 	['Lean', 'negative price', '#can-this-discount-make-the-price-negative'],
 	['Dafny', 'missed id', '#does-this-binary-search-find-every-id'],
@@ -15,7 +15,7 @@ const examples = [
 ---
 
 <div class="home-intro">
-	<p class="eyebrow">Why formal methods</p>
+	<p class="eyebrow">Formal methods for TypeScript</p>
 	<p class="lead">Part of your system is too big to hold in your head?</p>
 	<ol>
 		{
@@ -40,7 +40,7 @@ const examples = [
 		</li>
 	</ol>
 	<div class="examples">
-		<p class="examples-title">Four worked examples</p>
+		<p class="examples-title">Worked examples</p>
 		<ul>
 			{
 				examples.map(([tool, problem, href]) => (
@@ -58,9 +58,16 @@ const examples = [
 
 <style>
 	.home-intro {
-		/* The fixed right sidebar is wider than its visible column, so size the card to the column. */
+		/* The fixed right sidebar is wider than its visible column, so size the card to that column: Starlight makes it
+		   the sidebar width plus half the space left beside the content. */
 		box-sizing: border-box;
-		max-width: calc(var(--sl-sidebar-width) - 2 * var(--sl-sidebar-pad-x));
+		max-width: min(
+			18.5rem,
+			calc(
+				var(--sl-sidebar-width) + (100vw - 2 * var(--sl-sidebar-width) - var(--sl-content-width)) / 2 - 2 *
+					var(--sl-sidebar-pad-x) - 0.5rem
+			)
+		);
 		margin: 1rem var(--sl-sidebar-pad-x);
 		padding: 1.25rem;
 		border: 1px solid var(--sc-border);

@@ -4,12 +4,13 @@
 <meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=block">
 <style>
   html, body { margin: 0; padding: 0; }
-  body { width: 1200px; height: 620px; overflow: hidden; }
+  body { width: 1200px; height: 560px; overflow: hidden; }
   text { font-family: 'IBM Plex Sans', -apple-system, 'Helvetica Neue', Arial, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', Menlo, monospace; }
 </style>
 </head>
 <body>
-<svg width="1200" height="620" viewBox="0 0 1200 620" xmlns="http://www.w3.org/2000/svg">
+<svg width="1200" height="560" viewBox="0 0 1200 560" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <radialGradient id="glow" cx="50%" cy="45%" r="85%">
       <stop offset="0%" stop-color="#17141f"/>
@@ -18,36 +19,57 @@
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 1 L 8 5 L 0 9 z" fill="#5c5866"/>
     </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#44cf7e"/>
+    </marker>
     <marker id="arrowPink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 1 L 8 5 L 0 9 z" fill="#c8327f"/>
     </marker>
   </defs>
-  <rect width="1200" height="620" fill="url(#glow)"/>
+  <rect width="1200" height="560" fill="url(#glow)"/>
 
-  <text x="60" y="58" font-size="28" font-weight="700" fill="#eceaf2">The double charge Quint found</text>
-  <text x="60" y="88" font-size="16" fill="#a39eb0">Both workers read the order before either one writes "paid"</text>
-  <text x="200" y="140" font-size="17" font-weight="600" fill="#eceaf2" text-anchor="middle">Webhook sender</text>
-  <line x1="200" y1="155" x2="200" y2="600" stroke="#2a2633" stroke-width="2" stroke-dasharray="4 6"/>
-  <text x="480" y="140" font-size="17" font-weight="600" fill="#eceaf2" text-anchor="middle">Worker 1</text>
-  <line x1="480" y1="155" x2="480" y2="600" stroke="#2a2633" stroke-width="2" stroke-dasharray="4 6"/>
-  <text x="740" y="140" font-size="17" font-weight="600" fill="#eceaf2" text-anchor="middle">Worker 2</text>
-  <line x1="740" y1="155" x2="740" y2="600" stroke="#2a2633" stroke-width="2" stroke-dasharray="4 6"/>
-  <text x="1010" y="140" font-size="17" font-weight="600" fill="#eceaf2" text-anchor="middle">Database</text>
-  <line x1="1010" y1="155" x2="1010" y2="600" stroke="#2a2633" stroke-width="2" stroke-dasharray="4 6"/>
-  <circle cx="200" cy="195" r="7" fill="#eceaf2"/>
-  <text x="216" y="200" font-size="16" fill="#eceaf2">1. sends delivery 1</text>
-  <circle cx="200" cy="265" r="7" fill="#eceaf2"/>
-  <text x="216" y="270" font-size="16" fill="#eceaf2">2. no reply yet: sends delivery 2</text>
-  <circle cx="740" cy="335" r="7" fill="#eceaf2"/>
-  <text x="756" y="340" font-size="16" fill="#eceaf2">3. reads status: unpaid</text>
-  <circle cx="480" cy="405" r="7" fill="#eceaf2"/>
-  <text x="496" y="410" font-size="16" fill="#eceaf2">4. reads status: unpaid</text>
-  <circle cx="740" cy="475" r="7" fill="#44cf7e"/>
-  <text x="756" y="480" font-size="16" fill="#74e0a1">5. charges card, sets paid</text>
-  <circle cx="480" cy="545" r="7" fill="#c8327f"/>
-  <text x="496" y="550" font-size="16" fill="#f28dc0">6. charges card again</text>
-  <text x="1010" y="480" font-size="15" fill="#a39eb0" text-anchor="middle">charges: 1</text>
-  <text x="1010" y="550" font-size="15" fill="#f28dc0" text-anchor="middle" font-weight="600">charges: 2</text>
+  <text x="60" y="58" font-size="28" font-weight="700" fill="#eceaf2">The late reply Quint found</text>
+  <text x="60" y="88" font-size="16" fill="#a39eb0">The reply for "rea" comes back last and replaces the results for "react"</text>
+
+  <!-- Lanes -->
+  <text x="130" y="140" font-size="17" font-weight="600" fill="#eceaf2" text-anchor="middle">You</text>
+  <line x1="130" y1="155" x2="130" y2="530" stroke="#2a2633" stroke-width="2" stroke-dasharray="4 6"/>
+  <text x="470" y="140" font-size="17" font-weight="600" fill="#eceaf2" text-anchor="middle">Server</text>
+  <line x1="470" y1="155" x2="470" y2="530" stroke="#2a2633" stroke-width="2" stroke-dasharray="4 6"/>
+  <text x="760" y="140" font-size="17" font-weight="600" fill="#eceaf2" text-anchor="middle">List</text>
+  <line x1="760" y1="155" x2="760" y2="530" stroke="#2a2633" stroke-width="2" stroke-dasharray="4 6"/>
+
+  <!-- 1 and 2: two requests go out -->
+  <circle cx="130" cy="195" r="7" fill="#eceaf2"/>
+  <text x="146" y="188" font-size="16" fill="#eceaf2">1. type "rea"</text>
+  <path d="M 140 205 C 300 205, 330 225, 458 280" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <circle cx="130" cy="265" r="7" fill="#eceaf2"/>
+  <text x="146" y="258" font-size="16" fill="#eceaf2">2. type "react"</text>
+  <path d="M 140 275 C 300 275, 350 300, 458 350" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="480" y="290" font-size="14" fill="#a39eb0">slow</text>
+  <text x="480" y="360" font-size="14" fill="#a39eb0">fast</text>
+
+  <!-- 3: the fast reply for "react" -->
+  <path d="M 482 370 L 748 395" stroke="#44cf7e" stroke-width="2" fill="none" marker-end="url(#arrowGreen)"/>
+  <circle cx="760" cy="400" r="7" fill="#44cf7e"/>
+  <text x="776" y="405" font-size="16" fill="#74e0a1">3. shows results for "react"</text>
+
+  <!-- 4: the late reply for "rea" -->
+  <path d="M 482 435 L 748 472" stroke="#c8327f" stroke-width="2.5" fill="none" marker-end="url(#arrowPink)"/>
+  <circle cx="760" cy="475" r="7" fill="#c8327f"/>
+  <text x="776" y="480" font-size="16" fill="#f28dc0">4. shows results for "rea"</text>
+
+  <!-- What the screen ends up showing -->
+  <g transform="translate(900 160)">
+    <rect width="250" height="150" rx="12" fill="#17141f" stroke="#2a2633"/>
+    <rect x="16" y="16" width="218" height="36" rx="8" fill="#0e0c14" stroke="#2a2633"/>
+    <text x="30" y="40" font-size="15" class="mono" fill="#eceaf2">react</text>
+    <rect x="16" y="66" width="218" height="28" rx="6" fill="#33142a"/>
+    <text x="28" y="85" font-size="14" fill="#f28dc0">✕ results for "rea"</text>
+    <rect x="16" y="102" width="150" height="10" rx="5" fill="#2a2633"/>
+    <rect x="16" y="120" width="110" height="10" rx="5" fill="#2a2633"/>
+  </g>
+  <text x="1025" y="340" font-size="14" fill="#a39eb0" text-anchor="middle">what the screen ends up showing</text>
 </svg>
 </body>
 </html>

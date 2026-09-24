@@ -1,13 +1,11 @@
-export interface Deps {
-  getStatus(orderId: string): Promise<OrderStatus>;
-  chargeCard(orderId: string): Promise<void>;
-  setStatus(orderId: string, status: OrderStatus): Promise<void>;
-}
+export function createSearch(fetchResults: (query: string) => Promise<string[]>) {
+  const state = { query: '', results: [] as string[] };
 
-export async function handleOrderConfirmed(orderId: string, deps: Deps): Promise<void> {
-  const status = await deps.getStatus(orderId);
-  if (status === 'unpaid') {
-    await deps.chargeCard(orderId);
-    await deps.setStatus(orderId, 'paid');
+  async function onInput(query: string): Promise<void> {
+    state.query = query;
+    const results = await fetchResults(query);
+    state.results = results;
   }
+
+  return { state, onInput };
 }

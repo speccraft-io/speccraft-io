@@ -1,66 +1,62 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=block"><style>
 html,body{margin:0;padding:0;background:#0e0c14}
-body{width:1000px;height:1434px;overflow:hidden}
-.win{margin:16px;border:1px solid #2a2633;border-radius:10px;background:#17141f;height:1400px;box-sizing:border-box}
+body{width:1000px;height:1342px;overflow:hidden}
+.win{margin:16px;border:1px solid #2a2633;border-radius:10px;background:#17141f;height:1308px;box-sizing:border-box}
 .bar{height:32px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #2a2633;font:13px 'IBM Plex Sans',-apple-system,Helvetica,Arial,sans-serif;color:#a39eb0}
 .dot{width:11px;height:11px;border-radius:50%;background:#2a2633}
 .bar span.t{margin-left:10px}
 pre{margin:0;padding:14px 18px;font:15px/24px 'JetBrains Mono',Menlo,monospace;color:#eceaf2;white-space:pre}
 .cmd{color:#eceaf2;font-weight:600} .bad{color:#f28dc0} .ok{color:#74e0a1} .info{color:#a39eb0}
-</style></head><body><div class="win"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="t">ts-orders - quint run</span></div><pre><span class="cmd">$ quint run quint/webhook.qnt --invariant chargedAtMostOnce --mbt \</span>
-    --hide acked queued sent phase seen
+</style></head><body><div class="win"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="t">ts-search - quint run</span></div><pre><span class="cmd">$ quint run quint/search.qnt --invariant listMatchesBox --mbt --hide typed</span>
 An example execution:
 
 [State 0]
 {
-  charges: 0,
+  inFlight: Set(),
   mbt::actionTaken: &quot;init&quot;,
-  mbt::nondetPicks: { w: None },
-  status: &quot;unpaid&quot;
+  mbt::nondetPicks: { q: None },
+  query: &quot;&quot;,
+  shownFor: &quot;&quot;
 }
 
 [State 1]
 {
-  charges: 0,
-  mbt::actionTaken: &quot;retry&quot;,
-  mbt::nondetPicks: { w: None },
-  status: &quot;unpaid&quot;
+  inFlight: Set(&quot;rea&quot;),
+  mbt::actionTaken: &quot;typeNext&quot;,
+  mbt::nondetPicks: { q: None },
+  query: &quot;rea&quot;,
+  shownFor: &quot;&quot;
 }
 
 [State 2]
 {
-  charges: 0,
-  mbt::actionTaken: &quot;readOrder&quot;,
-  mbt::nondetPicks: { w: Some(&quot;w2&quot;) },
-  status: &quot;unpaid&quot;
+  inFlight: Set(&quot;rea&quot;, &quot;react&quot;),
+  mbt::actionTaken: &quot;typeNext&quot;,
+  mbt::nondetPicks: { q: None },
+  query: &quot;react&quot;,
+  shownFor: &quot;&quot;
 }
 
 [State 3]
 {
-  charges: 0,
-  mbt::actionTaken: &quot;readOrder&quot;,
-  mbt::nondetPicks: { w: Some(&quot;w1&quot;) },
-  status: &quot;unpaid&quot;
+  inFlight: Set(&quot;rea&quot;),
+  mbt::actionTaken: &quot;reply&quot;,
+  mbt::nondetPicks: { q: Some(&quot;react&quot;) },
+  query: &quot;react&quot;,
+  shownFor: &quot;react&quot;
 }
 
 [State 4]
 {
-  charges: 1,
-  mbt::actionTaken: &quot;chargeIfUnpaid&quot;,
-  mbt::nondetPicks: { w: Some(&quot;w2&quot;) },
-  status: &quot;paid&quot;
+  inFlight: Set(),
+  mbt::actionTaken: &quot;reply&quot;,
+  mbt::nondetPicks: { q: Some(&quot;rea&quot;) },
+  query: &quot;react&quot;,
+<span class="bad">  shownFor: &quot;rea&quot;</span>
 }
 
-[State 5]
-{
-  charges: 2,
-  mbt::actionTaken: &quot;chargeIfUnpaid&quot;,
-  mbt::nondetPicks: { w: Some(&quot;w1&quot;) },
-  status: &quot;paid&quot;
-}
-
-<span class="bad">[violation] Found an issue (9ms at 111 traces/second).</span>
-Use --verbosity=3 to show executions.
-Use --seed=0x1 --backend=rust to reproduce.
+<span class="bad">[violation] Found an issue (8ms at 125 traces/second).</span>
+<span class="info">Use --verbosity=3 to show executions.</span>
+<span class="info">Use --seed=0xe4d58689599f39cd --backend=rust to reproduce.</span>
 <span class="bad">error: Invariant violated</span></pre></div></body></html>
