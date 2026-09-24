@@ -57,7 +57,7 @@ regions instead of 9 combined states.
 
 The second complaint remains. Each machine or actor is checked on its own. The race between two actors, or between a
 machine and the `async` code it calls, is outside every diagram, and no library here tries every interleaving of it.
-See [TypeScript tools](/ts-tools) for the tools that do.
+Model checkers such as [TLA+](/tools/tla-plus) and [Quint](/tools/quint) do.
 
 ## How a model checker's state machine differs
 

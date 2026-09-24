@@ -15,12 +15,14 @@ export default defineConfig({
 		'/state-of-formal-methods-market': '/market/',
 		'/vs/fake-timers': '/vs/other-ts-tools',
 		'/vs/effect': '/vs/other-ts-tools',
-		'/how-speccraft-compares': '/ts-tools',
-		'/tools/speccraft-vs-non-ts-tools': '/tools/non-ts-tools',
+		'/how-speccraft-compares': '/',
+		'/tools/speccraft-vs-non-ts-tools': '/',
+		'/ts-tools': '/',
+		'/tools/non-ts-tools': '/',
 	},
 	markdown: {
 		// External links (anything with a protocol, e.g. https://) open in a new tab;
-		// internal Starlight links stay relative (e.g. /ts-tools) so they're
+		// internal Starlight links stay relative (e.g. /tools/quint) so they're
 		// untouched. The visual "external link" icon is CSS, keyed off target="_blank"
 		// (see src/styles/custom.css).
 		remarkPlugins: [remarkGfm],
@@ -124,7 +126,6 @@ export default defineConfig({
 				{
 					label: 'Formal non-TypeScript tools',
 					items: [
-						{ label: 'Overview', link: '/tools/non-ts-tools' },
 						{ label: 'TLA+', link: '/tools/tla-plus' },
 						{ label: 'Quint', link: '/tools/quint' },
 						{ label: 'Dafny', link: '/tools/dafny' },
@@ -134,7 +135,6 @@ export default defineConfig({
 				{
 					label: 'Formal TypeScript tools',
 					items: [
-						{ label: 'Overview', link: '/ts-tools' },
 						{ label: 'fast-check', link: '/vs/fast-check' },
 						{ label: 'Bombadil', link: '/vs/bombadil' },
 						{ label: 'effect-machine', link: '/vs/effect-machine' },

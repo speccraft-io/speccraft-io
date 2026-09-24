@@ -39,8 +39,7 @@ One `.tla` file works with both, which is why this is one page and not three. [Q
 language that compiles to TLA+ and runs these same two checkers underneath. This page uses TLA+ directly.
 
 TLA+ describes a system as state, steps and "must never happen" rules, checked in every order. It has its own
-language and checks the spec, not the real code. For tools that do the same kind of checking with the model written
-in TypeScript, see [TypeScript tools](/ts-tools); for the wider field, see [Non-TypeScript tools](/tools/non-ts-tools).
+language and checks the spec, not the real code.
 
 <Short>Write the spec as plain text, let an agent turn it into TLA+, let TLC find the double connect, then replay every behavior of the spec against the real TS code.</Short>
 
@@ -786,8 +785,6 @@ You do not get:
 
 ## Related
 
-- [Non-TypeScript tools](/tools/non-ts-tools): where TLA+ sits among Quint, Alloy, P, Stateright and the rest.
-- [TypeScript tools](/ts-tools): the same kind of checking with the model written in TypeScript.
 - [Quint for TypeScript developers](/tools/quint): a TLA+-based language with the same checkers underneath.
 - [The TLA+ home page](https://lamport.azurewebsites.net/tla/tla.html) and the TLA+ Video Course by Leslie Lamport.
 - [Learn TLA+](https://learntla.com), a practical guide by Hillel Wayne.

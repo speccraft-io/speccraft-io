@@ -169,6 +169,5 @@ CryptoVerif, MathSAT) don't get one.
 
 ---
 
-*This page distills a market survey read at source, alongside [Durable workflow correctness](/durable-workflow-correctness-tooling-research)
-and [TypeScript tools](/ts-tools). Confidence is high on the sourced claims; job-posting
+*This page distills a market survey read at source, alongside [Durable workflow correctness](/durable-workflow-correctness-tooling-research). Confidence is high on the sourced claims; job-posting
 snapshots and community activity levels will date — check the linked sources directly for current status.*

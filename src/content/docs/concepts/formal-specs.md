@@ -283,5 +283,4 @@ A message that reached the limit is back in the queue for a third delivery.
   states.
 - [TLA+ for TypeScript developers](/tools/tla-plus) and [Quint for TypeScript developers](/tools/quint): the spec
   languages, step by step.
-- [TypeScript tools](/ts-tools): the tools that check a spec written in TypeScript.
 - Leslie Lamport, [Specifying Systems](https://lamport.azurewebsites.net/tla/book.html): the book on TLA+ specs.

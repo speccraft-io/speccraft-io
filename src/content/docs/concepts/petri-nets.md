@@ -77,4 +77,3 @@ the connection in the end", which is the first of them.
 
 - [State machines and FSMs](/concepts/state-machines)
 - [TLA+ for TypeScript developers](/tools/tla-plus) and [Quint for TypeScript developers](/tools/quint)
-- [Non-TypeScript tools](/tools/non-ts-tools)
