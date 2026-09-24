@@ -140,14 +140,14 @@ VS Code: it highlights and parses specs and runs TLC from the editor.
 releases and put `bin/apalache-mc` on your `PATH`. It needs Java 17 or newer. If you already use Quint, `quint verify`
 has downloaded a copy into `~/.quint`.
 
-## Step 1: write the spec as plain text (you)
+## Step 1: write the spec as plain text (you and AI)
 
-<Short>A markdown file next to the code: variables, actions with a guard and an effect, and the rules. You write it; the agent translates it.</Short>
+<Short>A markdown file next to the code: variables, actions with a guard and an effect, and the rules. You and the agent write it together.</Short>
 
 Before any TLA+, write down what the code does in a plain text file in the repo. There is no new syntax to learn:
 variables and the values they can take, actions with a guard (when the step can happen) and an effect (what
-changes), and the rules that must hold. An agent can draft it from the TS code, but you read every line and correct
-it. This file is the part you own, and the one reviewers read.
+changes), and the rules that must hold. Write it together with a coding agent: it drafts from the TS code and asks
+what is unclear, you decide what the steps and rules are and correct every line. It is the file reviewers read.
 
 ```md title="spec/single-flight.md"
 # Single-flight - spec
@@ -605,7 +605,7 @@ One repo. The spec sits in its own folder. The graph is written from it on every
 ./
 ├── .github/workflows/ci.yml
 ├── spec/
-│   ├── single-flight.md            the spec in plain text: you write and review this one
+│   ├── single-flight.md            the spec in plain text: written with the agent, reviewed by people
 │   ├── SingleFlight.tla            the same spec in TLA+, generated from the text
 │   ├── SingleFlight.cfg            which spec and properties TLC checks
 │   └── out/                        graph and TLC's working files, git-ignored
@@ -723,8 +723,9 @@ You do not get:
   the bug.
 - Anything the spec leaves out. Here: more than one key, and more than one process. Neither is in the spec, so TLC
   says nothing about them.
-- A familiar syntax. `/\`, `'`, `EXCEPT` and `<>` take a day to get used to. You write the text spec, a coding
-  agent writes the TLA+ from it, and [Quint](/tools/quint) exists for teams who want the same checkers with a friendlier language.
+- A familiar syntax. `/\`, `'`, `EXCEPT` and `<>` take a day to get used to. You and a coding agent write the text
+  spec, the agent writes the TLA+ from it, and [Quint](/tools/quint) exists for teams who want the same checkers with
+  a friendlier language.
 
 </Full>
 

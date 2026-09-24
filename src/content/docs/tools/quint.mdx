@@ -170,14 +170,14 @@ reuse of existing TLA+ modules, write it in TLA+ directly: see [TLA+ for TypeScr
 
 </Full>
 
-## Step 1: write the model as plain text (you)
+## Step 1: write the model as plain text (you and AI)
 
-<Short>A markdown file next to the code: variables, actions with a guard and an effect, and the rule. You write it; the agent translates it.</Short>
+<Short>A markdown file next to the code: variables, actions with a guard and an effect, and the rule. You and the agent write it together.</Short>
 
 Before any Quint, write down what the code does in a plain text file in the repo. There is no new syntax to learn:
 variables and the values they can take, actions with a guard (when the step can happen) and an effect (what
-changes), and the rule that must hold. An agent can draft it from the TS code, but you read every line and correct
-it. This file is the part you own, and the one reviewers read.
+changes), and the rule that must hold. Write it together with a coding agent: it drafts from the TS code and asks
+what is unclear, you decide what the steps and rules are and correct every line. It is the file reviewers read.
 
 ```md title="quint/search.md"
 # Search box - spec
@@ -454,7 +454,7 @@ One repo. The model sits in its own folder. The traces are built from it on ever
 ./
 ├── .github/workflows/ci.yml
 ├── quint/
-│   ├── search.md                the model in plain text: you write and review this one
+│   ├── search.md                the model in plain text: written with the agent, reviewed by people
 │   ├── search.qnt               the same model in Quint, generated from the text
 │   └── traces/                  generated before every test run, git-ignored
 ├── src/
