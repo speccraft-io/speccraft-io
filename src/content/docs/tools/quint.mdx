@@ -144,31 +144,13 @@ check in CI needs Java.
 
 ## What Quint leaves out of TLA+
 
-<Short>Most gaps do not matter for race-hunting. Watch three: liveness needs the TLC backend, TLC never reports deadlocks, and there is no symmetry reduction.</Short>
+Quint covers what you need to find races. Good to know:
 
-<Full>
+- "It always ends" rules need `--backend tlc`.
+- With TLC, a stuck state is not reported as an error.
+- No reuse of existing `.tla` specs, and no proofs.
 
-Quint compiles to TLA+, but not every part of TLA+ has a Quint form, and `quint verify` does not expose every TLC
-option. Checked with Quint 0.32 and its bundled Apalache 0.56.1 and TLC. The ones that matter first:
-
-| Missing or limited | What happens instead | Matters? |
-|---|---|---|
-| Liveness with fairness on the default backend | Apalache stops with `Handling fairness is not supported yet!`, and Quint warns that its temporal support is experimental. `--backend tlc` checks it: write the fairness into the property, as in `temporal settles = fairness implies eventually(done)`, since Quint runs TLC with `INIT`/`NEXT` and no `SPECIFICATION` | **High** for "it always ends" rules. Use TLC |
-| Deadlock check with `--backend tlc` | Quint always passes `-deadlock`, so TLC never reports a state with no next step. The Apalache backend does report it (`reached a deadlock`) | **Medium.** A stuck state passes silently on TLC. Add an invariant or a liveness rule for it |
-| TLC's `SYMMETRY`, `CONSTRAINT`, `ACTION_CONSTRAINT`, `VIEW` | The generated `.cfg` has only `INIT`, `NEXT`, `INVARIANT` and `PROPERTY`. `--tlc-config` sets only heap, stack and workers | **Medium.** Without symmetry, 3 interchangeable workers give up to 6 copies of each state (3 × 2 × 1 ways to name them). Constraints can go into the actions' conditions |
-| Refinement: checking that a detailed spec implements an abstract one | No parameterized instances, so no refinement mappings | **Medium** for layered designs (protocol vs implementation). Low for one model per flow |
-| Importing existing `.tla` specs and modules | Quint compiles to TLA+, not from it. The TLA+ standard and community modules (`Bags`, `Json`, `IOUtils`, ...) are not available; Quint has its own sets, maps, lists and records | **Low to medium.** Matters if you want to reuse a published TLA+ spec |
-| Recursive operators and functions | Rejected with `Use fold and foldl instead of recursion` | **Low.** Folds cover most models. Trees and graph walks get clumsier |
-| Proofs (`THEOREM`, TLAPS) | None. Write them in TLA+ | **Low.** Model checking is the point here |
-| Untyped values, e.g. `{1, "a"}` | A type error. Every set, map and variable has one type | **Low.** Usually a bug in TLA+ too |
-| String operations | Strings can only be compared and stored. `"a" + "b"` is a type error | **Low.** Use strings as names, not data |
-| `CASE` without `OTHER`, and `CHOOSE` by default | `match` and `if` instead; `chooseSome()` for a fixed choice, `oneOf` for a nondeterministic one | **Low.** Different spelling, same models |
-| `Reals`, `\EE`/`\AA`, `LOCAL`, nested modules, PlusCal | Not in Quint. TLC and Apalache cannot check `Reals` or `\EE`/`\AA` anyway | **None** for model checking |
-
-For the kind of model on this page, only the first three come up. If a spec needs refinement, symmetry reduction or
-reuse of existing TLA+ modules, write it in TLA+ directly: see [TLA+ for TypeScript developers](/tools/tla-plus).
-
-</Full>
+If you need those, use [TLA+](/tools/tla-plus) directly.
 
 ## Step 1: write the model as plain text (you and AI)
 
