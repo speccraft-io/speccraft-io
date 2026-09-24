@@ -1,6 +1,6 @@
 ---
 title: TLA+ for TypeScript developers
-description: A practical first look at TLA+ from a TypeScript project. Model a payment hold where an approval races a 24h timer, let TLC find the double settle and then the stuck hold the obvious fix creates, and replay every behavior of the spec against the real TS code in vitest.
+description: A practical first look at TLA+ from a TypeScript project. Model a user cache where two requests miss at once, let TLC find the double load and then the stuck key the obvious fix creates, and replay every behavior of the spec against the real TS code in vitest.
 views: true
 tableOfContents: true
 trend:
@@ -17,14 +17,14 @@ requires:
   - 'Coding agent (TS ↔ TLA+)'
 ---
 import CodeFix from '../../../components/CodeFix.astro';
-import claimModelBefore from '../../../fixes/tla-claim-model/before.txt?raw';
-import claimModelAfter from '../../../fixes/tla-claim-model/after.txt?raw';
-import claimTsBefore from '../../../fixes/tla-claim-ts/before.txt?raw';
-import claimTsAfter from '../../../fixes/tla-claim-ts/after.txt?raw';
-import releaseModelBefore from '../../../fixes/tla-release-model/before.txt?raw';
-import releaseModelAfter from '../../../fixes/tla-release-model/after.txt?raw';
-import releaseTsBefore from '../../../fixes/tla-release-ts/before.txt?raw';
-import releaseTsAfter from '../../../fixes/tla-release-ts/after.txt?raw';
+import shareModelBefore from '../../../fixes/tla-share-model/before.txt?raw';
+import shareModelAfter from '../../../fixes/tla-share-model/after.txt?raw';
+import shareTsBefore from '../../../fixes/tla-share-ts/before.txt?raw';
+import shareTsAfter from '../../../fixes/tla-share-ts/after.txt?raw';
+import evictModelBefore from '../../../fixes/tla-evict-model/before.txt?raw';
+import evictModelAfter from '../../../fixes/tla-evict-model/after.txt?raw';
+import evictTsBefore from '../../../fixes/tla-evict-ts/before.txt?raw';
+import evictTsAfter from '../../../fixes/tla-evict-ts/after.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
@@ -45,7 +45,7 @@ TLA+ describes a system as state, steps and "must never happen" rules, checked i
 language and checks the spec, not the real code. For tools that do the same kind of checking with the model written
 in TypeScript, see [TypeScript tools](/ts-tools); for the wider field, see [Non-TypeScript tools](/tools/non-ts-tools).
 
-<Short>Write the spec, let TLC find the bad order and the stuck state, then replay every behavior of the spec against the real TS code.</Short>
+<Short>Write the spec, let TLC find the bad order and the stuck key, then replay every behavior of the spec against the real TS code.</Short>
 
 <Full>
 
@@ -54,7 +54,7 @@ in TypeScript, see [TypeScript tools](/ts-tools); for the wider field, see [Non-
 TLA+ asks for a second, much smaller description of the system in a `.tla` file. You do not annotate your TS code.
 That is extra work, and it pays back in three ways:
 
-- Isolation. The spec has no framework, no card network SDK, no `async`. Only the state and the steps that matter for
+- Isolation. The spec has no framework, no database driver, no `async`. Only the state and the steps that matter for
   the rule. Each `await` in the real code becomes a point where the spec can switch to another step.
 - Freedom. You choose what to leave out and how coarse the steps are. You can try a different design in minutes and
   check it before anyone changes production code.
@@ -68,74 +68,60 @@ test in vitest.
 
 ## Why you would want this
 
-<Short>Both tests pass, but an approval that lands while the timer is firing takes the money and gives the hold back.</Short>
+<Short>The test passes, but two requests that miss the cache at once both query the database.</Short>
 
-An order puts a hold on the customer's card. A manager can approve the order, which captures the money. If nobody
-approves within 24 hours, a timer releases the hold. Whichever comes first wins, and a flag stops the other one:
+A service keeps users in memory. On a miss, `get()` loads the user from the database and keeps it:
 
 ```ts
-// src/payment-hold.ts
+// src/user-cache.ts
+export interface User {
+  id: string;
+  name: string;
+}
+
 export interface Deps {
-  capture(orderId: string): Promise<void>; // take the held money
-  release(orderId: string): Promise<void>; // give the hold back to the customer
+  loadUser(id: string): Promise<User>; // one database query
 }
 
-// One per order. approve() runs when a manager approves the order,
-// expire() when the 24h timer fires. Whichever comes first wins.
-export class PaymentHold {
-  private settled = false;
+export class UserCache {
+  private users = new Map<string, User>();
 
-  constructor(
-    private orderId: string,
-    private deps: Deps,
-  ) {}
+  constructor(private deps: Deps) {}
 
-  async approve(): Promise<void> {
-    if (this.settled) return;
-    await this.deps.capture(this.orderId);
-    this.settled = true;
-  }
-
-  async expire(): Promise<void> {
-    if (this.settled) return;
-    await this.deps.release(this.orderId);
-    this.settled = true;
+  async get(id: string): Promise<User> {
+    const hit = this.users.get(id);
+    if (hit) return hit;
+    const user = await this.deps.loadUser(id);
+    this.users.set(id, user);
+    return user;
   }
 }
 ```
 
 ```ts
-// src/payment-hold.test.ts
-test('approval captures, and the timer then does nothing', async () => {
-  const { bank, deps } = fakeDeps();
-  const hold = new PaymentHold('o1', deps);
-  await hold.approve();
-  await hold.expire();
-  expect(bank).toEqual({ captured: 1, released: 0 });
-});
-
-test('the timer releases, and a late approval does nothing', async () => {
-  const { bank, deps } = fakeDeps();
-  const hold = new PaymentHold('o1', deps);
-  await hold.expire();
-  await hold.approve();
-  expect(bank).toEqual({ captured: 0, released: 1 });
+// src/user-cache.test.ts
+test('the second get() is served from the cache', async () => {
+  const { db, deps } = fakeDb();
+  const cache = new UserCache(deps);
+  await cache.get('u1');
+  await cache.get('u1');
+  expect(db.queries).toBe(1);
 });
 ```
 
-Both tests pass. Each one lets the first handler finish before the second one starts. In production, the manager
-clicks "approve" at 23:59:59, the card network takes two seconds to answer, and the timer fires in between. This is
-the shape of bug durable workflows are full of: a signal handler and a timer sharing state across an `await`. TLC
-tries every order.
+The test passes. It lets the first `get()` finish before the second one starts. In production, a popular user's entry
+expires and a hundred requests for that user arrive within the same few milliseconds. Each one misses, because none of
+the loads has returned yet, and each one queries the database. This is a cache stampede. It hits the database at the
+moment it is busiest. TLC tries every order.
 
 <Full>
 
 ## When TLA+ fits
 
-- Several actors change shared state: handlers, timers, retries, queues, locks, leader election, sagas.
-- The bug you fear is about order: "what if the timer fires while the capture is in flight?"
-- The rule can be said as "this must never happen" (never capture and release) or "this must always happen in the
-  end" (every hold is settled). TLC checks both kinds.
+- Several actors change shared state: requests, handlers, timers, retries, queues, locks, leader election, sagas.
+- The bug you fear is about order: "what if a second request arrives while the first load is in flight?"
+- The rule can be said as "this must never happen" (never two loads at once) or "this must always happen in the end"
+  (every request gets the user). TLC checks both kinds.
 
 TLA+ is not the tool for proving one function's math right for every input. See the [Lean](/tools/lean) and
 [Dafny](/tools/dafny) pages for that.
@@ -169,213 +155,222 @@ by `/\` (and). A line without `'` is a condition: if it is false, the action can
 of `x` after this step". Every action must say what every variable becomes, which is what `UNCHANGED` is for.
 
 ```text
----- MODULE PaymentHold ----
-\* A card hold on one order. A manager may approve it (capture the money),
-\* and a 24h timer releases it back to the customer. Both handlers share one flag.
+---- MODULE UserCache ----
+\* Two requests ask a cache for the same user at once. On a miss,
+\* get() loads the user from the database and keeps it.
+EXTENDS Naturals
 
-VARIABLES settled, captured, released, pc
+Callers == {"a", "b"}
 
-vars == <<settled, captured, released, pc>>
+VARIABLES cached, loads, pc
+
+vars == <<cached, loads, pc>>
 
 Init ==
-    /\ settled = FALSE
-    /\ captured = FALSE
-    /\ released = FALSE
-    /\ pc = [h \in {"approve", "expire"} |-> "idle"]
+    /\ cached = FALSE
+    /\ loads = 0
+    /\ pc = [c \in Callers |-> "idle"]
 
-\* approve() starts: reads the flag, then awaits capture() if the hold is open.
-StartApprove ==
-    /\ pc["approve"] = "idle"
-    /\ pc' = [pc EXCEPT !["approve"] = IF settled THEN "done" ELSE "capturing"]
-    /\ UNCHANGED <<settled, captured, released>>
+\* get() starts: a hit returns at once, a miss awaits loadUser().
+Ask(c) ==
+    /\ pc[c] = "idle"
+    /\ IF cached
+         THEN /\ pc' = [pc EXCEPT ![c] = "done"]
+              /\ UNCHANGED loads
+         ELSE /\ pc' = [pc EXCEPT ![c] = "loading"]
+              /\ loads' = loads + 1
+    /\ UNCHANGED cached
 
-\* capture() returns, and approve() sets the flag.
-CaptureOk ==
-    /\ pc["approve"] = "capturing"
-    /\ captured' = TRUE
-    /\ settled' = TRUE
-    /\ pc' = [pc EXCEPT !["approve"] = "done"]
-    /\ UNCHANGED released
+\* loadUser() returns, and get() keeps the user.
+LoadOk(c) ==
+    /\ pc[c] = "loading"
+    /\ cached' = TRUE
+    /\ loads' = loads - 1
+    /\ pc' = [pc EXCEPT ![c] = "done"]
 
-\* capture() throws (card declined, bank timeout). approve() rethrows, the flag stays as it was.
-CaptureFails ==
-    /\ pc["approve"] = "capturing"
-    /\ pc' = [pc EXCEPT !["approve"] = "done"]
-    /\ UNCHANGED <<settled, captured, released>>
+\* loadUser() throws (a timeout, a dropped connection). get() rethrows.
+LoadFails(c) ==
+    /\ pc[c] = "loading"
+    /\ loads' = loads - 1
+    /\ pc' = [pc EXCEPT ![c] = "failed"]
+    /\ UNCHANGED cached
 
-\* The 24h timer fires: expire() reads the flag, then awaits release() if the hold is open.
-StartExpire ==
-    /\ pc["expire"] = "idle"
-    /\ pc' = [pc EXCEPT !["expire"] = IF settled THEN "done" ELSE "releasing"]
-    /\ UNCHANGED <<settled, captured, released>>
+\* The request got an error, and the client asks again.
+Retry(c) ==
+    /\ pc[c] = "failed"
+    /\ pc' = [pc EXCEPT ![c] = "idle"]
+    /\ UNCHANGED <<cached, loads>>
 
-\* release() returns, and expire() sets the flag.
-ReleaseOk ==
-    /\ pc["expire"] = "releasing"
-    /\ released' = TRUE
-    /\ settled' = TRUE
-    /\ pc' = [pc EXCEPT !["expire"] = "done"]
-    /\ UNCHANGED captured
+Next == \E c \in Callers : Ask(c) \/ LoadOk(c) \/ LoadFails(c) \/ Retry(c)
 
-Next == StartApprove \/ CaptureOk \/ CaptureFails \/ StartExpire \/ ReleaseOk
-
-\* The timer always fires and awaited calls always return; the manager may never approve.
+\* Requests arrive and clients retry. A load may fail, but not every time.
 Spec ==
     /\ Init /\ [][Next]_vars
-    /\ WF_vars(StartExpire) /\ WF_vars(ReleaseOk) /\ WF_vars(CaptureOk \/ CaptureFails)
+    /\ \A c \in Callers : WF_vars(Ask(c)) /\ WF_vars(Retry(c)) /\ SF_vars(LoadOk(c))
 
-\* Never take the money and also give the hold back.
-NotBoth == ~(captured /\ released)
+\* At most one database load for the user at a time.
+OneLoad == loads <= 1
 
-\* Every hold ends: the money is either taken or given back.
-Settles == <>(captured \/ released)
+\* Every request gets the user in the end.
+EveryoneGetsIt == \A c \in Callers : <>(pc[c] = "done")
 ====
 ```
 
 And the config file TLC reads next to it:
 
 ```text
-\* spec/PaymentHold.cfg
+\* spec/UserCache.cfg
 SPECIFICATION Spec
-INVARIANT NotBoth
-PROPERTY Settles
+INVARIANT OneLoad
+PROPERTY EveryoneGetsIt
 ```
 
 How to read it:
 
-- The variables are the whole world, not just the class: `settled` (the flag), `captured` and `released` (what the
-  card network did), and `pc` (where each handler is, like a program counter).
-- `[h \in {"approve", "expire"} |-> "idle"]` is a map, like `Record<string, string>`. `pc["approve"]` reads it,
-  `[pc EXCEPT !["approve"] = "done"]` returns an updated copy.
-- Each handler is split into steps exactly where the TS code has an `await`: `StartApprove` (the flag check and the
-  call to `capture`), then `CaptureOk` or `CaptureFails` (how the call ends). The same for `expire`.
-- `Next` says what can happen next: any of the five steps whose conditions hold. TLC tries each one.
-- `Spec` is the whole system: start in `Init`, then take `Next` steps. The `WF_vars(...)` parts are fairness: a step
-  that stays possible will happen in the end. The timer does fire and the card network does answer, but nothing forces
-  the manager to approve, so `StartApprove` has no fairness.
-- `NotBoth` is an invariant: true in every state. `Settles` is a liveness property: `<>` means "at some point". It says
-  every run reaches a state where the money was taken or given back.
+- The variables are the whole world, not just the class: `cached` (the user is in the cache), `loads` (database
+  queries in flight), and `pc` (where each request is, like a program counter).
+- Two requests, `"a"` and `"b"`, are enough to show a race. `[c \in Callers |-> "idle"]` is a map, like
+  `Record<string, string>`. `pc[c]` reads it, `[pc EXCEPT ![c] = "done"]` returns an updated copy.
+- `Ask(c)` is an action with a parameter: one for each request. `get()` is split into steps exactly where the TS code
+  has an `await`: `Ask` (the cache check and the call to `loadUser`), then `LoadOk` or `LoadFails` (how the call ends).
+  `Retry` is the client asking again after an error.
+- `Next` says what can happen next: any step of any request whose conditions hold. TLC tries each one.
+- `Spec` is the whole system: start in `Init`, then take `Next` steps. `WF` and `SF` are fairness: requests do arrive,
+  clients do retry, and a load may fail but not every time. `SF` (strong fairness) is what says "not every time": a
+  load that keeps being tried succeeds in the end.
+- `OneLoad` is an invariant: true in every state. `EveryoneGetsIt` is a liveness property: `<>` means "at some point".
+  It says every request gets the user in the end.
 
 ## Step 2: let TLC find the bad order
 
-<Short>TLC finds the capture-and-release in under a second, in 13 states.</Short>
+<Short>TLC finds the double load in under a second, in 3 states.</Short>
 
-`-deadlock` turns off TLC's deadlock check, since a hold that is settled is supposed to stop:
+`-deadlock` turns off TLC's deadlock check, since a run where both requests have the user is supposed to stop:
 
 ```text
-$ java -jar tla2tools.jar -deadlock spec/PaymentHold.tla
-Error: Invariant NotBoth is violated.
+$ java -jar tla2tools.jar -deadlock spec/UserCache.tla
+Error: Invariant OneLoad is violated.
 Error: The behavior up to this point is:
 State 1: <Initial predicate>
-/\ pc = [approve |-> "idle", expire |-> "idle"]
-/\ settled = FALSE
-/\ captured = FALSE
-/\ released = FALSE
+/\ loads = 0
+/\ cached = FALSE
+/\ pc = [a |-> "idle", b |-> "idle"]
 
-State 2: <StartApprove line 17, col 5 to line 19, col 48 of module PaymentHold>
-/\ pc = [approve |-> "capturing", expire |-> "idle"]
-...
-State 3: <StartExpire line 37, col 5 to line 39, col 48 of module PaymentHold>
-/\ pc = [approve |-> "capturing", expire |-> "releasing"]
-...
-State 4: <CaptureOk line 23, col 5 to line 27, col 25 of module PaymentHold>
-/\ pc = [approve |-> "done", expire |-> "releasing"]
-/\ settled = TRUE
-/\ captured = TRUE
-/\ released = FALSE
+State 2: <Ask line 19, col 5 to line 25, col 23 of module UserCache>
+/\ loads = 1
+/\ cached = FALSE
+/\ pc = [a |-> "loading", b |-> "idle"]
 
-State 5: <ReleaseOk line 43, col 5 to line 47, col 25 of module PaymentHold>
-/\ pc = [approve |-> "done", expire |-> "done"]
-/\ settled = TRUE
-/\ captured = TRUE
-/\ released = TRUE
+State 3: <Ask line 19, col 5 to line 25, col 23 of module UserCache>
+/\ loads = 2
+/\ cached = FALSE
+/\ pc = [a |-> "loading", b |-> "loading"]
 
-16 states generated, 13 distinct states found, 2 states left on queue.
+6 states generated, 6 distinct states found, 3 states left on queue.
 Finished in 00s
 ```
 
 Read it as a timeline:
 
-1. The manager approves. `approve()` reads `settled = false` and calls `capture()`.
-2. The timer fires while the capture is in flight. `expire()` also reads `settled = false` and calls `release()`.
-3. The capture succeeds: the money is taken.
-4. The release succeeds: the hold is given back. The customer paid nothing for an approved order, or the release fails
-   against a hold that is already captured, depending on the bank.
+1. Request `a` misses the cache and calls `loadUser()`.
+2. Request `b` arrives before that load returns. It misses too, and calls `loadUser()` again.
 
-The whole spec has 13 distinct states. TLC checks them in breadth-first order, so the trace it prints is a shortest
-one. Most races need only two or three actors to show up.
+Two queries for one user. With a hundred requests, it is a hundred queries. TLC checks states in breadth-first order,
+so the trace it prints is a shortest one. Most races need only two or three actors to show up.
 
 ## Step 3: the obvious fix, and what it breaks
 
-<Short>Set the flag before the `await`. The race is gone, but TLC finds a hold that is never settled.</Short>
+<Short>Share one load per key. The stampede is gone, but TLC finds a key that fails forever.</Short>
 
-Set the flag before the `await`, so the second handler sees it and backs off. In the spec, `settled' = TRUE` moves from
-the step where the call ends to the step where it starts:
+Keep the load in flight in a second map, and let later requests await the same promise. When the load returns, keep
+the user and remove the entry. This is called single-flight, or request coalescing. In the spec, the load belongs to
+the map entry, not to one request, and every request waiting on it gets the same result:
 
-<CodeFix before={claimModelBefore} after={claimModelAfter} lang="text" title="spec/PaymentHold.tla" />
+<CodeFix before={shareModelBefore} after={shareModelAfter} lang="text" title="spec/UserCache.tla" />
 
-<CodeFix before={claimTsBefore} after={claimTsAfter} lang="ts" title="src/payment-hold.ts" />
+<CodeFix before={shareTsBefore} after={shareTsAfter} lang="ts" title="src/user-cache.ts" />
 
-Run TLC again. `NotBoth` now holds in every state, and TLC moves on to the liveness property:
+Run TLC again. `OneLoad` now holds in every state, and TLC moves on to the liveness property:
 
 ```text
-$ java -jar tla2tools.jar -deadlock spec/PaymentHold.tla
-Checking temporal properties for the complete state space with 11 total distinct states
-Error: Temporal property Settles was violated.
+$ java -jar tla2tools.jar -deadlock spec/UserCache.tla
+Checking 2 branches of temporal properties for the complete state space with 22 total distinct states
+Error: Temporal properties were violated.
 
 Error: The following behavior constitutes a counter-example:
 
 State 1: <Initial predicate>
-/\ pc = [approve |-> "idle", expire |-> "idle"]
-...
-State 2: <StartApprove line 17, col 5 to line 20, col 39 of module PaymentHold>
-/\ pc = [approve |-> "capturing", expire |-> "idle"]
-/\ settled = TRUE
-...
-State 3: <StartExpire line 37, col 5 to line 40, col 39 of module PaymentHold>
-/\ pc = [approve |-> "capturing", expire |-> "done"]
-...
-State 4: <CaptureFails line 31, col 5 to line 33, col 48 of module PaymentHold>
-/\ pc = [approve |-> "done", expire |-> "done"]
-/\ settled = TRUE
-/\ captured = FALSE
-/\ released = FALSE
+/\ loads = 0
+/\ cached = FALSE
+/\ pc = [a |-> "idle", b |-> "idle"]
+/\ entry = "none"
 
-State 5: Stuttering
+State 2: <Ask line 21, col 5 to line 35, col 23 of module UserCache>
+/\ loads = 1
+/\ cached = FALSE
+/\ pc = [a |-> "idle", b |-> "waiting"]
+/\ entry = "pending"
+
+State 3: <LoadFails line 47, col 5 to line 51, col 23 of module UserCache>
+/\ loads = 0
+/\ cached = FALSE
+/\ pc = [a |-> "idle", b |-> "failed"]
+/\ entry = "rejected"
+
+State 4: <Retry line 55, col 5 to line 57, col 41 of module UserCache>
+/\ loads = 0
+/\ cached = FALSE
+/\ pc = [a |-> "idle", b |-> "idle"]
+/\ entry = "rejected"
+
+State 5: <Ask line 21, col 5 to line 35, col 23 of module UserCache>
+/\ loads = 0
+/\ cached = FALSE
+/\ pc = [a |-> "failed", b |-> "idle"]
+/\ entry = "rejected"
+
+State 6: <Retry line 55, col 5 to line 57, col 41 of module UserCache>
+/\ loads = 0
+/\ cached = FALSE
+/\ pc = [a |-> "idle", b |-> "idle"]
+/\ entry = "rejected"
+
+Back to state 3: <Ask line 21, col 5 to line 35, col 23 of module UserCache>
 ```
 
-The manager approves and the flag is set. The timer fires, sees the flag and does nothing. Then the card is declined.
-Nobody is left to release the hold, and `Stuttering` means the system stays in that state forever: the customer's
-money is held with no order behind it.
+Request `b` starts a load, and the database times out. `b` gets the error, but the rejected promise stays in the
+`loading` map: only the success path removes it. From then on, every request finds that promise and fails at once,
+without reaching the database. `Back to state 3` means the run loops forever: the user is never loaded again, until
+the process restarts.
 
-Before the fix, a declined capture left the flag down, and the timer released the hold later. The fix traded a race for
-a stuck state. No test with the word "race" in its name would look for this, and an invariant cannot say it either:
-every single state here is fine. Only the whole run is wrong. That is what liveness properties are for.
+Before the fix, a failed load left nothing behind, and the next request tried again. The fix traded a stampede for a
+stuck key. No test with the word "race" in its name would look for this, and an invariant cannot say it either: every
+single state here is fine. Only the whole run is wrong. That is what liveness properties are for.
 
 ## Step 4: fix it properly
 
-<Short>If the capture fails, `approve()` releases the hold itself. Both properties hold.</Short>
+<Short>Remove the entry when the load ends either way. Both properties hold.</Short>
 
-Whoever sets the flag owns the hold, so it must settle it. If the capture fails, `approve()` releases the hold before
-it rethrows. In the spec, `CaptureFails` now leads to a new `ReleaseAfterFail` step, with fairness like the others:
+The entry must go when the load settles, whether it succeeds or fails. In the TS code that is `.finally()`. In the
+spec, `LoadFails` now sets the entry back to `"none"`, like `LoadOk`:
 
-<CodeFix before={releaseModelBefore} after={releaseModelAfter} lang="text" title="spec/PaymentHold.tla" />
+<CodeFix before={evictModelBefore} after={evictModelAfter} lang="text" title="spec/UserCache.tla" />
 
-<CodeFix before={releaseTsBefore} after={releaseTsAfter} lang="ts" title="src/payment-hold.ts" />
+<CodeFix before={evictTsBefore} after={evictTsAfter} lang="ts" title="src/user-cache.ts" />
 
 ```text
-$ java -jar tla2tools.jar -deadlock spec/PaymentHold.tla
-Checking temporal properties for the complete state space with 12 total distinct states
+$ java -jar tla2tools.jar -deadlock spec/UserCache.tla
+Checking 2 branches of temporal properties for the complete state space with 28 total distinct states
 Finished checking temporal properties in 00s
 Model checking completed. No error has been found.
-17 states generated, 12 distinct states found, 0 states left on queue.
+27 states generated, 14 distinct states found, 0 states left on queue.
 ```
 
-No state breaks `NotBoth`, and every run ends with the money taken or given back.
+No state has two loads at once, and every request gets the user in the end.
 
 ## Step 5: the same spec in Apalache
 
-<Short>Add a type comment to each variable; Apalache finds the same race with Z3.</Short>
+<Short>Add a type comment to each variable; Apalache finds the same double load with Z3.</Short>
 
 Apalache reads the same file. It needs one type comment per variable, and ignores them otherwise, so TLC still runs
 the annotated file:
@@ -383,36 +378,35 @@ the annotated file:
 ```text
 VARIABLES
     \* @type: Bool;
-    settled,
-    \* @type: Bool;
-    captured,
-    \* @type: Bool;
-    released,
+    cached,
+    \* @type: Int;
+    loads,
     \* @type: Str -> Str;
     pc
 ```
 
-On the Step 1 spec it finds the same four-step race:
+On the Step 1 spec it finds the same double load, two steps in:
 
 ```text
-$ apalache-mc check --no-deadlock --inv=NotBoth --length=10 spec/PaymentHold.tla
-State 4: state invariant 0 violated.
+$ apalache-mc check --no-deadlock --inv=OneLoad --length=10 spec/UserCache.tla
+State 2: state invariant 0 violated.
 Found 1 error(s)
 The outcome is: Error
-Total time: 1.503 sec
+Total time: 1.321 sec
 ```
 
-On the fixed spec:
+On the fixed spec, with `@type: Str;` added for `entry`:
 
 ```text
-$ apalache-mc check --no-deadlock --inv=NotBoth --length=10 spec/PaymentHold.tla
-The outcome is: ExecutionsTooShort
+$ apalache-mc check --no-deadlock --inv=OneLoad --length=10 spec/UserCache.tla
+The outcome is: NoError
 Checker reports no error up to computation length 10
-Total time: 1.194 sec
+Total time: 1.834 sec
 ```
 
-`ExecutionsTooShort` means every run of this spec stops before 10 steps, so all of them were checked. Apalache also
-writes the counterexample as `violation1.itf.json` in `_apalache-out/`, the same trace format Quint uses.
+Clients can retry forever, so runs of this spec never stop. Apalache checked every run up to 10 steps; TLC checked
+every state, which covers runs of any length. Apalache also writes a counterexample as `violation1.itf.json` in
+`_apalache-out/`, the same trace format Quint uses.
 
 Which checker to use:
 
@@ -434,23 +428,25 @@ The spec is right. Nothing yet says the TS code behaves like the spec. TLC can w
 explored, with each edge labeled by its action:
 
 ```sh
-java -jar tla2tools.jar -deadlock -dump dot,actionlabels spec/out/graph spec/PaymentHold.tla
+java -jar tla2tools.jar -deadlock -dump dot,actionlabels spec/out/graph spec/UserCache.tla
 ```
 
 That writes `spec/out/graph.dot`: one node per state, one edge per step. The spec is small, so the test can walk every
-path from the first state to a final one. That is every behavior of the spec, not a sample. For each path, it drives the
-real `PaymentHold` with a fake bank whose calls wait until the path says how they end:
+path from the first state until it stops or comes back to a state it has already been in. That is every behavior of
+the spec up to its first loop, not a sample. For each path, it drives the real `UserCache` with a fake database whose
+calls wait until the path says how they end:
 
 ```ts
-// src/payment-hold.tla.test.ts
+// src/user-cache.tla.test.ts
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import { PaymentHold } from './payment-hold';
+import { UserCache } from './user-cache';
 
 // TLC's state graph (-dump dot,actionlabels): one node per state, one edge per step.
+type Status = 'idle' | 'loading' | 'waiting' | 'done' | 'failed';
 interface State {
-  captured: boolean;
-  released: boolean;
+  loads: number;
+  pc: Record<string, Status>;
 }
 interface Edge {
   to: string;
@@ -464,10 +460,10 @@ function readGraph(file: URL) {
   for (const line of readFileSync(file, 'utf8').split('\n')) {
     const node = line.match(/^(-?\d+) \[label="(.*)"(,style = filled)?\]/);
     if (node) {
-      states.set(node[1], {
-        captured: node[2].includes('captured = TRUE'),
-        released: node[2].includes('released = TRUE'),
-      });
+      const pc = Object.fromEntries(
+        [...node[2].matchAll(/(\w+) \|-> \\"(\w+)\\"/g)].map((m) => [m[1], m[2] as Status]),
+      );
+      states.set(node[1], { loads: Number(node[2].match(/loads = (\d+)/)![1]), pc });
       if (node[3]) init = node[1];
     }
     const edge = line.match(/^(-?\d+) -> (-?\d+) \[label="(\w+)"/);
@@ -478,98 +474,124 @@ function readGraph(file: URL) {
   return { states, edges, init };
 }
 
-// Every behavior of the model: each path from the initial state to a state with no next step.
+// Every behavior of the model: each path from the initial state until it stops,
+// or until it comes back to a state it has already been in.
 function allPaths(graph: ReturnType<typeof readGraph>): Edge[][] {
-  const walk = (from: string): Edge[][] => {
+  const walk = (from: string, seen: Set<string>): Edge[][] => {
     const next = graph.edges.get(from) ?? [];
     if (next.length === 0) return [[]];
-    return next.flatMap((e) => walk(e.to).map((rest) => [e, ...rest]));
+    return next.flatMap((e) =>
+      seen.has(e.to) ? [[e]] : walk(e.to, new Set([...seen, e.to])).map((rest) => [e, ...rest]),
+    );
   };
-  return walk(graph.init);
+  return walk(graph.init, new Set([graph.init]));
 }
 
-// Fake bank: each call waits until the replay says how it ends.
+// Fake database: each loadUser() call waits until the replay says how it ends.
 function world() {
-  const bank = { captured: false, released: false };
-  const pending: { kind: 'capture' | 'release'; ok: () => void; fail: () => void }[] = [];
-  const call = (kind: 'capture' | 'release') =>
-    new Promise<void>((resolve, reject) => {
-      pending.push({
-        kind,
-        ok: () => {
-          bank[kind === 'capture' ? 'captured' : 'released'] = true;
-          resolve();
-        },
-        fail: () => reject(new Error(`${kind} failed`)),
-      });
-    });
-  const hold = new PaymentHold('o1', { capture: () => call('capture'), release: () => call('release') });
-  const finish = (kind: 'capture' | 'release', how: 'ok' | 'fail') => {
-    const i = pending.findIndex((p) => p.kind === kind);
-    expect(i, `the model says a ${kind}() call ends here, but the code is not waiting on one`).toBeGreaterThan(-1);
-    pending.splice(i, 1)[0][how]();
+  const db: { caller: string; ok: () => void; fail: () => void }[] = [];
+  let caller = '';
+  const cache = new UserCache({
+    loadUser: (id: string) =>
+      new Promise((resolve, reject) => {
+        db.push({ caller, ok: () => resolve({ id, name: 'Ada' }), fail: () => reject(new Error('timeout')) });
+      }),
+  });
+  const status: Record<string, Status> = { a: 'idle', b: 'idle' };
+  const ask = (who: string) => {
+    caller = who;
+    status[who] = 'waiting';
+    cache.get('u1').then(
+      () => (status[who] = 'done'),
+      () => (status[who] = 'failed'),
+    );
   };
-  return { bank, hold, finish };
+  const finish = (how: 'ok' | 'fail', who: string) => {
+    expect(db.length, 'the model says a load ends here, but no load is running').toBeGreaterThan(0);
+    const i = Math.max(0, db.findIndex((call) => call.caller === who));
+    db.splice(i, 1)[0][how]();
+  };
+  return { db, status, ask, finish };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
-const ignore = (p: Promise<void>) => p.catch(() => {});
+
+// The callers whose status changes in a step. The code cannot tell a request that
+// started a load from one that joined it, so both read as 'waiting'.
+const changed = (from: State, to: State) => Object.keys(to.pc).filter((c) => from.pc[c] !== to.pc[c]);
+const seen = (s: Status) => (s === 'loading' ? 'waiting' : s);
 
 const graph = readGraph(new URL('../spec/out/graph.dot', import.meta.url));
-const paths = allPaths(graph).map((path) => [path.map((e) => e.action).join(' → '), path] as const);
+const steps = (path: Edge[]) => {
+  let from = graph.init;
+  return path.map(({ to, action }) => {
+    const who = changed(graph.states.get(from)!, graph.states.get(to)!);
+    from = to;
+    return { to, action, who: who[0], name: who.length === 1 ? `${action}(${who[0]})` : action };
+  });
+};
+const paths = allPaths(graph)
+  .map(steps)
+  .map((path) => [path.map((s) => s.name).join(' → '), path] as const);
 
 test.each(paths)('%s', async (_name, path) => {
-  const { bank, hold, finish } = world();
+  const { db, status, ask, finish } = world();
 
-  for (const { to, action } of path) {
-    if (action === 'StartApprove') ignore(hold.approve());
-    else if (action === 'StartExpire') ignore(hold.expire());
-    else if (action === 'CaptureOk') finish('capture', 'ok');
-    else if (action === 'CaptureFails') finish('capture', 'fail');
-    else if (action === 'ReleaseOk' || action === 'ReleaseAfterFail') finish('release', 'ok');
+  for (const { to, action, who, name } of path) {
+    if (action === 'Ask') ask(who);
+    else if (action === 'LoadOk') finish('ok', who);
+    else if (action === 'LoadFails') finish('fail', who);
+    else if (action === 'Retry') status[who] = 'idle';
     else throw new Error(`no mapping for action ${action}`);
     await settle();
 
-    expect({ action, ...bank }).toEqual({ action, ...graph.states.get(to) });
-    expect(bank.captured && bank.released, 'captured and released').toBe(false);
+    const model = graph.states.get(to)!;
+    expect(db.length, 'at most one database load at a time').toBeLessThanOrEqual(1);
+    expect({ step: name, loads: db.length, ...status }).toEqual({
+      step: name,
+      loads: model.loads,
+      a: seen(model.pc.a),
+      b: seen(model.pc.b),
+    });
   }
 });
 ```
 
 What it does for each step of a path:
 
-- A start step calls the real `approve()` or `expire()`. It runs until it waits on the bank, or returns at once if
-  the flag is set.
-- An end step makes the waiting `capture()` or `release()` succeed or throw. If the code is not waiting on that call,
-  the code and the spec disagree, and the test says so.
-- After each step, the fake bank must match the spec's `captured` and `released`, and must never have done both.
+- The edge label says which action ran, but not for which request. The test finds the request by comparing the two
+  states: the one whose `pc` changed.
+- `Ask` calls the real `get()`. It returns at once on a hit, or waits on the database.
+- `LoadOk` and `LoadFails` make the waiting `loadUser()` call return or throw. If no call is waiting, the code and the
+  spec disagree, and the test says so.
+- After each step, the database calls in flight and each request's status must match the spec, and there must never
+  be two loads at once.
 - Each path is its own test, named by its steps, so a failure reads as the exact order that breaks.
 
 First, replay the Step 1 spec against the original class. TLC stops at the first violation, so to get the full graph,
 run it once with a config that leaves out the `INVARIANT` line:
 
 ```text
-$ npx vitest run src/payment-hold.tla.test.ts
- ❯ src/payment-hold.tla.test.ts (11 tests | 4 failed)
-   × StartApprove → StartExpire → CaptureOk → ReleaseOk
-   × StartApprove → StartExpire → ReleaseOk → CaptureOk
-   × StartExpire → StartApprove → CaptureOk → ReleaseOk
-   × StartExpire → StartApprove → ReleaseOk → CaptureOk
+$ npx vitest run src/user-cache.tla.test.ts
+ ❯ src/user-cache.tla.test.ts (108 tests | 80 failed)
+   × Ask(a) → Ask(b) → LoadOk(a) → LoadOk(b)
+   × Ask(a) → LoadFails(a) → Ask(b) → Retry(a) → Ask(a) → LoadFails(a)
+   ...
 
-AssertionError: captured and released: expected true to be false
+AssertionError: at most one database load at a time: expected 2 to be less than or equal to 1
 ```
 
-The spec has 11 behaviors. The real class followed the spec at every step of all of them, and broke the rule on the 4
-where both handlers read the flag before either call returned. The TLC counterexample is now a failing vitest on your
-real code.
+The spec has 108 behaviors up to their first loop. The real class followed the spec at every step of all of them, and
+broke the rule on the 80 where both requests were waiting on the database at once. The TLC counterexample is now a
+failing vitest on your real code.
 
-After Step 4, the fixed class against the fixed spec: 7 behaviors, all pass. To check the replay is not passing by
-accident, run the fixed class against the Step 1 graph: 7 of 11 fail with "the model says a release() call ends here,
-but the code is not waiting on one", because the fixed `approve()` no longer lets the timer in. The replay notices when
-the code and the spec differ, not just when the rule breaks.
+After Step 4, the fixed class against the fixed spec: 68 behaviors, all pass. To check the replay is not passing by
+accident, run the fixed class against the Step 3 graph: 32 of 36 fail, first at an `Ask` after a failed load. The
+spec says the request fails at once; the fixed code starts a new load. The replay notices when the code and the spec
+differ, not just when the rule breaks.
 
-One thing the replay cannot do: the Step 3 class against the Step 3 spec passes all 6 behaviors. The stuck hold breaks
-no step and no state, only the run as a whole. TLC's `Settles` check on the spec is what catches it.
+One thing the replay cannot do: the Step 3 class against the Step 3 spec passes all 36 behaviors. The stuck key breaks
+no step and no state, only the run as a whole. TLC's `EveryoneGetsIt` check on the spec is what catches it.
 
 ## Project layout and CI
 
@@ -581,13 +603,13 @@ One repo. The spec sits in its own folder. The graph is written from it on every
 ./
 ├── .github/workflows/ci.yml
 ├── spec/
-│   ├── PaymentHold.tla          the spec: state, steps, NotBoth and Settles
-│   ├── PaymentHold.cfg          which spec and properties TLC checks
+│   ├── UserCache.tla            the spec: state, steps, OneLoad and EveryoneGetsIt
+│   ├── UserCache.cfg            which spec and properties TLC checks
 │   └── out/                     graph and TLC's working files, git-ignored
 ├── src/
-│   ├── payment-hold.ts          the real class
-│   ├── payment-hold.test.ts     normal unit tests
-│   └── payment-hold.tla.test.ts replays spec/out/graph.dot against payment-hold.ts
+│   ├── user-cache.ts            the real class
+│   ├── user-cache.test.ts       normal unit tests
+│   └── user-cache.tla.test.ts   replays spec/out/graph.dot against user-cache.ts
 ├── tools/tla2tools.jar          downloaded, git-ignored
 ├── .gitignore                   node_modules, spec/out/, tools/
 ├── package.json
@@ -599,7 +621,7 @@ Scripts in `package.json`:
 ```json
 "scripts": {
   "tla:install": "mkdir -p tools && curl -sLo tools/tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar",
-  "tla:check": "java -jar tools/tla2tools.jar -deadlock -cleanup -metadir spec/out/meta -dump dot,actionlabels spec/out/graph spec/PaymentHold.tla",
+  "tla:check": "java -jar tools/tla2tools.jar -deadlock -cleanup -metadir spec/out/meta -dump dot,actionlabels spec/out/graph spec/UserCache.tla",
   "pretest": "npm run tla:check",
   "typecheck": "tsc",
   "test": "vitest run"
@@ -651,21 +673,21 @@ What fails when:
 
 | Change | Where CI fails |
 |---|---|
-| A spec change breaks `NotBoth` or `Settles` | `npm test`, in `pretest`: TLC prints the counterexample |
-| The class changes and no longer follows the spec | `payment-hold.tla.test.ts`: the path and step where the code and the spec differ |
-| The spec changes, the class does not | `payment-hold.tla.test.ts`: the new paths no longer match the old class |
-| The spec gets a new action | `payment-hold.tla.test.ts`: `no mapping for action ...` |
+| A spec change breaks `OneLoad` or `EveryoneGetsIt` | `npm test`, in `pretest`: TLC prints the counterexample |
+| The class changes and no longer follows the spec | `user-cache.tla.test.ts`: the path and step where the code and the spec differ |
+| The spec changes, the class does not | `user-cache.tla.test.ts`: the new paths no longer match the old class |
+| The spec gets a new action | `user-cache.tla.test.ts`: `no mapping for action ...` |
 
 ## Making changes
 
 <Short>Change the spec first and check it, then change the code until the replay passes.</Short>
 
-Changing the flow (for example, a manager can reject as well as approve):
+Changing the flow (for example, cached users expire after five minutes):
 
 1. Change the spec first: a new action, the variables it touches, and a rule if there is a new "must never happen" or
    "must always happen".
 2. Run `npm run tla:check` until TLC passes.
-3. Change the class. Map the new action in `payment-hold.tla.test.ts` (which method to call, which call to end).
+3. Change the class. Map the new action in `user-cache.tla.test.ts` (which method to call, which call to end).
 4. Run `npm test` until the replay passes. Commit the spec, the class and the replay test together.
 
 When the graph grows: walking every path works while the spec is small. Past a few thousand paths, replay a sample.
@@ -683,21 +705,21 @@ replay follows the spec's steps.
 You get:
 
 - Every order of steps checked, in the spec, in under a second at this size.
-- Liveness: "every hold is settled in the end" is checked, not only "nothing bad happens". That is how Step 3's stuck
-  hold was found.
+- Liveness: "every request gets the user in the end" is checked, not only "nothing bad happens". That is how Step 3's
+  stuck key was found.
 - A shortest failing order, as a readable trace, instead of a flaky test that fails once a month.
 - A fix you can check before you write it in TS.
-- Every behavior of a small spec replayed against the real code.
+- Every behavior of a small spec, up to its first loop, replayed against the real code.
 
 You do not get:
 
-- A proof about the TS code. TLC checks the spec. The replay checks the code on the spec's behaviors, which is all of
+- A proof about the TS code. TLC checks the spec. The replay checks the code on the spec's behaviors, which covers
   them only because this spec is tiny, and it cannot check liveness in the code.
-- A free spec. You choose where the steps split. This spec splits each handler at its one `await`. If you merge steps
+- A free spec. You choose where the steps split. This spec splits `get()` at its one `await`. If you merge steps
   that the real code keeps apart, the spec hides the bug.
-- Anything the spec leaves out. Here: a `release()` that throws, and a process that crashes between setting the flag
-  and calling the bank. Neither is in the spec, so TLC says nothing about them. Adding them is the next exercise, and
-  it is where a durable-execution engine that retries activities earns its place.
+- Anything the spec leaves out. Here: more than one key, entries that expire, and a second server process with its
+  own cache. None of them is in the spec, so TLC says nothing about them. Two processes are the next exercise: each
+  one coalesces its own requests, and the database still gets one query per process.
 - A familiar syntax. `/\`, `'`, `EXCEPT` and `<>` take a day to get used to. A coding agent writes them well from a
   TS function, and [Quint](/tools/quint) exists for teams who want the same checkers with a friendlier language.
 
@@ -707,11 +729,11 @@ You do not get:
 
 ## How to start in your own project
 
-1. Pick one flow where order matters: a signal and a timer, a retry loop, a lock, a saga with compensation.
+1. Pick one flow where order matters: a cache, a signal and a timer, a retry loop, a lock, a saga with compensation.
 2. Write the rules as "this must never happen" and "this must always happen in the end".
-3. List the variables, including the ones outside your code: calls in flight, what each handler has read.
+3. List the variables, including the ones outside your code: calls in flight, what each request has seen.
 4. Make one action per step between two `await`s in the real code, and one action per way a call can end.
-5. Say which steps are fair (timers fire, calls return) and which are not (a person may never act).
+5. Say which steps are fair (requests arrive, calls return) and which are not (a call may fail).
 6. Run TLC with 2 or 3 actors, then dump the graph and replay it against the real code with controlled fakes.
 
 </Full>
