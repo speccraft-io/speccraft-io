@@ -1,0 +1,13 @@
+export function singleFlight<T>() {
+  const inflight = new Map<string, Promise<T>>();
+  return (key: string, fn: () => Promise<T>) => {
+    const running = inflight.get(key);
+    if (running) return running;
+    const p = fn().then((v) => {
+      inflight.delete(key);
+      return v;
+    });
+    inflight.set(key, p);
+    return p;
+  };
+}

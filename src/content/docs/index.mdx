@@ -14,8 +14,8 @@ head:
 import CodeFix from '../../components/CodeFix.astro';
 import quintBefore from '../../fixes/quint-ts/before.txt?raw';
 import quintAfter from '../../fixes/quint-ts/after.txt?raw';
-import tlaBefore from '../../fixes/tla-share-ts/before.txt?raw';
-import tlaAfter from '../../fixes/tla-evict-ts/after.txt?raw';
+import tlaBefore from '../../fixes/tla-ts/before.txt?raw';
+import tlaAfter from '../../fixes/tla-ts/after.txt?raw';
 import leanBefore from '../../fixes/lean-ts/before.txt?raw';
 import leanAfter from '../../fixes/lean-ts/after.txt?raw';
 import dafnyBefore from '../../fixes/dafny-ts/before.txt?raw';
@@ -33,12 +33,12 @@ and two requests are in flight. If the one for "rea" is slower, it arrives last 
 
 See how this is diagnosed with [Quint](/tools/quint).
 
-## Can one failed database call break a cache key for good?
+## Can one failed call break a key for good?
 
-Two requests miss the cache for the same user at once, and both query the database. Sharing one load fixes that, until
-a load fails: its rejected promise stays in the map, and every later request for that user fails without trying again.
+Callers that ask for the same key at once share one call. If that call fails, its rejected promise stays in the map,
+and every later caller gets the old error without trying again.
 
-<CodeFix before={tlaBefore} after={tlaAfter} title="src/user-cache.ts" />
+<CodeFix before={tlaBefore} after={tlaAfter} title="src/single-flight.ts" />
 
 See how this is diagnosed with [TLA+](/tools/tla-plus).
 

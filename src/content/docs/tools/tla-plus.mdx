@@ -1,6 +1,6 @@
 ---
 title: TLA+ for TypeScript developers
-description: A practical first look at TLA+ from a TypeScript project. Model a user cache where two requests miss at once, let TLC find the double load and then the stuck key the obvious fix creates, and replay every behavior of the spec against the real TS code in vitest.
+description: A practical first look at TLA+ from a TypeScript project. Model a single-flight helper that shares one call per key, let TLC find the failed call that breaks the key for good, and replay every behavior of the spec against the real TS code in vitest.
 views: true
 tableOfContents: true
 trend:
@@ -17,14 +17,10 @@ requires:
   - 'Coding agent (TS ↔ TLA+)'
 ---
 import CodeFix from '../../../components/CodeFix.astro';
-import shareModelBefore from '../../../fixes/tla-share-model/before.txt?raw';
-import shareModelAfter from '../../../fixes/tla-share-model/after.txt?raw';
-import shareTsBefore from '../../../fixes/tla-share-ts/before.txt?raw';
-import shareTsAfter from '../../../fixes/tla-share-ts/after.txt?raw';
-import evictModelBefore from '../../../fixes/tla-evict-model/before.txt?raw';
-import evictModelAfter from '../../../fixes/tla-evict-model/after.txt?raw';
-import evictTsBefore from '../../../fixes/tla-evict-ts/before.txt?raw';
-import evictTsAfter from '../../../fixes/tla-evict-ts/after.txt?raw';
+import modelBefore from '../../../fixes/tla-model/before.txt?raw';
+import modelAfter from '../../../fixes/tla-model/after.txt?raw';
+import tsBefore from '../../../fixes/tla-ts/before.txt?raw';
+import tsAfter from '../../../fixes/tla-ts/after.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
@@ -45,7 +41,7 @@ TLA+ describes a system as state, steps and "must never happen" rules, checked i
 language and checks the spec, not the real code. For tools that do the same kind of checking with the model written
 in TypeScript, see [TypeScript tools](/ts-tools); for the wider field, see [Non-TypeScript tools](/tools/non-ts-tools).
 
-<Short>Write the spec, let TLC find the bad order and the stuck key, then replay every behavior of the spec against the real TS code.</Short>
+<Short>Write the spec, let TLC find the order that breaks the key for good, then replay every behavior of the spec against the real TS code.</Short>
 
 <Full>
 
@@ -54,8 +50,8 @@ in TypeScript, see [TypeScript tools](/ts-tools); for the wider field, see [Non-
 TLA+ asks for a second, much smaller description of the system in a `.tla` file. You do not annotate your TS code.
 That is extra work, and it pays back in three ways:
 
-- Isolation. The spec has no framework, no database driver, no `async`. Only the state and the steps that matter for
-  the rule. Each `await` in the real code becomes a point where the spec can switch to another step.
+- Isolation. The spec has no framework, no network, no `async`. Only the state and the steps that matter for the rule.
+  Each `await` in the real code becomes a point where the spec can switch to another step.
 - Freedom. You choose what to leave out and how coarse the steps are. You can try a different design in minutes and
   check it before anyone changes production code.
 - A thinking tool. To write the spec you have to name every state, every step, every "must never happen" and every
@@ -68,60 +64,56 @@ test in vitest.
 
 ## Why you would want this
 
-<Short>The test passes, but two requests that miss the cache at once both query the database.</Short>
+<Short>The test passes, but one failed call leaves its rejected promise in the map, and that key fails forever.</Short>
 
-A service keeps users in memory. On a miss, `get()` loads the user from the database and keeps it:
+When many callers ask for the same thing at once, only one call should run, and the others should share it. This is
+called single-flight, or request coalescing:
 
 ```ts
-// src/user-cache.ts
-export interface User {
-  id: string;
-  name: string;
-}
-
-export interface Deps {
-  loadUser(id: string): Promise<User>; // one database query
-}
-
-export class UserCache {
-  private users = new Map<string, User>();
-
-  constructor(private deps: Deps) {}
-
-  async get(id: string): Promise<User> {
-    const hit = this.users.get(id);
-    if (hit) return hit;
-    const user = await this.deps.loadUser(id);
-    this.users.set(id, user);
-    return user;
-  }
+// src/single-flight.ts
+// Callers that ask for the same key while fn() runs share one call.
+export function singleFlight<T>() {
+  const inflight = new Map<string, Promise<T>>();
+  return (key: string, fn: () => Promise<T>) => {
+    const running = inflight.get(key);
+    if (running) return running;
+    const p = fn().then((v) => {
+      inflight.delete(key);
+      return v;
+    });
+    inflight.set(key, p);
+    return p;
+  };
 }
 ```
 
 ```ts
-// src/user-cache.test.ts
-test('the second get() is served from the cache', async () => {
-  const { db, deps } = fakeDb();
-  const cache = new UserCache(deps);
-  await cache.get('u1');
-  await cache.get('u1');
-  expect(db.queries).toBe(1);
+// src/single-flight.test.ts
+test('five callers at once share one call', async () => {
+  const flight = singleFlight<string>();
+  let calls = 0;
+  const fn = async () => {
+    calls++;
+    return 'v';
+  };
+  await Promise.all([1, 2, 3, 4, 5].map(() => flight('u1', fn)));
+  expect(calls).toBe(1);
 });
 ```
 
-The test passes. It lets the first `get()` finish before the second one starts. In production, a popular user's entry
-expires and a hundred requests for that user arrive within the same few milliseconds. Each one misses, because none of
-the loads has returned yet, and each one queries the database. This is a cache stampede. It hits the database at the
-moment it is busiest. TLC tries every order.
+The test passes, and `fn` never fails in it. In production, the call times out once. The promise in the map is now
+rejected, and only the success path removes it. Every later caller for that key finds it and gets the old error at
+once, without calling `fn` again, until the process restarts. TLC tries every order, including the ones where `fn`
+fails.
 
 <Full>
 
 ## When TLA+ fits
 
-- Several actors change shared state: requests, handlers, timers, retries, queues, locks, leader election, sagas.
-- The bug you fear is about order: "what if a second request arrives while the first load is in flight?"
-- The rule can be said as "this must never happen" (never two loads at once) or "this must always happen in the end"
-  (every request gets the user). TLC checks both kinds.
+- Several actors change shared state: callers, handlers, timers, retries, queues, locks, leader election, sagas.
+- The bug you fear is about order: "what if a caller arrives after the call failed?"
+- The rule can be said as "this must never happen" or "this must always happen in the end" (every caller gets a
+  value). TLC checks both kinds.
 
 TLA+ is not the tool for proving one function's math right for every input. See the [Lean](/tools/lean) and
 [Dafny](/tools/dafny) pages for that.
@@ -155,256 +147,188 @@ by `/\` (and). A line without `'` is a condition: if it is false, the action can
 of `x` after this step". Every action must say what every variable becomes, which is what `UNCHANGED` is for.
 
 ```text
----- MODULE UserCache ----
-\* Two requests ask a cache for the same user at once. On a miss,
-\* get() loads the user from the database and keeps it.
-EXTENDS Naturals
+---- MODULE SingleFlight ----
+\* Two callers ask for the same key. The first one starts fn(),
+\* the other one shares its promise while it runs.
 
 Callers == {"a", "b"}
 
-VARIABLES cached, loads, pc
+VARIABLES entry, pc
 
-vars == <<cached, loads, pc>>
+vars == <<entry, pc>>
 
 Init ==
-    /\ cached = FALSE
-    /\ loads = 0
+    /\ entry = "none"
     /\ pc = [c \in Callers |-> "idle"]
 
-\* get() starts: a hit returns at once, a miss awaits loadUser().
-Ask(c) ==
+\* A caller asks: it shares the promise in the map, or starts fn() and puts it there.
+Call(c) ==
     /\ pc[c] = "idle"
-    /\ IF cached
-         THEN /\ pc' = [pc EXCEPT ![c] = "done"]
-              /\ UNCHANGED loads
-         ELSE /\ pc' = [pc EXCEPT ![c] = "loading"]
-              /\ loads' = loads + 1
-    /\ UNCHANGED cached
+    /\ pc' = [pc EXCEPT ![c] = IF entry = "failed" THEN "failed" ELSE "waiting"]
+    /\ entry' = IF entry = "none" THEN "running" ELSE entry
 
-\* loadUser() returns, and get() keeps the user.
-LoadOk(c) ==
-    /\ pc[c] = "loading"
-    /\ cached' = TRUE
-    /\ loads' = loads - 1
-    /\ pc' = [pc EXCEPT ![c] = "done"]
+\* fn() resolves: the entry is removed, and every waiting caller gets the value.
+Resolve ==
+    /\ entry = "running"
+    /\ entry' = "none"
+    /\ pc' = [c \in Callers |-> IF pc[c] = "waiting" THEN "done" ELSE pc[c]]
 
-\* loadUser() throws (a timeout, a dropped connection). get() rethrows.
-LoadFails(c) ==
-    /\ pc[c] = "loading"
-    /\ loads' = loads - 1
-    /\ pc' = [pc EXCEPT ![c] = "failed"]
-    /\ UNCHANGED cached
+\* fn() rejects: every waiting caller gets the error, and the entry stays.
+Reject ==
+    /\ entry = "running"
+    /\ entry' = "failed"
+    /\ pc' = [c \in Callers |-> IF pc[c] = "waiting" THEN "failed" ELSE pc[c]]
 
-\* The request got an error, and the client asks again.
+\* A caller got an error and tries again.
 Retry(c) ==
     /\ pc[c] = "failed"
     /\ pc' = [pc EXCEPT ![c] = "idle"]
-    /\ UNCHANGED <<cached, loads>>
+    /\ UNCHANGED entry
 
-Next == \E c \in Callers : Ask(c) \/ LoadOk(c) \/ LoadFails(c) \/ Retry(c)
+Next == Resolve \/ Reject \/ \E c \in Callers : Call(c) \/ Retry(c)
 
-\* Requests arrive and clients retry. A load may fail, but not every time.
+\* Callers call and retry. fn() may reject, but not every time.
 Spec ==
     /\ Init /\ [][Next]_vars
-    /\ \A c \in Callers : WF_vars(Ask(c)) /\ WF_vars(Retry(c)) /\ SF_vars(LoadOk(c))
+    /\ SF_vars(Resolve)
+    /\ \A c \in Callers : WF_vars(Call(c)) /\ WF_vars(Retry(c))
 
-\* At most one database load for the user at a time.
-OneLoad == loads <= 1
-
-\* Every request gets the user in the end.
+\* Every caller gets a value in the end.
 EveryoneGetsIt == \A c \in Callers : <>(pc[c] = "done")
+
+\* No failed call is left in the map.
+NoFailedEntry == entry /= "failed"
 ====
 ```
 
 And the config file TLC reads next to it:
 
 ```text
-\* spec/UserCache.cfg
+\* spec/SingleFlight.cfg
 SPECIFICATION Spec
-INVARIANT OneLoad
 PROPERTY EveryoneGetsIt
 ```
 
 How to read it:
 
-- The variables are the whole world, not just the class: `cached` (the user is in the cache), `loads` (database
-  queries in flight), and `pc` (where each request is, like a program counter).
-- Two requests, `"a"` and `"b"`, are enough to show a race. `[c \in Callers |-> "idle"]` is a map, like
-  `Record<string, string>`. `pc[c]` reads it, `[pc EXCEPT ![c] = "done"]` returns an updated copy.
-- `Ask(c)` is an action with a parameter: one for each request. `get()` is split into steps exactly where the TS code
-  has an `await`: `Ask` (the cache check and the call to `loadUser`), then `LoadOk` or `LoadFails` (how the call ends).
-  `Retry` is the client asking again after an error.
-- `Next` says what can happen next: any step of any request whose conditions hold. TLC tries each one.
-- `Spec` is the whole system: start in `Init`, then take `Next` steps. `WF` and `SF` are fairness: requests do arrive,
-  clients do retry, and a load may fail but not every time. `SF` (strong fairness) is what says "not every time": a
-  load that keeps being tried succeeds in the end.
-- `OneLoad` is an invariant: true in every state. `EveryoneGetsIt` is a liveness property: `<>` means "at some point".
-  It says every request gets the user in the end.
+- Two variables: `entry` is the map entry for one key (`"none"`, `"running"` or `"failed"`), and `pc` is where each
+  caller is, like a program counter.
+- Two callers, `"a"` and `"b"`, are enough. `[c \in Callers |-> "idle"]` is a map, like `Record<string, string>`.
+  `pc[c]` reads it, `[pc EXCEPT ![c] = "done"]` returns an updated copy.
+- `Call(c)` has a parameter: there is one for each caller. `Resolve` and `Reject` are the two ways `fn()` can end.
+  `Retry` is a caller asking again after an error.
+- `Next` says what can happen next: any step whose conditions hold. TLC tries each one.
+- `Spec` is the whole system: start in `Init`, then take `Next` steps. `WF` and `SF` are fairness: callers do call
+  and retry, and `fn()` may reject, but not every time. `SF` (strong fairness) is what says "not every time".
+- `EveryoneGetsIt` is a liveness property: `<>` means "at some point". It says every caller gets a value in the end.
 
 ## Step 2: let TLC find the bad order
 
-<Short>TLC finds the double load in under a second, in 3 states.</Short>
+<Short>TLC finds a run where no caller ever gets a value again, in under a second.</Short>
 
-`-deadlock` turns off TLC's deadlock check, since a run where both requests have the user is supposed to stop:
-
-```text
-$ java -jar tla2tools.jar -deadlock spec/UserCache.tla
-Error: Invariant OneLoad is violated.
-Error: The behavior up to this point is:
-State 1: <Initial predicate>
-/\ loads = 0
-/\ cached = FALSE
-/\ pc = [a |-> "idle", b |-> "idle"]
-
-State 2: <Ask line 19, col 5 to line 25, col 23 of module UserCache>
-/\ loads = 1
-/\ cached = FALSE
-/\ pc = [a |-> "loading", b |-> "idle"]
-
-State 3: <Ask line 19, col 5 to line 25, col 23 of module UserCache>
-/\ loads = 2
-/\ cached = FALSE
-/\ pc = [a |-> "loading", b |-> "loading"]
-
-6 states generated, 6 distinct states found, 3 states left on queue.
-Finished in 00s
-```
-
-Read it as a timeline:
-
-1. Request `a` misses the cache and calls `loadUser()`.
-2. Request `b` arrives before that load returns. It misses too, and calls `loadUser()` again.
-
-Two queries for one user. With a hundred requests, it is a hundred queries. TLC checks states in breadth-first order,
-so the trace it prints is a shortest one. Most races need only two or three actors to show up.
-
-## Step 3: the obvious fix, and what it breaks
-
-<Short>Share one load per key. The stampede is gone, but TLC finds a key that fails forever.</Short>
-
-Keep the load in flight in a second map, and let later requests await the same promise. When the load returns, keep
-the user and remove the entry. This is called single-flight, or request coalescing. In the spec, the load belongs to
-the map entry, not to one request, and every request waiting on it gets the same result:
-
-<CodeFix before={shareModelBefore} after={shareModelAfter} lang="text" title="spec/UserCache.tla" />
-
-<CodeFix before={shareTsBefore} after={shareTsAfter} lang="ts" title="src/user-cache.ts" />
-
-Run TLC again. `OneLoad` now holds in every state, and TLC moves on to the liveness property:
+`-deadlock` turns off TLC's deadlock check, since a run where both callers have a value is supposed to stop:
 
 ```text
-$ java -jar tla2tools.jar -deadlock spec/UserCache.tla
-Checking 2 branches of temporal properties for the complete state space with 22 total distinct states
+$ java -jar tla2tools.jar -deadlock spec/SingleFlight.tla
+Checking 2 branches of temporal properties for the complete state space with 34 total distinct states
 Error: Temporal properties were violated.
 
 Error: The following behavior constitutes a counter-example:
 
 State 1: <Initial predicate>
-/\ loads = 0
-/\ cached = FALSE
 /\ pc = [a |-> "idle", b |-> "idle"]
 /\ entry = "none"
 
-State 2: <Ask line 21, col 5 to line 35, col 23 of module UserCache>
-/\ loads = 1
-/\ cached = FALSE
+State 2: <Call line 17, col 5 to line 19, col 59 of module SingleFlight>
 /\ pc = [a |-> "idle", b |-> "waiting"]
-/\ entry = "pending"
+/\ entry = "running"
 
-State 3: <LoadFails line 47, col 5 to line 51, col 23 of module UserCache>
-/\ loads = 0
-/\ cached = FALSE
+State 3: <Reject line 29, col 5 to line 31, col 78 of module SingleFlight>
 /\ pc = [a |-> "idle", b |-> "failed"]
-/\ entry = "rejected"
+/\ entry = "failed"
 
-State 4: <Retry line 55, col 5 to line 57, col 41 of module UserCache>
-/\ loads = 0
-/\ cached = FALSE
-/\ pc = [a |-> "idle", b |-> "idle"]
-/\ entry = "rejected"
+State 4: <Call line 17, col 5 to line 19, col 59 of module SingleFlight>
+/\ pc = [a |-> "failed", b |-> "failed"]
+/\ entry = "failed"
 
-State 5: <Ask line 21, col 5 to line 35, col 23 of module UserCache>
-/\ loads = 0
-/\ cached = FALSE
+State 5: <Retry line 35, col 5 to line 37, col 22 of module SingleFlight>
 /\ pc = [a |-> "failed", b |-> "idle"]
-/\ entry = "rejected"
+/\ entry = "failed"
 
-State 6: <Retry line 55, col 5 to line 57, col 41 of module UserCache>
-/\ loads = 0
-/\ cached = FALSE
-/\ pc = [a |-> "idle", b |-> "idle"]
-/\ entry = "rejected"
+State 6: <Call line 17, col 5 to line 19, col 59 of module SingleFlight>
+/\ pc = [a |-> "failed", b |-> "failed"]
+/\ entry = "failed"
 
-Back to state 3: <Ask line 21, col 5 to line 35, col 23 of module UserCache>
+Back to state 3: <Retry line 35, col 5 to line 37, col 22 of module SingleFlight>
 ```
 
-Request `b` starts a load, and the database times out. `b` gets the error, but the rejected promise stays in the
-`loading` map: only the success path removes it. From then on, every request finds that promise and fails at once,
-without reaching the database. `Back to state 3` means the run loops forever: the user is never loaded again, until
-the process restarts.
+Read it as a timeline:
 
-Before the fix, a failed load left nothing behind, and the next request tried again. The fix traded a stampede for a
-stuck key. No test with the word "race" in its name would look for this, and an invariant cannot say it either: every
-single state here is fine. Only the whole run is wrong. That is what liveness properties are for.
+1. Caller `b` calls, and `fn()` starts.
+2. `fn()` rejects. `b` gets the error, and the failed entry stays in the map.
+3. Caller `a` calls, finds the failed entry, and gets the old error at once.
+4. `b` retries and gets the same error. `Back to state 3` means this loops forever: `fn()` is never called again.
 
-## Step 4: fix it properly
+No test with the word "race" in its name would look for this, and an invariant cannot say it either: every single
+state here looks fine. Only the whole run is wrong. That is what liveness properties are for.
 
-<Short>Remove the entry when the load ends either way. Both properties hold.</Short>
+## Step 3: fix it
 
-The entry must go when the load settles, whether it succeeds or fails. In the TS code that is `.finally()`. In the
-spec, `LoadFails` now sets the entry back to `"none"`, like `LoadOk`:
+<Short>Remove the entry when the call ends either way. The property holds.</Short>
 
-<CodeFix before={evictModelBefore} after={evictModelAfter} lang="text" title="spec/UserCache.tla" />
+The entry must go when the call settles, whether it resolves or rejects. In the TS code that is `.finally()`. In the
+spec, `Reject` now sets the entry back to `"none"`, like `Resolve`:
 
-<CodeFix before={evictTsBefore} after={evictTsAfter} lang="ts" title="src/user-cache.ts" />
+<CodeFix before={modelBefore} after={modelAfter} lang="text" title="spec/SingleFlight.tla" />
+
+<CodeFix before={tsBefore} after={tsAfter} lang="ts" title="src/single-flight.ts" />
 
 ```text
-$ java -jar tla2tools.jar -deadlock spec/UserCache.tla
-Checking 2 branches of temporal properties for the complete state space with 28 total distinct states
+$ java -jar tla2tools.jar -deadlock spec/SingleFlight.tla
+Checking 2 branches of temporal properties for the complete state space with 32 total distinct states
 Finished checking temporal properties in 00s
 Model checking completed. No error has been found.
-27 states generated, 14 distinct states found, 0 states left on queue.
+31 states generated, 16 distinct states found, 0 states left on queue.
 ```
 
-No state has two loads at once, and every request gets the user in the end.
+Every caller gets a value in the end, in every run.
 
-## Step 5: the same spec in Apalache
+## Step 4: the same spec in Apalache
 
-<Short>Add a type comment to each variable; Apalache finds the same double load with Z3.</Short>
+<Short>Add a type comment to each variable; Apalache checks the "never" rule with Z3.</Short>
 
 Apalache reads the same file. It needs one type comment per variable, and ignores them otherwise, so TLC still runs
 the annotated file:
 
 ```text
 VARIABLES
-    \* @type: Bool;
-    cached,
-    \* @type: Int;
-    loads,
+    \* @type: Str;
+    entry,
     \* @type: Str -> Str;
     pc
 ```
 
-On the Step 1 spec it finds the same double load, two steps in:
+Apalache checks "must never happen" rules; it has no fairness, so it cannot check `EveryoneGetsIt`. The same bug as a
+"never" rule is the last line of the spec: `NoFailedEntry`, no failed call is left in the map. On the Step 1 spec:
 
 ```text
-$ apalache-mc check --no-deadlock --inv=OneLoad --length=10 spec/UserCache.tla
+$ apalache-mc check --no-deadlock --inv=NoFailedEntry --length=10 spec/SingleFlight.tla
 State 2: state invariant 0 violated.
 Found 1 error(s)
 The outcome is: Error
-Total time: 1.321 sec
+Total time: 1.256 sec
 ```
 
-On the fixed spec, with `@type: Str;` added for `entry`:
+On the fixed spec:
 
 ```text
-$ apalache-mc check --no-deadlock --inv=OneLoad --length=10 spec/UserCache.tla
+$ apalache-mc check --no-deadlock --inv=NoFailedEntry --length=10 spec/SingleFlight.tla
 The outcome is: NoError
 Checker reports no error up to computation length 10
-Total time: 1.834 sec
+Total time: 1.360 sec
 ```
 
-Clients can retry forever, so runs of this spec never stop. Apalache checked every run up to 10 steps; TLC checked
+Callers can retry forever, so runs of this spec never stop. Apalache checked every run up to 10 steps; TLC checked
 every state, which covers runs of any length. Apalache also writes a counterexample as `violation1.itf.json` in
 `_apalache-out/`, the same trace format Quint uses.
 
@@ -420,32 +344,32 @@ Which checker to use:
 
 Start with TLC. Reach for Apalache when a variable holds amounts or large numbers and TLC's state count blows up.
 
-## Step 6: replay every behavior against the real TS code (use AI)
+## Step 5: replay every behavior against the real TS code (use AI)
 
-<Short>TLC writes its whole state graph; vitest walks every path in it against the real class.</Short>
+<Short>TLC writes its whole state graph; vitest walks every path in it against the real function.</Short>
 
 The spec is right. Nothing yet says the TS code behaves like the spec. TLC can write the whole state graph it
 explored, with each edge labeled by its action:
 
 ```sh
-java -jar tla2tools.jar -deadlock -dump dot,actionlabels spec/out/graph spec/UserCache.tla
+java -jar tla2tools.jar -deadlock -dump dot,actionlabels spec/out/graph spec/SingleFlight.tla
 ```
 
 That writes `spec/out/graph.dot`: one node per state, one edge per step. The spec is small, so the test can walk every
 path from the first state until it stops or comes back to a state it has already been in. That is every behavior of
-the spec up to its first loop, not a sample. For each path, it drives the real `UserCache` with a fake database whose
-calls wait until the path says how they end:
+the spec up to its first loop, not a sample. For each path, it drives the real `singleFlight` with an `fn` whose calls
+wait until the path says how they end:
 
 ```ts
-// src/user-cache.tla.test.ts
+// src/single-flight.tla.test.ts
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import { UserCache } from './user-cache';
+import { singleFlight } from './single-flight';
 
 // TLC's state graph (-dump dot,actionlabels): one node per state, one edge per step.
-type Status = 'idle' | 'loading' | 'waiting' | 'done' | 'failed';
+type Status = 'idle' | 'waiting' | 'done' | 'failed';
 interface State {
-  loads: number;
+  running: boolean;
   pc: Record<string, Status>;
 }
 interface Edge {
@@ -463,7 +387,7 @@ function readGraph(file: URL) {
       const pc = Object.fromEntries(
         [...node[2].matchAll(/(\w+) \|-> \\"(\w+)\\"/g)].map((m) => [m[1], m[2] as Status]),
       );
-      states.set(node[1], { loads: Number(node[2].match(/loads = (\d+)/)![1]), pc });
+      states.set(node[1], { running: node[2].includes('entry = \\"running\\"'), pc });
       if (node[3]) init = node[1];
     }
     const edge = line.match(/^(-?\d+) -> (-?\d+) \[label="(\w+)"/);
@@ -487,47 +411,41 @@ function allPaths(graph: ReturnType<typeof readGraph>): Edge[][] {
   return walk(graph.init, new Set([graph.init]));
 }
 
-// Fake database: each loadUser() call waits until the replay says how it ends.
+// Each fn() call waits until the replay says how it ends.
 function world() {
-  const db: { caller: string; ok: () => void; fail: () => void }[] = [];
-  let caller = '';
-  const cache = new UserCache({
-    loadUser: (id: string) =>
-      new Promise((resolve, reject) => {
-        db.push({ caller, ok: () => resolve({ id, name: 'Ada' }), fail: () => reject(new Error('timeout')) });
-      }),
-  });
+  const calls: { ok: () => void; fail: () => void }[] = [];
+  const fn = () =>
+    new Promise<string>((resolve, reject) => {
+      calls.push({ ok: () => resolve('v'), fail: () => reject(new Error('down')) });
+    });
+  const flight = singleFlight<string>();
   const status: Record<string, Status> = { a: 'idle', b: 'idle' };
-  const ask = (who: string) => {
-    caller = who;
-    status[who] = 'waiting';
-    cache.get('u1').then(
-      () => (status[who] = 'done'),
-      () => (status[who] = 'failed'),
+  const call = (c: string) => {
+    status[c] = 'waiting';
+    flight('k', fn).then(
+      () => (status[c] = 'done'),
+      () => (status[c] = 'failed'),
     );
   };
-  const finish = (how: 'ok' | 'fail', who: string) => {
-    expect(db.length, 'the model says a load ends here, but no load is running').toBeGreaterThan(0);
-    const i = Math.max(0, db.findIndex((call) => call.caller === who));
-    db.splice(i, 1)[0][how]();
+  const finish = (how: 'ok' | 'fail') => {
+    expect(calls.length, 'the model says fn() ends here, but no call is running').toBe(1);
+    calls.pop()![how]();
   };
-  return { db, status, ask, finish };
+  return { calls, status, call, finish };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-// The callers whose status changes in a step. The code cannot tell a request that
-// started a load from one that joined it, so both read as 'waiting'.
-const changed = (from: State, to: State) => Object.keys(to.pc).filter((c) => from.pc[c] !== to.pc[c]);
-const seen = (s: Status) => (s === 'loading' ? 'waiting' : s);
-
+// The edge label has no caller: it is the one whose status changes.
 const graph = readGraph(new URL('../spec/out/graph.dot', import.meta.url));
 const steps = (path: Edge[]) => {
   let from = graph.init;
   return path.map(({ to, action }) => {
-    const who = changed(graph.states.get(from)!, graph.states.get(to)!);
+    const [a, b] = [graph.states.get(from)!, graph.states.get(to)!];
+    const who = Object.keys(b.pc).filter((c) => a.pc[c] !== b.pc[c]);
     from = to;
-    return { to, action, who: who[0], name: who.length === 1 ? `${action}(${who[0]})` : action };
+    const name = action === 'Call' || action === 'Retry' ? `${action}(${who[0]})` : action;
+    return { to, action, who: who[0], name };
   });
 };
 const paths = allPaths(graph)
@@ -535,23 +453,21 @@ const paths = allPaths(graph)
   .map((path) => [path.map((s) => s.name).join(' → '), path] as const);
 
 test.each(paths)('%s', async (_name, path) => {
-  const { db, status, ask, finish } = world();
+  const { calls, status, call, finish } = world();
 
   for (const { to, action, who, name } of path) {
-    if (action === 'Ask') ask(who);
-    else if (action === 'LoadOk') finish('ok', who);
-    else if (action === 'LoadFails') finish('fail', who);
+    if (action === 'Call') call(who);
+    else if (action === 'Resolve') finish('ok');
+    else if (action === 'Reject') finish('fail');
     else if (action === 'Retry') status[who] = 'idle';
     else throw new Error(`no mapping for action ${action}`);
     await settle();
 
     const model = graph.states.get(to)!;
-    expect(db.length, 'at most one database load at a time').toBeLessThanOrEqual(1);
-    expect({ step: name, loads: db.length, ...status }).toEqual({
+    expect({ step: name, running: calls.length === 1, ...status }).toEqual({
       step: name,
-      loads: model.loads,
-      a: seen(model.pc.a),
-      b: seen(model.pc.b),
+      running: model.running,
+      ...model.pc,
     });
   }
 });
@@ -559,39 +475,39 @@ test.each(paths)('%s', async (_name, path) => {
 
 What it does for each step of a path:
 
-- The edge label says which action ran, but not for which request. The test finds the request by comparing the two
+- The edge label says which action ran, but not for which caller. The test finds the caller by comparing the two
   states: the one whose `pc` changed.
-- `Ask` calls the real `get()`. It returns at once on a hit, or waits on the database.
-- `LoadOk` and `LoadFails` make the waiting `loadUser()` call return or throw. If no call is waiting, the code and the
-  spec disagree, and the test says so.
-- After each step, the database calls in flight and each request's status must match the spec, and there must never
-  be two loads at once.
-- Each path is its own test, named by its steps, so a failure reads as the exact order that breaks.
+- `Call` calls the real function. `Resolve` and `Reject` make the waiting `fn()` call resolve or reject. If no call is
+  waiting, the code and the spec disagree, and the test says so.
+- After each step, whether `fn()` is running and each caller's status must match the spec.
+- Each path is its own test, named by its steps, so a failure reads as the exact order that differs.
 
-First, replay the Step 1 spec against the original class. TLC stops at the first violation, so to get the full graph,
-run it once with a config that leaves out the `INVARIANT` line:
+Replay the fixed spec against the original function, the way it goes when you fix the spec first:
 
 ```text
-$ npx vitest run src/user-cache.tla.test.ts
- ❯ src/user-cache.tla.test.ts (108 tests | 80 failed)
-   × Ask(a) → Ask(b) → LoadOk(a) → LoadOk(b)
-   × Ask(a) → LoadFails(a) → Ask(b) → Retry(a) → Ask(a) → LoadFails(a)
+$ npx vitest run src/single-flight.tla.test.ts
+ ❯ src/single-flight.tla.test.ts (88 tests | 76 failed)
+   × Call(a) → Reject → Call(b) → Reject → Retry(b)
    ...
 
-AssertionError: at most one database load at a time: expected 2 to be less than or equal to 1
+AssertionError: expected { step: 'Call(b)', …(3) } to deeply equal { Object (step, running, ...) }
+
+  {
+    "a": "failed",
+-   "b": "waiting",
+-   "running": true,
++   "b": "failed",
++   "running": false,
+    "step": "Call(b)",
+  }
 ```
 
-The spec has 108 behaviors up to their first loop. The real class followed the spec at every step of all of them, and
-broke the rule on the 80 where both requests were waiting on the database at once. The TLC counterexample is now a
-failing vitest on your real code.
+After `a`'s call rejected, the spec says `b`'s call starts a new `fn()`. The original code gives `b` the old error
+instead. With the fix from Step 3, all 88 behaviors pass.
 
-After Step 4, the fixed class against the fixed spec: 68 behaviors, all pass. To check the replay is not passing by
-accident, run the fixed class against the Step 3 graph: 32 of 36 fail, first at an `Ask` after a failed load. The
-spec says the request fails at once; the fixed code starts a new load. The replay notices when the code and the spec
-differ, not just when the rule breaks.
-
-One thing the replay cannot do: the Step 3 class against the Step 3 spec passes all 36 behaviors. The stuck key breaks
-no step and no state, only the run as a whole. TLC's `EveryoneGetsIt` check on the spec is what catches it.
+One thing the replay cannot do: the original function against the Step 1 spec passes all 38 behaviors. The code does
+what that spec says, step by step. The stuck key breaks no step and no state, only the run as a whole. TLC's
+`EveryoneGetsIt` check on the spec is what catches it.
 
 ## Project layout and CI
 
@@ -603,15 +519,15 @@ One repo. The spec sits in its own folder. The graph is written from it on every
 ./
 ├── .github/workflows/ci.yml
 ├── spec/
-│   ├── UserCache.tla            the spec: state, steps, OneLoad and EveryoneGetsIt
-│   ├── UserCache.cfg            which spec and properties TLC checks
-│   └── out/                     graph and TLC's working files, git-ignored
+│   ├── SingleFlight.tla            the spec: state, steps and EveryoneGetsIt
+│   ├── SingleFlight.cfg            which spec and properties TLC checks
+│   └── out/                        graph and TLC's working files, git-ignored
 ├── src/
-│   ├── user-cache.ts            the real class
-│   ├── user-cache.test.ts       normal unit tests
-│   └── user-cache.tla.test.ts   replays spec/out/graph.dot against user-cache.ts
-├── tools/tla2tools.jar          downloaded, git-ignored
-├── .gitignore                   node_modules, spec/out/, tools/
+│   ├── single-flight.ts            the real function
+│   ├── single-flight.test.ts       normal unit tests
+│   └── single-flight.tla.test.ts   replays spec/out/graph.dot against single-flight.ts
+├── tools/tla2tools.jar             downloaded, git-ignored
+├── .gitignore                      node_modules, spec/out/, tools/
 ├── package.json
 └── tsconfig.json
 ```
@@ -621,7 +537,7 @@ Scripts in `package.json`:
 ```json
 "scripts": {
   "tla:install": "mkdir -p tools && curl -sLo tools/tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar",
-  "tla:check": "java -jar tools/tla2tools.jar -deadlock -cleanup -metadir spec/out/meta -dump dot,actionlabels spec/out/graph spec/UserCache.tla",
+  "tla:check": "java -jar tools/tla2tools.jar -deadlock -cleanup -metadir spec/out/meta -dump dot,actionlabels spec/out/graph spec/SingleFlight.tla",
   "pretest": "npm run tla:check",
   "typecheck": "tsc",
   "test": "vitest run"
@@ -629,10 +545,10 @@ Scripts in `package.json`:
 ```
 
 - `tla:install` pins the TLC version in one place.
-- `tla:check` checks both properties and writes the graph in one run. `-metadir` keeps TLC's working files in
+- `tla:check` checks the property and writes the graph in one run. `-metadir` keeps TLC's working files in
   `spec/out/` instead of a `states/` folder in the repo root.
 - `pretest` runs before `npm test`, so the replay always walks the graph of the current spec. If the spec breaks a
-  property, TLC exits with an error and the tests do not run on a half-written graph.
+  property, TLC exits with an error and the tests do not run.
 
 TLC and the replay both need Java, so CI is one job:
 
@@ -665,7 +581,7 @@ jobs:
       - run: npm ci
       - run: test -f tools/tla2tools.jar || npm run tla:install
       - run: npm run typecheck
-      - name: Check the spec, then replay every behavior against the real class
+      - name: Check the spec, then replay every behavior against the real function
         run: npm test
 ```
 
@@ -673,28 +589,28 @@ What fails when:
 
 | Change | Where CI fails |
 |---|---|
-| A spec change breaks `OneLoad` or `EveryoneGetsIt` | `npm test`, in `pretest`: TLC prints the counterexample |
-| The class changes and no longer follows the spec | `user-cache.tla.test.ts`: the path and step where the code and the spec differ |
-| The spec changes, the class does not | `user-cache.tla.test.ts`: the new paths no longer match the old class |
-| The spec gets a new action | `user-cache.tla.test.ts`: `no mapping for action ...` |
+| A spec change breaks `EveryoneGetsIt` | `npm test`, in `pretest`: TLC prints the counterexample |
+| The function changes and no longer follows the spec | `single-flight.tla.test.ts`: the path and step where the code and the spec differ |
+| The spec changes, the function does not | `single-flight.tla.test.ts`: the new paths no longer match the old function |
+| The spec gets a new action | `single-flight.tla.test.ts`: `no mapping for action ...` |
 
 ## Making changes
 
 <Short>Change the spec first and check it, then change the code until the replay passes.</Short>
 
-Changing the flow (for example, cached users expire after five minutes):
+Changing the flow (for example, a caller can cancel while it waits):
 
 1. Change the spec first: a new action, the variables it touches, and a rule if there is a new "must never happen" or
    "must always happen".
 2. Run `npm run tla:check` until TLC passes.
-3. Change the class. Map the new action in `user-cache.tla.test.ts` (which method to call, which call to end).
-4. Run `npm test` until the replay passes. Commit the spec, the class and the replay test together.
+3. Change the function. Map the new action in `single-flight.tla.test.ts`.
+4. Run `npm test` until the replay passes. Commit the spec, the function and the replay test together.
 
 When the graph grows: walking every path works while the spec is small. Past a few thousand paths, replay a sample.
 TLC's `-simulate` mode writes random runs, and Apalache and Quint write traces as ITF JSON (see the
 [Quint page](/tools/quint) for a replay built on those).
 
-Reviewing a pull request: read the spec diff first. A new `await` in the class with no new step in the spec means the
+Reviewing a pull request: read the spec diff first. A new `await` in the code with no new step in the spec means the
 spec no longer splits the code where it can interleave. That is the one mistake the replay cannot catch, because the
 replay follows the spec's steps.
 
@@ -705,21 +621,20 @@ replay follows the spec's steps.
 You get:
 
 - Every order of steps checked, in the spec, in under a second at this size.
-- Liveness: "every request gets the user in the end" is checked, not only "nothing bad happens". That is how Step 3's
-  stuck key was found.
-- A shortest failing order, as a readable trace, instead of a flaky test that fails once a month.
+- Liveness: "every caller gets a value in the end" is checked, not only "nothing bad happens". That is how the stuck
+  key was found.
+- A shortest failing order, as a readable trace, instead of a bug that shows up once a month after a timeout.
 - A fix you can check before you write it in TS.
 - Every behavior of a small spec, up to its first loop, replayed against the real code.
 
 You do not get:
 
-- A proof about the TS code. TLC checks the spec. The replay checks the code on the spec's behaviors, which covers
-  them only because this spec is tiny, and it cannot check liveness in the code.
-- A free spec. You choose where the steps split. This spec splits `get()` at its one `await`. If you merge steps
-  that the real code keeps apart, the spec hides the bug.
-- Anything the spec leaves out. Here: more than one key, entries that expire, and a second server process with its
-  own cache. None of them is in the spec, so TLC says nothing about them. Two processes are the next exercise: each
-  one coalesces its own requests, and the database still gets one query per process.
+- A proof about the TS code. TLC checks the spec. The replay checks the code on the spec's behaviors, and it cannot
+  check liveness in the code.
+- A free spec. You choose where the steps split. If you merge steps that the real code keeps apart, the spec hides
+  the bug.
+- Anything the spec leaves out. Here: more than one key, and more than one process. Neither is in the spec, so TLC
+  says nothing about them.
 - A familiar syntax. `/\`, `'`, `EXCEPT` and `<>` take a day to get used to. A coding agent writes them well from a
   TS function, and [Quint](/tools/quint) exists for teams who want the same checkers with a friendlier language.
 
@@ -729,11 +644,11 @@ You do not get:
 
 ## How to start in your own project
 
-1. Pick one flow where order matters: a cache, a signal and a timer, a retry loop, a lock, a saga with compensation.
+1. Pick one flow where order matters: shared calls, a signal and a timer, a retry loop, a lock, a saga.
 2. Write the rules as "this must never happen" and "this must always happen in the end".
-3. List the variables, including the ones outside your code: calls in flight, what each request has seen.
+3. List the variables, including the ones outside your code: calls in flight, what each caller has seen.
 4. Make one action per step between two `await`s in the real code, and one action per way a call can end.
-5. Say which steps are fair (requests arrive, calls return) and which are not (a call may fail).
+5. Say which steps are fair (callers call, calls return) and which are not (a call may fail).
 6. Run TLC with 2 or 3 actors, then dump the graph and replay it against the real code with controlled fakes.
 
 </Full>
