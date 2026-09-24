@@ -1,6 +1,6 @@
 ---
 title: stateproof
-description: stateproof compiles a TypeScript-looking state machine to TLA+ and checks it with TLC. This page walks through using it on a subscription that renews a canceled plan.
+description: stateproof compiles a state machine that looks like TypeScript to TLA+ and checks it with TLC. This page walks through using it on a subscription that renews a canceled plan.
 tableOfContents: true
 adoption:
   github: HexaField/stateproof
@@ -20,18 +20,15 @@ import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
 [stateproof](https://github.com/HexaField/stateproof) lets you write a model in TypeScript and check every
-reachable state. It is a small project (one contributor, MIT licensed, last
-commit in March 2026).
-
-It compiles a subset of TypeScript to TLA+, is not on npm, and its own README example fails.
+reachable state. It compiles a subset of TypeScript to TLA+, is MIT licensed, is not on npm, and its own README
+example fails.
 
 <Short>stateproof compiles a TypeScript state machine to TLA+ and checks it with TLC. Here: a subscription renewed after a cancel.</Short>
 
 ## Using stateproof
 
 The code below is in
-[formal-methods-samples/stateproof-subscription](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/stateproof-subscription) and
-runs on its own with `npm run setup && npm test`. We ran it from the repository at commit `4cb6308` (March 2026), on
+[formal-methods-samples/stateproof-subscription](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/stateproof-subscription). We ran it from the repository at commit `4cb6308` (March 2026), on
 Node 24 with Java 25. The output is from our run.
 
 ### The problem
@@ -59,12 +56,7 @@ The README says `pnpm add @stateproof/core`, but the package is not on npm. It r
 git clone https://github.com/HexaField/stateproof
 ```
 
-- **TypeScript source, no build.** The package points at `src/index.ts`. The repo's examples run with `npx tsx`;
-  Node 24 also runs the `.ts` files directly.
-- **Java for TLC.** Compiling to TLA+, the runtime and test generation work without Java; `verify()` needs it.
-  stateproof looks for Java in the usual places.
-- **The TLC jar.** `verify()` downloads `tla2tools.jar` into a temp folder when it finds none, or takes a path in the
-  `tlcPath` option.
+Needs Java for TLC.
 
 ### Writing the machine (use AI)
 
@@ -77,6 +69,7 @@ import { machine } from '@stateproof/core'
 export const subscription = machine('Subscription')
   .states('trial', 'active', 'canceling', 'canceled')
   .initial('trial')
+  // Flat data next to the state: set when the customer cancels.
   .context({ canceledByUser: false })
   .transition('activate', { from: 'trial', to: 'active' })
   .transition('cancel', {
@@ -102,21 +95,12 @@ export const subscription = machine('Subscription')
       ctx.canceledByUser = false
     }
   })
+  // Must hold in every reachable state.
   .invariant('canceled plans are not renewed', (ctx) => !(ctx.canceledByUser && ctx.state === 'active'))
 ```
 
-What each part does:
-
-- **`machine(name)`** starts a fluent builder in the XState style.
-- **`.states(...)` and `.initial(...)`** declare the required state enum and where it starts. The current one is
-  `ctx.state`.
-- **`.context({...})`** is the flat data next to the state, here one flag set when the customer cancels.
-- **`.transition(name, { from, to, guard, action })`** is an event. `from` may be one state or a list; `to` and
-  `guard` are optional; `action` mutates the context.
-- **`.invariant(name, fn)`** is a rule over the context that must hold in every reachable state. Here: a plan the
-  customer canceled is never active again unless they resume it.
-- **Guards, actions and invariants are not run by the checker.** stateproof reads their source text with
-  `fn.toString()` and translates it into TLA+. The `renew` line above became:
+Guards, actions and invariants are not run by the checker. stateproof reads their source text with `fn.toString()`
+and translates it into TLA+. The `renew` line above became:
 
 ```text
 renew ==
@@ -168,8 +152,7 @@ from the difference between two states. The invariant's name comes back with its
 
 <Short>Renew active plans only: `ok: true`, 4 states.</Short>
 
-The fixed machine is in `subscription.fixed.ts`, a copy of `subscription.ts` with only the line of the fix changed.
-The renewal job now renews active plans only; a canceling plan runs out and expires:
+The fix: the renewal job now renews active plans only; a canceling plan runs out and expires:
 
 <CodeFix before={before} after={after} title="subscription.ts" />
 
@@ -185,43 +168,15 @@ The renewal job now renews active plans only; a canceling plan runs out and expi
 ```
 
 The machine has no end state: `resubscribe` leads out of `canceled`. That matters, because deadlock checking is on by
-default and a state with no way out fails the check (see Limits).
+default and a state with no way out fails the check (see Strengths and limits).
 
 <Full>
 
 ### Tips
 
-- **Check `statesExplored`, not only `ok`.** A run that could not start TLC still says `ok: true` (see Limits).
-- **Read the generated TLA+** in `result.tlaSpec` or from `generateTLA()`, to see what your guards and actions turned
-  into.
+- **Check `statesExplored`, not only `ok`.** A run that could not start TLC still says `ok: true`.
 - **Keep guards and actions to plain reads and writes of `ctx`.** Only a small subset of TypeScript translates (see
-  Limits).
-- **More around it,** listed in the README and not tried by us: `concurrent()` to compose N instances with shared
-  state, `generateTests()` for BFS test traces, `toMermaidStateDiagram()`, `diffSpecs()`, a CLI, a Vitest plugin, and
-  a visual Studio.
-
-### Limits
-
-What we saw, and what the source says:
-
-- **Only a subset of TypeScript translates.** A guard that read a variable from outside the arrow function,
-  `(ctx) => ctx.value < limit`, compiled to TLA+ that TLC rejected: the result was `ok: false` with the violation
-  `"TLC Error: Parsing or semantic analysis failed."` and no trace.
-- **No Java means a silent pass.** When Java or the jar is missing, `verify()` returns `ok: true` with 0 states and
-  `tlcOutput` set to `SKIPPED: ...`. Check `statesExplored`, not only `ok`.
-- **Pass an absolute `tlcPath`.** A `tla2tools.jar` in the working folder was found, but TLC then failed with `Unable
-  to access jarfile tla2tools.jar`, because it runs from a temp folder.
-- **Deadlock is on by default,** so a machine with a final state fails until you pass `checkDeadlocks: false`. The
-  README's own quick start fails this way: its counter ends in `done`, and `verify()` returned `ok: false` with a
-  deadlock where the README says `true`.
-
-## What stateproof is
-
-- A fluent builder that compiles to TLA+, with exhaustive checking in Java through TLC, results parsed from TLC's
-  text output.
-- The same model is interpreted at runtime, so "the spec is the implementation".
-- Around it: a small in-process BFS for generating test traces, conformance adapters for a real implementation,
-  liveness through TLC, Mermaid diagrams, spec diff, and a visual Studio.
+  Strengths and limits).
 
 ## Strengths and limits
 
@@ -234,22 +189,20 @@ What we saw, and what the source says:
 | What you get back | Pass/fail plus violations parsed from TLC |
 | Spec vs implementation | The same artifact at runtime |
 
-- **stateproof has a translator you have to trust.** Its hand-written parser of about 800 lines accepts a small
-  subset, and the translation can be silently wrong: `.filter()` and `.some()` compile to `Filter(...)` and
-  `Exists(...)`, which are not TLA+ operators, and `null` compiles to the string `"null"`. Because the runtime
-  interprets the same parsed model, what TLC checks and what runs can drift apart.
-  [tla-precheck](/vs/tla-precheck) takes the same route through TLC but proves the two state graphs identical.
+- **It has a translator you have to trust.** The translation can be silently wrong: `.filter()` becomes
+  `Filter(...)`, which is not a TLA+ operator, and `null` becomes the string `"null"`. The runtime runs the same
+  parsed model, so what TLC checks and what runs can differ.
+- **It needs Java and an absolute `tlcPath`.** TLC runs out of process from a temp folder, so a jar path relative to
+  your folder fails. Parameterized actions need raw TLA+ strings.
+- **Deadlock checking is on by default.** A machine with a final state fails until you pass `checkDeadlocks: false`;
+  this is why the README's quick start fails.
 - **It is strong on liveness and tooling.** "Eventually this happens" works through TLC, and it has Mermaid diagrams,
-  spec diff and the Studio.
-- **It needs Java and a temp folder.** Checking runs TLC out of process and parses its text output. Parameterized
-  actions need raw TLA+ strings. [pnueli](/vs/pnueli) checks a plain TypeScript spec in-process instead.
-
-## Who builds it
-
-A side project of Josh Field (HexaField), a TypeScript and WebXR engineer, with one contributor and no activity since March 2026.
+  spec diff, the Studio and adapters to check a real implementation.
 
 ## Links
 
+- Built by Josh Field (HexaField), a TypeScript and WebXR engineer, as a side project with one contributor; no
+  activity since March 2026.
 - stateproof on GitHub: https://github.com/HexaField/stateproof
 - HexaField on npm: https://www.npmjs.com/~hexafield
 - HexaField on StackBlitz: https://stackblitz.com/@HexaField

@@ -19,7 +19,7 @@ import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
 [pnueli](https://github.com/BOTIROFF-D/pnueli) is an explicit-state model checker written in TypeScript, published
-on npm as `@botiroff/pnueli` in August 2026. A spec is a plain TypeScript object, and the checker walks every
+on npm as `@botiroff/pnueli`. A spec is a plain TypeScript object, and the checker walks every
 reachable state.
 
 <Short>pnueli walks every reachable state of a plain TypeScript spec, with symmetry, partial-order reduction and liveness. Here: a lock with a lease.</Short>
@@ -27,12 +27,11 @@ reachable state.
 ## Using pnueli
 
 The code below is in
-[formal-methods-samples/pnueli-distributed-lock](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/pnueli-distributed-lock) and
-runs on its own with `npm install && npm test`.
+[formal-methods-samples/pnueli-distributed-lock](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/pnueli-distributed-lock).
 
 ### The problem
 
-<Short>A lease can expire while a node is paused, and its late write lands over newer data.</Short>
+<Short>A lease can expire while a node is paused, and its late write overwrites newer data.</Short>
 
 Several identical nodes share a lock with a lease. A node takes the lock, then writes to shared storage. The lease
 can expire while the node is paused (a long GC pause, a slow disk) between taking the lock and writing. Another node
@@ -49,9 +48,7 @@ every node keep getting its writes in, or can one be shut out forever?
 pnpm add -D @botiroff/pnueli
 ```
 
-Everything comes from one entry point: the `Spec`, `Action` and `Invariant` types, the checks `checkExhaustive`,
-`checkReduced` and `checkLiveness`, and `stateKey`, the canonical key pnueli uses for states. The example uses version
-0.2.0. The checks are plain functions that return a result, so they run inside any test; the example uses vitest.
+The example uses version 0.2.0.
 
 ### Writing the spec (use AI)
 
@@ -80,16 +77,17 @@ export function write(s: State, i: number): State | null {
 The node never checks its own lease before writing, because in the real world it cannot: the pause can happen right
 after the check. The lease expiring is its own action, so it can happen at any point between "acquires lock" and
 "writes". Tokens are renumbered by rank after every step (the storage only compares them), which keeps the state
-space finite even though nodes take the lock again and again. So `t0` is the oldest token still in play, not a fixed
+space finite even though nodes take the lock again and again. So `t0` is the oldest token still in use, not a fixed
 number.
 
 The pnueli spec wraps these functions in actions. It takes the module as an argument, so the same spec runs on
-`lock.ts` and on the fixed copy, `lock.fixed.ts`:
+the original code and on the fix:
 
 ```ts
 // lock.pnueli.ts (shortened)
 export type Lock = typeof import('./lock.js');
 
+// No next state (null) means the action is disabled here.
 function step(next: State | null): State[] {
   return next === null ? [] : [next];
 }
@@ -99,6 +97,7 @@ function nodeActions(i: number, n: number, lock: Lock): Action<State>[] {
     {
       name: `n${i} acquires lock`,
       process: i,
+      // The fields the action touches; partial-order reduction trusts this list.
       reads: ['nodes', 'epoch'],
       writes: ['nodes', 'epoch'],
       step: (s) => step(lock.acquire(s, i)),
@@ -115,6 +114,7 @@ function nodeActions(i: number, n: number, lock: Lock): Action<State>[] {
   ];
 }
 
+// Symmetry: the nodes are interchangeable, so sort them into one canonical order.
 function sortNodes(s: State): State {
   return { ...s, nodes: [...s.nodes].sort((a, b) => stateKey(a).localeCompare(stateKey(b))) };
 }
@@ -128,6 +128,7 @@ export const noStaleWrite: Invariant<State> = {
 export function lockSpec(n: number, store: string, lock: Lock, symmetry: boolean): Spec<State> {
   return {
     name: `lock, ${n} nodes, store ${store}${symmetry ? ', symmetry' : ''}`,
+    // One process per node, plus one for the lease clock.
     processes: n + 1,
     init: [lock.init(n)],
     actions: Array.from({ length: n }, (_, i) => nodeActions(i, n, lock)).flat(),
@@ -137,44 +138,24 @@ export function lockSpec(n: number, store: string, lock: Lock, symmetry: boolean
 }
 ```
 
-What each part does:
-
-- **`step`** returns a list of next states. An empty list means the action is disabled here, so the guard and the
-  effect cannot drift apart. A list with several states means the action has several possible outcomes. The small
-  `step` helper turns the `null` from `lock.ts` into an empty list.
-- **`process`** says which process runs the action. Each node is a process, and the lease clock is one more process
-  (number `n`), so weak fairness applies to it too. That is why `processes` is `n + 1`.
-- **`reads` and `writes`** name the state fields the action touches. Partial-order reduction uses them to find actions
-  that are independent. They are a contract: if an action touches a field it does not declare, the reduction can be
-  wrong without any error.
-- **`symmetry`** maps a state to a canonical one. The nodes are interchangeable, so `sortNodes` sorts them by
-  `stateKey`, and two states that differ only by which node is which count as one.
-- **`lock`** is the module with the transitions, `lock.ts` or `lock.fixed.ts`. `store` is only a label for the
-  output.
-- **Invariants** have a `name`, their own `reads`, and `holds`. The same shape is used for the liveness goals below:
-  "n0 gets a write in" and "some node gets a write in".
-
 ### Running it
 
 <Short>A shortest trace in five steps: n0's lease expires, n1 writes, n0 writes an older token over it.</Short>
-
-Three functions run a spec. `checkExhaustive` walks every reachable state (with symmetry, if the spec has it).
-`checkReduced` adds partial-order reduction on top. `checkLiveness(spec, goal)` checks "eventually the goal holds"
-under weak fairness.
 
 ```ts
 // lock.pnueli.test.ts (shortened)
 import * as lock from './lock.js';
 import * as fixedLock from './lock.fixed.js';
 
+// Walks every reachable state.
 checkExhaustive(lockSpec(3, 'accepts any write', lock, false));
 checkExhaustive(lockSpec(3, 'accepts any write', lock, true));
+// Checks "eventually the goal holds" under weak fairness.
 checkLiveness(lockSpec(3, 'fencing', fixedLock, true), someNodeWrites);
 checkLiveness(lockSpec(2, 'fencing', fixedLock, false), n0Writes);
 ```
 
-Each call returns a result with `ok`, `states`, and a `violation` with a `trace` (and a `cycle` for liveness). The
-output below is printed from those fields by a small formatter in the test. Without fencing, three nodes:
+The output below is printed from the results by a small formatter in the test. Without fencing, three nodes:
 
 ```text
 lock, 3 nodes, store accepts any write [exhaustive]: FAILED, 75 states
@@ -203,14 +184,14 @@ up with the names in the actions.
 
 ### Fixing the bug
 
-<Short>The storage rejects older tokens and safety holds. The liveness check shows n0 can still be fenced out forever.</Short>
+<Short>The storage rejects older tokens and safety holds. The liveness check shows n0 can still be shut out forever.</Short>
 
 The fix is one branch in the write rule: the storage rejects a write that carries an older token than the newest one
-it took. `lock.fixed.ts` is a copy of `lock.ts` with only that branch added.
+it took.
 
 <CodeFix before={before} after={after} title="lock.ts" />
 
-With `lock.fixed.ts` the invariant holds. States visited to prove it, with no reduction, with symmetry, and with symmetry
+With the fix the invariant holds. States visited to prove it, with no reduction, with symmetry, and with symmetry
 plus partial-order reduction (`checkReduced`):
 
 ```text
@@ -223,11 +204,11 @@ plus partial-order reduction (`checkReduced`):
 └─────────┴───────┴──────┴──────────┴────────────────┘
 ```
 
-Symmetry pays off quickly: 51 states instead of 283 at three nodes, and 119 instead of 2,521 at four. Partial-order
+Symmetry cuts states quickly: 51 states instead of 283 at three nodes, and 119 instead of 2,521 at four. Partial-order
 reduction found nothing more to cut, because every action reads and writes the shared `nodes` array, so no two
 actions are independent in this model. That is the reduction being correctly conservative.
 
-Safety is fixed. Liveness, under weak fairness, is a different story. "Some node gets a write in" keeps happening, so
+Safety is fixed. Liveness, under weak fairness, is different. "Some node gets a write in" keeps happening, so
 the system as a whole always makes progress:
 
 ```text
@@ -264,7 +245,7 @@ This is a lasso: a path into a loop that can repeat forever. In the first six st
 pauses past its lease, and wakes up to find that n1 has written with a newer token, so the fenced storage rejects its
 write. The cycle is fair, because every process either moves in it or is blocked somewhere in it, so this is not a
 scheduler that simply never runs n0. Fencing keeps the data safe, but it does nothing for progress: a node whose lease
-keeps running out can be fenced out forever.
+keeps running out can be shut out forever.
 
 <Full>
 
@@ -274,22 +255,9 @@ keeps running out can be fenced out forever.
   Renumbering values by rank after every step keeps it finite when only their order matters.
 - **Declare `reads` and `writes` honestly.** An undeclared field makes partial-order reduction unsound, and a wrong
   reduction prints the same "no violation found" as a correct one. The example runs `checkExhaustive` and
-  `checkReduced` on every size and expects the same verdict from both.
+  `checkReduced` on every size and expects the same result from both.
 - **Run without symmetry to read a trace.** Symmetric traces print canonical states, so node names shift between
   lines. The unreduced run gives the same trace with stable names.
-
-## What pnueli is
-
-- A spec is a plain object: `init` states, `actions`, `invariants`, and an optional `terminal` predicate.
-- An action's `step` returns a list of next states, so one action can have several outcomes.
-- Breadth-first search, so every counterexample is a shortest trace.
-- Symmetry reduction and partial-order reduction with ample sets, driven by declared `reads` and `writes`.
-- Every reduction is checked against the full, unreduced search on every spec small enough to run both.
-- Liveness in one form: "eventually P" under weak fairness, found as a fair cycle (a lasso) in the state graph.
-- Validated on problems with known answers: Peterson's algorithm, dining philosophers, Raft election safety (up to
-  6.8M states), write skew under snapshot isolation.
-- Honest scope: no disk-backed storage, no full LTL, no strong fairness, and no link between the spec and the
-  implementation.
 
 ## Strengths and limits
 
@@ -298,7 +266,7 @@ keeps running out can be fenced out forever.
 | An action's result | A list of next states (several outcomes allowed) |
 | Reductions | Symmetry and partial-order, validated against the full search |
 | Liveness | "Eventually P" under weak fairness |
-| Output | Verdict per invariant, trace, liveness cycle |
+| Output | Result per invariant, trace, liveness cycle |
 | Real code | Not covered: "the specification is not the implementation" |
 | Async in real code | Not covered |
 
@@ -309,13 +277,14 @@ keeps running out can be fenced out forever.
   sampling tools (unflake, bulwark) for the code.
 - **All in-process TypeScript.** No Java and no translation step, unlike [stateproof](/vs/stateproof) and
   [tla-precheck](/vs/tla-precheck), which hand the model to TLC. For full temporal logic or strong fairness,
-  [TLA+](/tools/tla-plus) with TLC covers more.
-
-## Who builds it
-
-Doniyor Botirov, founder of dbit.one, alongside his other testing tools unflake, bulwark and adya.
+  [TLA+](/tools/tla-plus) with TLC covers more. States are kept in memory only; there is no disk-backed storage.
+- **Tested on problems with known answers.** Peterson's algorithm, dining philosophers, Raft election safety (up to
+  6.8M states) and write skew under snapshot isolation.
 
 ## Links
+
+Built by Doniyor Botirov, founder of dbit.one, alongside his other testing tools unflake, bulwark and adya; open
+source.
 
 - pnueli on GitHub: https://github.com/BOTIROFF-D/pnueli
 - pnueli on npm: https://www.npmjs.com/package/@botiroff/pnueli

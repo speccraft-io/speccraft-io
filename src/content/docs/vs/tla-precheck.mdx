@@ -21,18 +21,17 @@ import after from '../../../fixes/tla-precheck/after.ts.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
-[tla-precheck](https://github.com/kingbootoshi/tla-precheck) is a TypeScript tool, published on npm as
-`tla-precheck` in March 2026. You write a state machine once in a restricted TypeScript DSL; it is model-checked with
-TLA+ and TLC, and the runtime code is generated from the same source. It is the most-used tool in this group, and the
-best answer so far to the translation problem that sinks [stateproof](/vs/stateproof).
+[tla-precheck](https://github.com/kingbootoshi/tla-precheck) is a TypeScript tool, on npm as `tla-precheck`. You write a
+state machine once in a restricted TypeScript DSL; it is model-checked with TLA+ and TLC, and the runtime code is
+generated from the same source. It is the best answer so far to the translation problem that breaks
+[stateproof](/vs/stateproof).
 
 <Short>tla-precheck checks a small TypeScript DSL with TLC and generates the runtime code. Here: a ticket shop's one-seat limit.</Short>
 
 ## Using tla-precheck
 
 The code below is in
-[formal-methods-samples/tla-precheck-tickets](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/tla-precheck-tickets) and
-runs on its own with `npm install && npm test`, once TLC is set up. We ran it with tla-precheck 0.1.7 and Java 25. The
+[formal-methods-samples/tla-precheck-tickets](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/tla-precheck-tickets). We ran it with tla-precheck 0.1.7 and Java 25. The
 output is from our run.
 
 ### The problem
@@ -71,13 +70,7 @@ npx tla-precheck setup
 npx tla-precheck doctor
 ```
 
-- **Java 17 or newer** runs TLC, the TLA+ model checker.
-- **`setup`** downloads a pinned `tla2tools.jar` into `~/.tla-precheck` and installs an agent skill for Claude Code
-  or Codex. `doctor` checks Java, TLC and the skill. We skipped `setup` and pointed `TLA2TOOLS_JAR` at a jar we
-  downloaded ourselves, which the CLI also accepts.
-- **A `tsconfig.json`** must exist in the folder you run from. Without one, `check` stopped with `TS5083: Cannot read
-  file '.../tsconfig.json'`.
-- **`npx tla-precheck init`** scaffolds a new `<name>.machine.ts`.
+Needs Java 17+ for TLC, and a `tsconfig.json` in the folder you run from (without one, `check` stops with `TS5083`).
 
 ### Writing the machine (use AI)
 
@@ -94,6 +87,7 @@ export const ticketsMachine = defineMachine({
     status: mapVar("Seats", enumType("free", "held", "sold"), lit("free")),
     holder: mapVar("Seats", optionType(domainType("Customers")), lit(null))
   },
+  // The checker tries every value of each action's params.
   actions: {
     hold: { /* above */ },
     buy: {
@@ -103,6 +97,7 @@ export const ticketsMachine = defineMachine({
     },
     // release (held to free) and refund (sold to free) look the same
   },
+  // Must hold in every reachable state.
   invariants: {
     oneSeatPerCustomer: {
       description: "A customer never has more than one seat, held or sold",
@@ -114,27 +109,17 @@ export const ticketsMachine = defineMachine({
     tiers: {
       pr: {
         domains: {
+          // symmetry: the two customers are interchangeable, so each state is checked once.
           Customers: modelValues("c", { size: 2, symmetry: true }),
           Seats: ids({ prefix: "s", size: 3 })
         },
+        // Estimated before TLC starts, so an oversized run fails at once.
         budgets: { maxEstimatedStates: 1000, maxEstimatedBranching: 20 }
       }
     }
   }
 });
 ```
-
-What each part does:
-
-- **`variables`** declare the state. `mapVar("Seats", ...)` maps every seat to a value, with a starting value for
-  all of them; `optionType(domainType("Customers"))` is a customer or `null`.
-- **`actions`** each have `params`, a `guard` and a list of `updates`. The checker tries every combination of
-  parameters. Guards and updates are built from builder functions (`eq`, `and`, `index`, `count`, `forall`,
-  `setMap`), not written as TypeScript expressions. The DSL has 13 expression kinds, on purpose, and no arithmetic.
-- **`invariants`** are named formulas that must hold in every reachable state.
-- **`proof.tiers`** set the domains to check and a budget. Two customers and three seats is the `pr` tier; the budget
-  is estimated before TLC starts, so an oversized run fails at once. `symmetry: true` tells TLC that the two customers
-  are interchangeable, so it checks each state once instead of twice.
 
 ### Running it
 
@@ -182,8 +167,7 @@ shortest one, which would take three steps. It ran in about a second and a half.
 
 <Short>Count every seat the customer has. The proof passes, and both backends agree on 37 states.</Short>
 
-The fixed machine is in `tickets.machine.fixed.ts`, a copy of `tickets.machine.ts` with only the lines of the fix
-changed. The hold now counts every seat the customer has, held or sold:
+The fix: the hold now counts every seat the customer has, held or sold:
 
 <CodeFix before={before} after={after} title="tickets.machine.ts" />
 
@@ -222,33 +206,6 @@ went into both files.
   source.
 - **Map trace lines back yourself.** Each TLC step names the action and its parameters, but the line numbers point at
   the generated `Tickets.tla`, not your `.machine.ts`.
-- **One workflow per machine** (from the README). Model the billing flow or the subscription lifecycle, not the whole
-  system.
-- **Keep domains tiny** (from the README). Two users and three runs find most bugs; put larger domains in a nightly
-  tier.
-- **`npx tla-precheck estimate <machine>`** checks the budget without Java, and `check` in CI is the gate.
-- **Generate the runtime code** with `npx tla-precheck build <machine>`: typed adapter functions that open a
-  transaction, lock rows, run the interpreter and write the changes; Postgres constraints for the invariants; and a
-  lint rule against writes that bypass the adapter. `build` needs `metadata.runtimeAdapter`, `metadata.ownedTables`
-  and `metadata.ownedColumns` in the machine. For machines that do not fit the adapter, `tla-precheck/interpreter`
-  has `buildInitialState`, `enabled` and `step`.
-
-### Limits
-
-- **The DSL is small.** Every guard, update and invariant must be built from the 13 expression kinds; there is no
-  addition, so a counter is an enum or a count over a domain.
-- **Java is required** for `check` and `build`; `verify-db`, which compares a live Postgres schema with the generated
-  constraints, also needs Bun.
-
-## What tla-precheck is
-
-- One DSL source generates a TLA+ spec that TLC checks exhaustively, and a TypeScript interpreter that runs the same
-  machine. The two state graphs must be identical, so a bug in either the TLA+ generator or the interpreter fails the
-  build.
-- Unlike [stateproof](/vs/stateproof), there is no function source to re-parse: the DSL is explicit, and the
-  translation is checked on every run instead of trusted.
-- Built for agents: an installed skill, and a loop where the agent edits the machine until `proofPassed: true` and
-  `equivalent: true`. Its biggest example checks 29 million states in under 3 minutes.
 
 ## Strengths and limits
 
@@ -261,23 +218,21 @@ went into both files.
 | Async orderings in code | Out of scope: the machine is the code |
 | Scale controls | Proof tiers and state budgets |
 
-- **It is ahead on the pipeline.** A checked translation to TLA+ gets TLC's speed without trusting the
-  compiler, invariants reach Postgres as constraints, and budgets fail before a long run starts. It also has the most
-  traction on these pages: about 113 stars and roughly 7,000 downloads a month in September 2026.
-- **The spec is a restricted DSL.** Guards and effects are limited to the DSL's expression kinds, so they cannot call
-  your own helpers, and TLC needs Java. [pnueli](/vs/pnueli) checks a spec written in plain TypeScript in-process.
-- **It replaces your code.** tla-precheck replaces your transition code with generated adapters and models one
-  transition at a time inside a database transaction. It does not check existing code, or replies and background work
-  landing in any order; [fast-check](/vs/fast-check)'s scheduler tests async orderings in real code.
+- **Its pipeline is the most complete.** A checked translation to TLA+ gets TLC's speed without trusting the
+  compiler, invariants reach Postgres as constraints, and budgets fail before a long run starts.
+- **The spec is a small DSL.** Guards and effects use only its 13 expression kinds, with no addition, so they cannot
+  call your own helpers and a counter must be an enum or a count over a domain.
+- **It replaces your code.** The transition code becomes generated adapters, one transition at a time inside a
+  database transaction. It does not check existing code, or replies and background work arriving in any order.
+- **It is built for agents.** It installs a skill, and the agent edits the machine until `proofPassed: true` and
+  `equivalent: true`. Its biggest example checks 29 million states in under 3 minutes.
 - **Worth copying:** state budgets and tiers that fail fast, two backends that check each other, and the idea that a
   checked rule can also become a database constraint.
 
-## Who builds it
-
-A solo project by the GitHub user kingbootoshi, with no commits since early April 2026.
-
 ## Links
 
+- Built by the GitHub user kingbootoshi as a solo project, published on npm in March 2026, with no commits since
+  early April 2026.
 - tla-precheck on GitHub: https://github.com/kingbootoshi/tla-precheck
 - tla-precheck on npm: https://www.npmjs.com/package/tla-precheck
 

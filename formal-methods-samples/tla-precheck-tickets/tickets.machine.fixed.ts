@@ -14,6 +14,7 @@ export const ticketsMachine = defineMachine({
     status: mapVar("Seats", enumType("free", "held", "sold"), lit("free")),
     holder: mapVar("Seats", optionType(domainType("Customers")), lit(null))
   },
+  // The checker tries every value of each action's params.
   actions: {
     hold: {
       params: { s: "Seats", c: "Customers" },
@@ -39,6 +40,7 @@ export const ticketsMachine = defineMachine({
       updates: [setMap("status", param("s"), lit("free")), setMap("holder", param("s"), lit(null))]
     }
   },
+  // Must hold in every reachable state.
   invariants: {
     oneSeatPerCustomer: {
       description: "A customer never has more than one seat, held or sold",
@@ -50,9 +52,11 @@ export const ticketsMachine = defineMachine({
     tiers: {
       pr: {
         domains: {
+          // symmetry: the two customers are interchangeable, so each state is checked once.
           Customers: modelValues("c", { size: 2, symmetry: true }),
           Seats: ids({ prefix: "s", size: 3 })
         },
+        // Estimated before TLC starts, so an oversized run fails at once.
         budgets: { maxEstimatedStates: 1000, maxEstimatedBranching: 20 }
       }
     }

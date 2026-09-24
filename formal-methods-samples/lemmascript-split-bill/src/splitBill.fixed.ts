@@ -6,8 +6,10 @@ export interface Split {
 
 //@ verify
 export function splitBill(total: number, people: number): Split {
+  // What callers must pass.
   //@ requires total >= 0
   //@ requires people >= 1
+  // What the function promises; \result is the return value.
   //@ ensures \result.each * (people - 1) + \result.last === total
   //@ ensures \result.last >= 0
   //@ ensures \result.each >= 0

@@ -4,6 +4,7 @@ import { Schema } from 'effect';
 export const price = 10;
 
 export const States = Machine.state({
+  // Shared by every state; each state can add its own fields.
   fields: { items: Schema.Number },
   states: {
     Cart: {},
@@ -19,12 +20,14 @@ export const Events = Machine.events({
   RemoveItem: {},
   Checkout: {},
   Back: {},
+  // The payment reply carries the amount it was for.
   PaymentSucceeded: { amount: Schema.Number },
   PaymentFailed: { amount: Schema.Number },
 });
 
 export const cart = {
   on: {
+    // update: stay in the state and change the shared fields. target: move to another state, data fills its fields.
     AddItem: { update: targets.root, data: ({ root }: { root: { items: number } }) => ({ items: root.items + 1 }) },
     RemoveItem: {
       update: targets.root,

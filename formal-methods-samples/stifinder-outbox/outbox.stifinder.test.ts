@@ -11,6 +11,7 @@ describe('outbox under stifinder', () => {
   it('finds the lost event with one crash when the relay marks before publishing', async () => {
     const space = await exploreIteratively(outboxModel(markFirstOutbox), { baseBudget: faults });
     expect(space.violation?.error).toEqual(new Error('the committed order was never published'));
+    // Each step is [event, index in getEvents]: 0 is expected, anything else is a fault.
     expect(space.violation?.steps.map((s) => [s.event, s.index])).toEqual([
       ['order service commits order and outbox row', 0],
       ['relay reads row', 0],
@@ -19,7 +20,9 @@ describe('outbox under stifinder', () => {
     ]);
     expect(Object.fromEntries(space.violation?.cost ?? [])).toEqual({ crash: 1, __deviations__: 1 });
     expect(space.violation?.badState).toEqual({ outbox: 'sent', relay: 'idle', applied: 0 });
+    // The zero-deviation budget was searched first and was clean.
     expect(space.maxDeviationsReached).toBe(1);
+    // It stopped at the violation, so not every state was explored.
     expect(space.exhaustive).toBe(false);
   });
 

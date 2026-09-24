@@ -4,6 +4,7 @@ import type { State } from './lock.js';
 
 export type Lock = typeof import('./lock.js');
 
+// No next state (null) means the action is disabled here.
 function step(next: State | null): State[] {
   return next === null ? [] : [next];
 }
@@ -13,6 +14,7 @@ function nodeActions(i: number, n: number, lock: Lock): Action<State>[] {
     {
       name: `n${i} acquires lock`,
       process: i,
+      // The fields the action touches; partial-order reduction trusts this list.
       reads: ['nodes', 'epoch'],
       writes: ['nodes', 'epoch'],
       step: (s) => step(lock.acquire(s, i)),
@@ -41,6 +43,7 @@ function nodeActions(i: number, n: number, lock: Lock): Action<State>[] {
   ];
 }
 
+// Symmetry: the nodes are interchangeable, so sort them into one canonical order.
 function sortNodes(s: State): State {
   return { ...s, nodes: [...s.nodes].sort((a, b) => stateKey(a).localeCompare(stateKey(b))) };
 }
@@ -66,6 +69,7 @@ export const someNodeWrites: Invariant<State> = {
 export function lockSpec(n: number, store: string, lock: Lock, symmetry: boolean): Spec<State> {
   return {
     name: `lock, ${n} nodes, store ${store}${symmetry ? ', symmetry' : ''}`,
+    // One process per node, plus one for the lease clock.
     processes: n + 1,
     init: [lock.init(n)],
     actions: Array.from({ length: n }, (_, i) => nodeActions(i, n, lock)).flat(),

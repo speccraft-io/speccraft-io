@@ -27,6 +27,7 @@ function expected(relay: Relay, s: State): EventDescriptor<Event>[] {
   return [];
 }
 
+// A fault also costs one unit of its key; each key has its own budget.
 function faults(relay: Relay, s: State): EventDescriptor<Event>[] {
   return [
     ...(relay.publishing(s) ? [{ event: 'broker times out after delivery' as const, cost: ['retry'] }] : []),
@@ -46,9 +47,11 @@ const effects: Readonly<Record<Event, (relay: Relay, s: State) => State>> = {
 export function outboxModel(relay: Relay): Model<State, Event> {
   return {
     initialState: relay.initial,
+    // Index 0 is the expected step; every other event costs one deviation.
     getEvents: (s) => [...expected(relay, s), ...faults(relay, s)],
     applyEvent: (s, e) => ({ to: effects[e](relay, s) }),
     invariant: (s) => (s.applied > 1 ? { error: new Error('the order was applied twice') } : undefined),
+    // Checked only on states with no events left.
     terminalInvariant: (s) =>
       s.applied === 0 ? { error: new Error('the committed order was never published') } : undefined,
   };

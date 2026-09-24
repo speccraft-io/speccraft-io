@@ -1,6 +1,6 @@
 ---
 title: SpecCraft TS
-description: SpecCraft TS is a model checker as a TypeScript library - a spec as plain TypeScript, every reachable state explored breadth-first, and the real code checked against the spec. This page walks through a crosswalk example, lists its strengths and limits, and how close the other tools are. Very early work in progress.
+description: SpecCraft TS is a model checker as a TypeScript library - a spec as plain TypeScript, every reachable state explored breadth-first, and the real code checked against the spec. This page walks through a crosswalk example and lists its strengths and limits. Very early work in progress.
 tableOfContents: true
 adoption:
   github: speccraft-io/speccraft-ts
@@ -13,15 +13,15 @@ requires:
   - 'npm only'
 ---
 
-[SpecCraft TS](https://github.com/speccraft-io/speccraft-ts) is the TypeScript engine of SpecCraft, built by the author
-of this site. It is on npm as [`@speccraft-io/core`](https://www.npmjs.com/package/@speccraft-io/core). It is a
-**model checker as a library**: the spec is ordinary TypeScript data and functions, and the library explores every
-reachable state, checks invariants, and returns the shortest trace to a state that breaks one. Other tools of this
-kind are [pnueli](/vs/pnueli), [stifinder](/vs/stifinder) and [Polygraph](/vs/polygraph).
+[SpecCraft TS](https://github.com/speccraft-io/speccraft-ts) is the TypeScript engine of SpecCraft. It is on npm as
+[`@speccraft-io/core`](https://www.npmjs.com/package/@speccraft-io/core). It is a **model checker as a library**: the
+spec is ordinary TypeScript data and functions, and the library explores every reachable state, checks invariants, and
+returns the shortest trace to a state that breaks one. Other tools of this kind are [pnueli](/vs/pnueli),
+[stifinder](/vs/stifinder) and [Polygraph](/vs/polygraph).
 
 :::caution[Status]
-Very early work in progress: research and a proof of concept, not ready to use. The API will change. Started on
-2026-09-19; version 0.1.0.
+Very early work in progress: research and a proof of concept, not ready to use. The API will change. Version
+0.1.0.
 :::
 
 ## Using SpecCraft TS
@@ -79,8 +79,7 @@ Step 2: the fixed spec
 ```
 
 The fix adds `s.carLight === 'red'` to the `grant walk` guard. Then `checkConformance(spec, real)` walks the same state
-graph against a real implementation, through an `apply` function that runs one named action on the real object and a
-`project` function that maps it back to spec state:
+graph against a real implementation:
 
 ```
 Step 1b: checking the real, shipped implementation against that same buggy spec
@@ -130,7 +129,7 @@ export class Cart {
 
 `exploreAnnotated(Cart, (env) => new Cart(explorableDeps(env)))` checks the spec and the class in one run. In the
 [annotated cart example](https://github.com/speccraft-io/speccraft-ts/tree/main/examples/annotated-cart), the spec holds,
-and the real class applies a stale delivery quote the spec rejects: a quote for an older cart lands after a newer one.
+and the real class applies a stale delivery quote the spec rejects: a quote for an older cart arrives after a newer one.
 
 ## Results on the samples
 
@@ -158,63 +157,19 @@ SpecCraft TS was also run on the examples from the other tool pages:
 | Real code | `checkConformance`, or inline specs on existing classes |
 | Async orders | Inline specs: every order of async replies |
 
-- **The spec runs as TypeScript.** No translation step to trust and no Java: guards and effects can call your own
-  helpers and use any language feature, unlike [stateproof](/vs/stateproof) and [tla-precheck](/vs/tla-precheck).
-- **The spec and the code are kept apart.** The spec is the oracle and the code is checked against it, over the whole
-  state graph rather than a sample of traces.
-- **Safety only.** There is no liveness check yet, so "eventually" properties are out of reach; [pnueli](/vs/pnueli) and
-  [TLA+](/tools/tla-plus) have them.
-- **No reductions.** It visits the full state count every time, where pnueli's symmetry reduction cuts it.
-- **Small, finite values on purpose.** A bug that needs a value the spec never tries is missed; property-based testing
-  ([fast-check](/vs/fast-check), [Hegel](/vs/hegel)) covers rich data better.
-- **Conformance checks only the moves the spec allows.** What the code does where the spec says no is not checked.
-- **One action, one next state.** Parameters are expanded into separate actions; an effect cannot yet return several
-  possible next states.
-- **States are keyed by `JSON.stringify`**, so large state spaces hit memory limits sooner than with fingerprints.
-
-## Similar tools
-
-How close each tool on this site is to SpecCraft TS, from the closest down.
-
-### Implemented the same way
-
-A model checker as a library: the spec is plain TypeScript, and a search in the same process walks every reachable
-state.
-
-| Tool | How close | In common | Different |
-|---|---|---|---|
-| [pnueli](/vs/pnueli) | Very close | Plain TypeScript spec, breadth-first search, shortest traces, runs in-process | Ahead on symmetry and partial-order reduction and on liveness under weak fairness; an action can return several next states. Checks the model only, not real code |
-| [stifinder](/vs/stifinder) | Close | Explicit-state search over a spec in plain JavaScript, invariants, traces | Reports the failure with the fewest departures from the expected schedule, not the shortest; says whether a clean run was complete or budget-bounded; checks endings directly. A search core with no guarded actions and no check of real code |
-| [Polygraph](/vs/polygraph) | Close | Exhaustive model checking of a JavaScript spec, and a link from the spec back to the real code | An LLM derives the spec from existing code instead of you writing it first, and the spec is checked against recorded traces, not the whole state graph |
-
-### Same aim, different implementation
-
-Every state is checked, but the spec is translated or has to fit a fixed shape.
-
-| Tool | How close | In common | Different |
-|---|---|---|---|
-| [tla-precheck](/vs/tla-precheck) | Close in aim, different in form | Every reachable state, a TypeScript-shaped spec | A restricted DSL compiled to TLA+ and checked by TLC in Java, with its own interpreter proven to match; generates the runtime code instead of checking code you wrote |
-| [stateproof](/vs/stateproof) | Close in aim, far in practice | Every reachable state, a spec that looks like TypeScript | A small subset of TypeScript re-parsed into TLA+ and checked by TLC in Java; a translator to trust; a state enum is required. Ahead on liveness, diagrams and tooling |
-| [effect-machine](/vs/effect-machine) | Fairly close | Breadth-first search, invariants, shortest traces | Only over Effect statecharts, with the events per state listed by hand and async work not run during the search. It explores the machine that runs, with no second artifact, and reports coverage |
-
-### A different approach
-
-These tools sample runs or prove functions instead of walking every state. They fit next to SpecCraft TS rather than
-in place of it.
-
-| Tool | How close | In common | Different |
-|---|---|---|---|
-| [fast-check](/vs/fast-check) | Medium | Model-based testing has the same shape: commands with preconditions, run against a model and the real system | Samples orders at random and shrinks the failure; strong on rich data. A clean run means "not found in the runs made" |
-| [Hegel](/vs/hegel) | Far | Tests against the real code | Samples inputs Hypothesis-style; does not control the order of async events |
-| [Bombadil](/vs/bombadil) | Far | Properties written in TypeScript | Samples runs of a real web or terminal UI against temporal properties |
-| [LemmaScript](/vs/lemmascript) | Far, and complementary | TypeScript source | Proves pure functions correct for every input with Dafny or Lean; does not model the order of events |
-
-## Who builds it
-
-[Oleksandr Zalizniak](https://zalizniak.com), who also writes this site.
+- **The spec runs as TypeScript.** There is no translation step to trust and no Java. Guards and effects can call
+  your own helpers and use any language feature.
+- **The real code is checked against the spec.** The check covers the whole state graph, but only the moves the spec
+  allows; what the code does where the spec says no is not checked.
+- **Safety only.** There is no liveness check yet, so "eventually" properties cannot be checked.
+- **Small, finite values on purpose.** A bug that needs a value the spec never tries is missed, like the quantity-0
+  bug above; property-based testing covers rich data better.
+- **Built for small models.** There are no reductions, an action has one next state, and states are keyed by
+  `JSON.stringify`, so large state spaces hit time and memory limits sooner.
 
 ## Links
 
+- Built by [Oleksandr Zalizniak](https://zalizniak.com), the author of this site; started on 2026-09-19.
 - SpecCraft TS on GitHub: https://github.com/speccraft-io/speccraft-ts
 - `@speccraft-io/core` on npm: https://www.npmjs.com/package/@speccraft-io/core
 - The SpecCraft repositories: https://github.com/orgs/speccraft-io/repositories

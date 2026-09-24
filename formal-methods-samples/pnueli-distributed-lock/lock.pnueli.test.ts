@@ -33,6 +33,7 @@ function actions(steps: readonly Step<State>[]): (string | null)[] {
 
 describe('distributed lock under pnueli', () => {
   it('finds the stale write when the store accepts any write', () => {
+    // Walks every reachable state.
     const plain = checkExhaustive(lockSpec(3, 'accepts any write', lock, false));
     const symmetric = checkExhaustive(lockSpec(3, 'accepts any write', lock, true));
     console.log(report(plain));
@@ -67,6 +68,7 @@ describe('distributed lock under pnueli', () => {
   });
 
   it('shows some node keeps getting writes in under weak fairness', () => {
+    // Checks "eventually the goal holds" under weak fairness.
     const result = checkLiveness(lockSpec(3, 'fencing', fixedLock, true), someNodeWrites);
     console.log(report(result));
     expect(result.ok).toBe(true);

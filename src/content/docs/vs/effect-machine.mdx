@@ -19,9 +19,8 @@ import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
 [effect-machine](https://github.com/typeonce-dev/effect-machine) is a statechart library for
-[Effect](https://effect.website), published on npm as `@typeonce/effect-machine` since July 2026. Its testing module
-includes a bounded breadth-first explorer with invariants and shortest counterexamples. It is the most used tool in
-this group: about 53,000 downloads a month in September 2026.
+[Effect](https://effect.website), published on npm as `@typeonce/effect-machine`. Its testing module
+includes a bounded breadth-first explorer with invariants and shortest counterexamples.
 
 The search works only over Effect statecharts, and async work is not run during the search.
 
@@ -29,8 +28,7 @@ The search works only over Effect statecharts, and async work is not run during 
 
 ## Using effect-machine
 
-The code below is in [formal-methods-samples/effect-machine-checkout](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/effect-machine-checkout)
-and runs on its own with `npm install && npm test`.
+The code below is in [formal-methods-samples/effect-machine-checkout](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/effect-machine-checkout).
 
 ### The problem
 
@@ -50,13 +48,7 @@ pnpm add @typeonce/effect-machine effect@4.0.0-rc.116
 pnpm add -D @effect/vitest@4.0.0-rc.116
 ```
 
-- **effect is a peer dependency at one exact version.** effect-machine 0.38.0, used here, needs `effect`
-  4.0.0-rc.116, a release candidate of Effect 4. A different Effect version does not satisfy it.
-- **tsconfig `lib`.** The types need `ESNext.Disposable` in the tsconfig `lib`.
-- **Imports.** `Machine` comes from `@typeonce/effect-machine`, the explorer `MachineTest` from
-  `@typeonce/effect-machine/testing`, and `Effect`, `Option` and `Schema` from `effect`.
-- **Tests.** `MachineTest.explore` returns an Effect, so the example runs it with `it.effect` from `@effect/vitest`,
-  pinned to the same Effect version.
+effect-machine 0.38.0 needs exactly `effect` 4.0.0-rc.116, and `ESNext.Disposable` in the tsconfig `lib`.
 
 ### Writing the machine
 
@@ -68,6 +60,7 @@ The machine is in `checkout.ts`. States and events are declared from Effect sche
 ```ts
 // checkout.ts (shortened)
 export const States = Machine.state({
+  // Shared by every state; each state can add its own fields.
   fields: { items: Schema.Number },
   states: {
     Cart: {},
@@ -83,12 +76,14 @@ export const Events = Machine.events({
   RemoveItem: {},
   Checkout: {},
   Back: {},
+  // The payment reply carries the amount it was for.
   PaymentSucceeded: { amount: Schema.Number },
   PaymentFailed: { amount: Schema.Number },
 });
 
 export const cart = {
   on: {
+    // update: stay in the state and change the shared fields. target: move to another state, data fills its fields.
     AddItem: { update: targets.root, data: ({ root }: { root: { items: number } }) => ({ items: root.items + 1 }) },
     // RemoveItem is the same, with items - 1
     Checkout: {
@@ -116,29 +111,11 @@ export const machine = Machine.make({ root: States, events: Events }).handle({
 });
 ```
 
-What each part does:
-
-- **`Machine.state`** declares the machine's data. `fields` are shared by every state (the item count); each state
-  can add its own (the amount being charged, the amount paid).
-- **`Machine.targets`** gives typed names for the states, such as `targets.root.PaymentPending`.
-- **`Machine.events`** declares each event and its payload. The payment reply carries the amount it was for.
-- **Handlers.** In a state's `on`, `target` moves to another state and `data` fills its fields; `update:
-  targets.root` stays in the state and changes the shared fields.
-- **Invariants.** `MachineTest.invariants(machine).state(name, check)` builds a check on each snapshot. The check
-  returns `true` or a message, here `paid 10 for a cart of 20`.
-
 ### Running it
 
 <Short>Only when every reply still in flight is offered does it find the bug: paid 10 for a cart of 20.</Short>
 
-`MachineTest.explore(machine, options)` walks the machine breadth-first. Its options:
-
-- **`events(context)`** lists the events to try from each state. The explorer tries only these. `userEvents` offers
-  AddItem, RemoveItem and Checkout in `Cart` (up to two items, to keep the space finite) and Back in `PaymentPending`.
-- **`stateKey(context)`** decides when two snapshots count as the same state.
-- **`invariants`** are checked on every planned edge.
-
-The result has `stats`, a `completeness` tag, and transition coverage. A failure comes back as an error with the
+`MachineTest.explore(machine, options)` walks the machine breadth-first. The result has `stats`, a `completeness` tag, and transition coverage. A failure comes back as an error with the
 trace. The example runs it three ways.
 
 **1. The charge as an `invoke`.** In effect-machine, async work belongs to the state that owns it, so the natural way
@@ -158,7 +135,9 @@ PaymentPending: {
 
 ```ts
 const explored = yield* MachineTest.explore(invokeMachine, {
+  // The only events tried: AddItem, RemoveItem, Checkout in Cart (up to two items), Back in PaymentPending.
   events: ({ snapshot }) => userEvents(snapshot),
+  // When two snapshots count as the same state.
   stateKey: ({ snapshot }) => JSON.stringify(snapshot),
   invariants: [invokeInvariant],
 });
@@ -176,7 +155,7 @@ const explored = yield* MachineTest.explore(invokeMachine, {
 
 The first line is `stats` and the completeness tag; the list is the transitions coverage says were never taken. The
 exploration is complete and the invariant passes, but `Paid` is never reached: the explorer plans transitions and does
-not run invokes. Coverage says so directly: the one missed transition is the invoke's `onDone`. At runtime, per its
+not run invokes. Coverage says so directly: the one missed transition is the invoke's `onDone`. At runtime, according to its
 docs, the machine cancels the invoke when Back leaves `PaymentPending`, so the machine drops the late reply, even if
 the provider has already charged the card. The planner cannot show that either.
 
@@ -250,13 +229,12 @@ step shows the configuration before and after, and the last line is the invarian
 
 <Short>Remove Back from `PaymentPending`. The same exploration passes.</Short>
 
-The fix removes `Back` from `PaymentPending`. The fixed machine is `checkout.fixed.ts`, a copy of `checkout.ts` with
-only this line removed:
+The fix removes `Back` from `PaymentPending`:
 
 <CodeFix before={before} after={after} title="checkout.ts" />
 
 Back is no longer allowed while the payment is pending, so `PaymentPending` handles only the two replies.
-(Tagging each reply with a cart version and rejecting a stale one would also work.) The same exploration, with every
+(Tagging each reply with a cart version and rejecting an old one would also work.) The same exploration, with every
 reply still in flight, passes:
 
 ```text
@@ -279,17 +257,6 @@ reply still in flight, passes:
 - **`formatTrace` is long.** Each step prints its microsteps and the full state; `error.trace.steps` gives the events
   directly when only the path is needed.
 
-## What effect-machine is
-
-- A machine is declared from Effect `Schema` classes: states, events, and handlers that choose the next state.
-- `MachineTest.explore` walks the machine's state graph breadth-first, with user-supplied `events` and `stateKey`.
-- Invariants are checked on every planned edge, so a failure comes with a shortest discovered counterexample.
-- Hard limits (by default 20 events deep, 1,000 states, 10,000 transitions) are reported as a completeness result. In
-  its own words, a limit never makes an incomplete result appear exhaustive.
-- Transition and branch coverage are reported for every plan the explorer computed.
-- Besides exploration: scenario generation from schemas, a reference model to check traces against, and a runtime
-  `probe` that acknowledges live commands, timers and invokes.
-
 ## Strengths and limits
 
 | | effect-machine |
@@ -304,17 +271,18 @@ reply still in flight, passes:
 - **effect-machine found the bug, but only once the test was written for it.** With the charge as an `invoke` it
   cannot, and with only the current reply it gave a complete result, full coverage, and no bug. The replies in flight
   had to be listed by hand in the test's events and state key.
-- **effect-machine explores the machine that runs.** There is no second artifact. In exchange, it only checks code
+- **effect-machine explores the machine that runs.** There is no separate model. In exchange, it only checks code
   written as an effect-machine statechart. Model checkers such as [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or
   [Quint](/tools/quint) check a separate model instead.
 - **The coverage report is a strength.** It named the exact transition that was never taken, and hard limits are
-  reported as completeness, so a bounded run is never mistaken for an exhaustive one.
-
-## Who builds it
-
-Sandro Maglione of Typeonce, who writes and teaches about Effect, makes nearly all the commits.
+  reported as completeness, so a bounded run is never mistaken for an exhaustive one. The default limits are 20 events
+  deep, 1,000 states and 10,000 transitions.
+- **It does more than explore.** It can also generate scenarios from the schemas, check traces against a reference
+  model, and `probe` a running machine's commands, timers and invokes.
 
 ## Links
+
+Built by Sandro Maglione of Typeonce, who writes and teaches about Effect; open source.
 
 - effect-machine on GitHub: https://github.com/typeonce-dev/effect-machine
 - effect-machine on npm: https://www.npmjs.com/package/@typeonce/effect-machine

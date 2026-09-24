@@ -99,7 +99,9 @@ describe('checkout under effect-machine', () => {
   it.effect('explores the invoke version without running the payment', () =>
     Effect.gen(function* () {
       const explored = yield* MachineTest.explore(invokeMachine, {
+        // The only events tried: AddItem, RemoveItem, Checkout in Cart (up to two items), Back in PaymentPending.
         events: ({ snapshot }) => userEvents(snapshot),
+        // When two snapshots count as the same state.
         stateKey: ({ snapshot }) => JSON.stringify(snapshot),
         invariants: [invokeInvariant],
       });

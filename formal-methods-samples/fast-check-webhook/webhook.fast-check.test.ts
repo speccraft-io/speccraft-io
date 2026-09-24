@@ -10,6 +10,7 @@ interface Db {
   charges: number;
 }
 
+// The handler takes its database calls as deps, so the scheduler can wrap each one.
 function scheduledDeps(s: fc.Scheduler, db: Db): Deps {
   return {
     getStatus: s.scheduleFunction(async (_orderId: string) => await Promise.resolve(db.status)),
@@ -68,10 +69,12 @@ describe('webhook under fast-check', () => {
       const db: Db = { status: 'unpaid', charges: 0 };
       const deps = scheduledDeps(s, db);
       const run = Promise.all([handleOrderConfirmed('o1', deps), handleOrderConfirmed('o1', deps)]);
+      // Release the queued calls one at a time, in an order the scheduler picks.
       await s.waitIdle();
       await run;
       expect(db.charges).toBe(1);
     });
+    // 100 runs by default; seed 1 makes the run repeatable.
     const details = await fc.check(property, { seed: 1 });
     expect(details.failed).toBe(true);
     console.log(fc.defaultReportMessage(details));

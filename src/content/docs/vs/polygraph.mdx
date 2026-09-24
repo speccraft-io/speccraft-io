@@ -20,18 +20,16 @@ import after from '../../../fixes/polygraph/after.ts.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
-[Polygraph](https://github.com/cognitive-fab/polygraph) is a Claude Code plugin and standalone CLI by Cognitive Fab
-LLC, first published in July 2026. It finds bugs in stateful JavaScript and TypeScript code (workflows, reducers,
-protocol handlers, checkout flows) by exhaustively exploring every state reachable over a declared, finite set of
-actions and payloads.
+[Polygraph](https://github.com/cognitive-fab/polygraph) is a Claude Code plugin and standalone CLI. It finds bugs in
+stateful JavaScript and TypeScript code (workflows, reducers, protocol handlers, checkout flows) by exhaustively
+exploring every state reachable over a declared, finite set of actions and payloads.
 
 <Short>Polygraph replays real traces against a spec, then model-checks it. Here: a cart that keeps a coupon it no longer qualifies for.</Short>
 
 ## Using Polygraph
 
 The code below is in
-[formal-methods-samples/polygraph-coupon](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/polygraph-coupon) and
-runs on its own with `npm install && npm test`. We ran it with Polygraph 8.3.0 on Node 24, with no API key. In a real
+[formal-methods-samples/polygraph-coupon](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/polygraph-coupon). We ran it with Polygraph 8.3.0 on Node 24, with no API key. In a real
 audit an LLM writes the spec from your source; that step needs `ANTHROPIC_API_KEY`, so the spec here is written by
 hand the way it would be derived. Every other step, and all the output below, is from our run.
 
@@ -68,18 +66,14 @@ stays on a 10.00 cart.
 npm install -D @cognitive-fab/polygraph
 ```
 
-Or as a Claude Code plugin, where you mostly ask in plain words ("verify this state machine"):
+Or as a Claude Code plugin:
 
 ```text
 /plugin marketplace add cognitive-fab/polygraph
 /plugin install polygraph@polygraph
 ```
 
-- **Node 20 or newer.** The SAM runtime the specs use is vendored in the package.
-- **An API key only for the LLM steps.** Generating specs from source and authoring new code call the Anthropic API.
-  Replay, model checking, invariant grading and versioning run locally with no key.
-- **In Claude Code** the entry points are `/polygraph:polygraph` for a guided audit, `/polygraph:verify` when you
-  already have a contract and traces, and `/polygraph:polygen` to write a new machine.
+Needs Node 20+; an Anthropic API key only for the LLM steps.
 
 ### Writing the check (use AI)
 
@@ -91,7 +85,7 @@ The **contract**, `contract.json`, says what is observable: the state fields, th
 carries, and the special rules. Here the state is `{ items, coupon }`, and the four ways an action can leave the cart
 unchanged are named rules: `cart-full`, `cart-empty`, `unknown-code` and `below-minimum`.
 
-The **traces** are ground truth from the real code: one JSON line per step. `tapReducer` wraps the reducer once and
+The **traces** record what the real code does: one JSON line per step. `tapReducer` wraps the reducer once and
 writes a line on every call; the sample runs three scripted sessions through it:
 
 ```ts
@@ -115,6 +109,7 @@ included:
 const control = instance({
   initialState: { items: 0, coupon: null },
   component: {
+    // Every state field; the strict profile allows no hidden state.
     modelShape: {
       items: { type: 'number' },
       coupon: { type: 'string', nullable: true },
@@ -125,9 +120,11 @@ const control = instance({
       APPLY_COUPON: {
         action: (data = {}) => ({ ...data }),
         schema: { code: { type: 'string' } },
+        // The payloads the model checker tries: a valid and an unknown code.
         domain: [{ code: 'SAVE5' }, { code: 'SAVE10' }],
       },
     },
+    // Compute the next state; reject(reason) uses the contract's rule names.
     acceptors: {
       REMOVE_ITEM: (model) => (proposal, { reject, next, unchanged }) => {
         if (model.items === 0) return reject('cart-empty');
@@ -140,12 +137,6 @@ const control = instance({
   },
 });
 ```
-
-- **`modelShape`** declares every state field. The strict profile allows no hidden state, and a field that can be
-  `null` must say `nullable: true`.
-- **`domain`** lists the payloads the model checker will try: here a valid and an unknown coupon code.
-- **`acceptors`** compute the next state. `next` sets a field, `unchanged` says it stays, and `reject(reason)` says
-  the action does not apply and why, using the contract's rule names.
 
 The **invariants**, `invariants.mjs`, are the rules as plain JavaScript predicates. They come from you, because a
 spec derived from the code describes what the code does, not what it should do:
@@ -196,15 +187,14 @@ rejections explored: below-minimum ×4, cart-empty ×2, cart-full ×2, unknown-c
       REMOVE_ITEM({}) -> {"items":1,"coupon":"SAVE5"}
 ```
 
-It exits with code 1. The counterexample is the shortest path to the bug, as actions with payloads: a ready-made repro
-for the real reducer.
+It exits with code 1. The counterexample is the shortest path to the bug, as actions with payloads: a ready way to
+reproduce the bug in the real reducer.
 
 ### Fixing the bug
 
 <Short>Drop the coupon below the minimum: 6 states, no violation. Replay alone could not tell the two versions apart.</Short>
 
-The fixed reducer is in `cart.fixed.ts`, a copy of `cart.ts` with only the lines of the fix changed. Removing an item
-now drops the coupon when the subtotal falls below the minimum:
+The fix: removing an item now drops the coupon when the subtotal falls below the minimum:
 
 <CodeFix before={before} after={after} title="cart.ts" />
 
@@ -226,35 +216,8 @@ no session removed an item from a cart at the minimum. Only the model checker fo
 
 - **Read the rejection counts.** "below-minimum ×4" shows a special rule was actually reached. A declared rule that
   never fires is flagged as a warning.
-- **Run the controls.** Before a generated spec is trusted, a hand-written reference must replay at 100% and a
-  deliberately mutated spec must fail. Polygraph's own examples ship both (`specs/` and `specs-mutant/`).
-- **Treat findings as leads.** Polygraph's own guidance is that every finding is to be checked by hand, not a
-  verdict. The replay report sorts each disagreement into a spec-error (the LLM misread the code), a code-finding or
-  a contract-error.
 - **Call the scripts directly.** Through the npm bin link, `npx polygraph` printed nothing and exited 0 in our run,
   so the sample calls `scripts/verify.mjs` and `scripts/check.mjs` with `node`.
-
-### Limits
-
-- **A consistency check, not a proof.** The README says so first: experimental, not peer-reviewed, and "exhaustive"
-  only over the finite action and data domain declared in the contract.
-- **The code must run in isolation.** Traces come from executing it, so code tied to a database or device needs test
-  doubles first.
-- **Unbounded fields need a cap.** The cart has a maximum of three items. Without one, a field that only grows needs
-  `--max-states`: Polygraph's turnstile example, which counts coins, did not finish within two minutes for us without
-  it. The default cap is 100,000 states.
-- **The 8.0 format change.** Version 8.0 removed the older `next(state, action, data)` spec format. Some examples
-  still in the repo (`subscription`, `polygen-otp`) use it, and the 8.3.0 checker refused them by name when we tried.
-
-## What Polygraph is
-
-- **An audit loop:** an LLM writes independent specs from your source, replay against real traces checks they are
-  faithful, and model checking against your invariants finds the bugs.
-- **polygen** runs it in reverse: from a one-sentence feature description, an LLM writes the machine and its
-  invariants, model-checks its own output, and repairs it until the check passes.
-- **More engines around it:** polyrun (durable execution of a verified machine), polyvers (checking a new version
-  against running instances), polynv (eliciting invariants and grading them by how many mutated machines they catch),
-  and an optional escalation to TLA+ and TLC with `--tla`.
 
 ## Strengths and limits
 
@@ -263,28 +226,26 @@ no session removed an item from a cart at the minimum. Only the model checker fo
 | Where the spec comes from | An LLM derives it from your code |
 | What the spec is checked against | Recorded execution traces of the real code |
 | Model checking | Exhaustive over a declared finite domain, plain JS invariants |
-| LLM | Needed to generate specs and author code; checking runs without it |
+| LLM | Needed to generate specs and write code; checking runs without it |
 | Async orderings in real code | Covered only as far as the traces and the spec model them |
 | Scope and packaging | Audit, authoring, runtime, versioning, invariant grading; Claude Code plugin plus CLI, Apache-2.0 |
 
-- **It starts from the code.** Polygraph derives the spec from the code, so it works on code you already have, but
-  the spec is a reading of the code as it is: code with a bug is a faithful description of the wrong behavior. That
-  is why its invariants must come from you. Tools such as [TLA+](/tools/tla-plus), [Quint](/tools/quint) and
-  [pnueli](/vs/pnueli) start from a spec of what the code should do, and someone has to write it.
-- **It is wide and has evidence.** Authoring, a durable runtime, version gating, invariant grading, a
-  corroborated double-charge bug on a production billing machine, and a seeded-bug evaluation where replay found 0
-  of 5 bugs and model checking found 5 of 5.
-- **The check is only as good as the traces.** The spec is checked against recorded traces, not the whole state graph
-  of the real code, and generating specs needs an LLM.
+- **It starts from the code.** It works on code you already have, but a spec read from buggy code describes the wrong
+  behavior faithfully, so the invariants must come from you.
+- **It covers a lot and has evidence.** It also writes new machines, runs them, checks new versions and grades
+  invariants. It found a double-charge bug on a production billing machine; in an evaluation, replay found 0 of 5
+  planted bugs and model checking found 5 of 5.
+- **The traces set the limit.** The spec is checked against recorded runs, not every state of the real code. The
+  code must run on its own to record them, so code tied to a database or device needs test doubles first.
+- **A consistency check, not a proof.** It is exhaustive only over the finite actions and data declared in the
+  contract, and the README calls it experimental. A field that only grows needs a cap or `--max-states`.
 - **Worth copying:** grade invariants by how many broken models they catch, run a known-good and a known-bad control
   before a run counts, and replay real traces as a cheap first check for existing code.
 
-## Who builds it
-
-Cognitive Fab LLC, based on Jean-Jacques Dubray's July 2026 paper "Can Code Specify a System Precisely Enough to Formally Verify It?" (arXiv:2607.05076).
-
 ## Links
 
+- Built by Cognitive Fab LLC and first published in July 2026, based on Jean-Jacques Dubray's July 2026 paper "Can
+  Code Specify a System Precisely Enough to Formally Verify It?" (arXiv:2607.05076).
 - Polygraph on GitHub: https://github.com/cognitive-fab/polygraph
 - Polygraph on npm: https://www.npmjs.com/package/@cognitive-fab/polygraph
 - Polyflow on npm: https://www.npmjs.com/package/@cognitive-fab/polyflow

@@ -27,10 +27,10 @@ import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
 [TLA+](https://lamport.azurewebsites.net/tla/tla.html) is a language for describing a system as state and the steps
-that change it, written by Leslie Lamport. AWS, Microsoft and MongoDB use it on their distributed systems. TLA+ is the
+that change it. AWS, Microsoft and MongoDB use it on their distributed systems. TLA+ is the
 language. The checking is done by separate tools, and there are two main ones:
 
-- **TLC**, the original model checker. It walks every reachable state of the spec. It also checks liveness: "this
+- **TLC**, the original model checker. It visits every reachable state of the spec. It also checks liveness: "this
   always ends", not only "this never breaks".
 - **Apalache**, a symbolic checker built on the Z3 solver. It checks every run up to a set number of steps, and handles
   large ranges of values without listing each state. It needs type annotations.
@@ -45,10 +45,10 @@ language and checks the spec, not the real code.
 
 <Full>
 
-## A separate spec, on purpose
+## Why a separate spec
 
 TLA+ asks for a second, much smaller description of the system in a `.tla` file. You do not annotate your TS code.
-That is extra work, and it pays back in three ways:
+That is extra work, and it helps in three ways:
 
 - Isolation. The spec has no framework, no network, no `async`. Only the state and the steps that matter for the rule.
   Each `await` in the real code becomes a point where the spec can switch to another step.
@@ -57,7 +57,7 @@ That is extra work, and it pays back in three ways:
 - A thinking tool. To write the spec you have to name every state, every step, every "must never happen" and every
   "must eventually happen". Many design bugs show up while writing it, before TLC runs.
 
-The cost is a second artifact to keep in step with the code. The rest of this page shows how to do that with a replay
+The cost is a second artifact that must keep matching the code. The rest of this page shows how to do that with a replay
 test in vitest.
 
 </Full>
@@ -116,19 +116,12 @@ TLA+ is not the tool for proving one function's math right for every input. See 
 
 <Short>One jar and Java 11 or newer. Apalache is a separate download.</Short>
 
-TLC ships in one jar. It needs Java 11 or newer:
-
 ```sh
 curl -LO https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
 java -jar tla2tools.jar Spec.tla      # runs TLC on Spec.tla with the settings in Spec.cfg
 ```
 
-The jar also has SANY, the TLA+ parser, and the PlusCal translator. For the editor, install the "TLA+" extension in
-VS Code: it highlights and parses specs and runs TLC from the editor.
-
-[Apalache](https://github.com/apalache-mc/apalache) is a separate download: unpack `apalache.tgz` from its GitHub
-releases and put `bin/apalache-mc` on your `PATH`. It needs Java 17 or newer. If you already use Quint, `quint verify`
-has downloaded a copy into `~/.quint`.
+TLC needs Java 11+. [Apalache](https://github.com/apalache-mc/apalache) is a separate download and needs Java 17+.
 
 ## Step 1: write the spec as plain text (you and AI)
 
@@ -196,12 +189,8 @@ The checkable version is LazyConnect.tla, next to this file.
 
 How it maps to the code:
 
-- `db` is the `db` variable in `lazyConnect`. `connecting` is outside the code: the `connect()` calls that have not
-  returned yet.
-- Each action is one step of the code between two `await`s. `call c` is `getDb()` up to `await connect()`; the two
-  `connect` actions are the two ways that call can end.
-- The rules come before anything is checked. "At most one connect() at a time" is a "must never happen". "Every
-  caller gets the connection in the end" is a "must always happen in the end", with what it takes for granted.
+- `db` is the `db` variable in `lazyConnect`. `connecting` counts the `connect()` calls that have not returned yet.
+- Each action is one step of the code between two `await`s. `call c` is `getDb()` up to `await connect()`.
 
 Writing it is where most of the thinking happens. The `call c` line has to say what a second caller sees while the
 first one is still connecting, and the answer, "otherwise: connect() starts", is the bug.
@@ -212,7 +201,7 @@ first one is still connecting, and the answer, "otherwise: connect() starts", is
 
 > Ask AI to write `spec/LazyConnect.tla` and `spec/LazyConnect.cfg` from `spec/lazy-connect.md`. One variable per
 > variable, one action per action, guards as conditions, the invariant and the temporal property as operators,
-> fairness as the text grants it. Above each part, put the line of the text it comes from as a comment. List anything
+> fairness as the text states it. Above each part, put the line of the text it comes from as a comment. List anything
 > you had to guess.
 
 You do not need to read TLA+. To check the result:
@@ -448,7 +437,7 @@ Which checker to use:
 | Big value ranges (amounts, counters) | Slow: each value is a state | Fast: a range is one formula |
 | Needs | Java 11+, one jar | Java 17+, type comments |
 
-Start with TLC. Reach for Apalache when a variable holds amounts or large numbers and TLC's state count blows up.
+Start with TLC. Use Apalache when a variable holds amounts or large numbers and TLC's state count grows too large.
 
 ## Step 6: replay every behavior against the real TS code (use AI)
 
@@ -593,16 +582,6 @@ test.each(paths)('%s', async (_name, path) => {
 
 </details>
 
-What it does for each step of a path:
-
-- The edge label says which action ran, but not for which caller. The test finds the caller by comparing the two
-  states: the one whose `pc` changed.
-- `Call` calls the real `getDb()`. The `Connect` steps make a waiting `connect()` call resolve or reject. If none is
-  waiting, the code and the spec disagree, and the test says so.
-- After each step, the `connect()` calls in flight and each caller's status must match the spec, and there must
-  never be two connects at once.
-- Each path is its own test, named by its steps, so a failure reads as the exact order that breaks.
-
 First, replay the Step 2 spec against the original function. TLC stops at the first violation, so to get the full
 graph, run it once with a config that leaves out the `INVARIANT` line:
 
@@ -664,11 +643,7 @@ Scripts in `package.json`:
 }
 ```
 
-- `tla:install` pins the TLC version in one place.
-- `tla:check` checks both properties and writes the graph in one run. `-metadir` keeps TLC's working files in
-  `spec/out/` instead of a `states/` folder in the repo root.
-- `pretest` runs before `npm test`, so the replay always walks the graph of the current spec. If the spec breaks a
-  property, TLC exits with an error and the tests do not run.
+`pretest` runs before `npm test`, so the replay always walks the graph of the current spec.
 
 TLC and the replay both need Java, so CI is one job:
 
@@ -756,7 +731,7 @@ You do not get:
 
 - A proof about the TS code. TLC checks the spec. The replay checks the code on the spec's behaviors, and it cannot
   check liveness in the code.
-- A free spec. You choose where the steps split. If you merge steps that the real code keeps apart, the spec hides
+- A spec without effort. You choose where the steps split. If you merge steps that the real code keeps apart, the spec hides
   the bug.
 - Anything the spec leaves out. Here: a connection that drops later, and more than one process. Neither is in the
   spec, so TLC says nothing about them.

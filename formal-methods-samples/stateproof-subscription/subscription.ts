@@ -4,6 +4,7 @@ import { machine } from './vendor/stateproof/packages/core/src/index.ts';
 export const subscription = machine('Subscription')
   .states('trial', 'active', 'canceling', 'canceled')
   .initial('trial')
+  // Flat data next to the state: set when the customer cancels.
   .context({ canceledByUser: false })
   .transition('activate', { from: 'trial', to: 'active' })
   .transition('cancel', {
@@ -29,4 +30,5 @@ export const subscription = machine('Subscription')
       ctx.canceledByUser = false
     }
   })
+  // Must hold in every reachable state.
   .invariant('canceled plans are not renewed', (ctx) => !(ctx.canceledByUser && ctx.state === 'active'))

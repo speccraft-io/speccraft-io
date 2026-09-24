@@ -58,8 +58,8 @@ test('discount is capped', () => {
 
 Both tests pass. The function still has two bugs:
 
-- A `percent` over 100 (say, two coupons stacked) makes the price negative: `applyDiscount(5000, 150, 10000)` is
-  `-2500`.
+- A `percent` over 100 (for example, two coupons used together) makes the price negative:
+  `applyDiscount(5000, 150, 10000)` is `-2500`.
 - A negative `percent` (a bad value from an admin form) makes the price go up.
 
 <Short>Both tests pass, but `applyDiscount(5000, 150, 10000)` is `-2500`.</Short>
@@ -92,22 +92,17 @@ events, not one function. See the Quint page for that.
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
 ```
 
-This installs `elan` (like `nvm`, for Lean versions), `lean` and `lake` (like `npm`, for Lean projects). For the
-editor, install the "Lean 4" extension in VS Code. It shows the proof state next to your code as you type.
-
 Create a Lean project in a `lean/` folder inside your TS repo:
 
 ```sh
 mkdir lean && cd lean
 lake init discount
+# lake init creates its own git repo and CI; the TS repo already has both
 rm -rf .git .github README.md
 lake build
 ```
 
 <Short>`elan` installs Lean and `lake`. Keep the Lean project in `lean/`, and remove the `.git` and `.github` that `lake init` creates.</Short>
-
-`lake init` sets the folder up as its own git repo with its own CI workflow. Inside an existing repo you do not want
-either, so remove them. The full layout is in [Project layout and CI](#project-layout-and-ci).
 
 ## Step 1: copy the function into Lean (use AI)
 
@@ -116,16 +111,12 @@ functions this is a few lines:
 
 ```lean
 -- Discount/Pricing.lean
-def applyDiscount (price percent cap : Int) : Int :=
+def applyDiscount (price percent cap : Int) : Int :=  -- Int: a whole number of any size, in cents
   price - min (price * percent / 100) cap
 
-#eval applyDiscount 5000 20 10000
+#eval applyDiscount 5000 20 10000   -- runs during the build, like console.log
 #eval applyDiscount 5000 150 10000
 ```
-
-`def` is like `function`. The last line of the body is the return value. `Int` is a whole number of any size, so the
-Lean version works in cents, like the TS version. `#eval` runs the function during the build, like a quick
-`console.log`.
 
 ## Step 2: write the rule, and let the proof fail
 
@@ -135,19 +126,11 @@ same file, below the function:
 ```lean
 -- Discount/Pricing.lean (continued)
 theorem never_negative (price percent cap : Int)
-    (hPrice : 0 ≤ price) :
-    0 ≤ applyDiscount price percent cap := by
-  unfold applyDiscount
-  omega
+    (hPrice : 0 ≤ price) :                     -- given: the price is not negative
+    0 ≤ applyDiscount price percent cap := by  -- the claim, then the proof
+  unfold applyDiscount                         -- replace the name with its body
+  omega                                        -- a built-in solver for +, -, < and ≤ on whole numbers
 ```
-
-How to read it:
-
-- `(price percent cap : Int)`: for any three whole numbers.
-- `(hPrice : 0 ≤ price)`: given that the price is not negative. This is an assumption, like a precondition.
-- `0 ≤ applyDiscount price percent cap`: the claim.
-- `by unfold applyDiscount; omega`: the proof. `unfold` swaps in the function's body. `omega` is a built-in solver for
-  claims about whole numbers with `+`, `-`, `<` and `≤`. You do not write the steps yourself.
 
 Run `lake build`:
 
@@ -171,13 +154,11 @@ discount never goes over the cap.
 
 <Short>Clamp the percent to 0..100. All three theorems build.</Short>
 
-One new piece needs explaining. `omega` cannot multiply two unknowns (`price * percent`). So `discount_le_price` does
-that part with two library facts: a product of two non-negative numbers is non-negative (`Int.mul_nonneg`), and
-multiplying by a bigger number gives a bigger result (`Int.mul_le_mul_of_nonneg_left`). After that, the other proofs
-hand this fact to `omega` with `have := ...`. You find names like these by searching the docs or asking an AI
-assistant. Lean checks every step, so a wrong suggestion fails the build and cannot slip through.
+`omega` cannot multiply two unknowns (`price * percent`), so `discount_le_price` uses two library facts for that
+part. You find names like these by searching the docs or asking an AI assistant. Lean checks every step, so a wrong
+suggestion fails the build.
 
-`#guard` is a plain test that runs during the build. It is handy for a few examples next to the proofs.
+`#guard` is a plain test that runs during the build. It is useful for a few examples next to the proofs.
 
 <a href="/assets/tools/lean/lean-build-ok.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-build-ok.webp" alt="lake build output: all 8 jobs built, build completed successfully." /></a>
 
@@ -193,11 +174,11 @@ Look at `never_more_than_price`. It needs `hCap : 0 ≤ cap`. Remove it and buil
 
 `d := cap` and `d ≤ -1`: a negative cap makes the price go up. You now know a precondition the TS function has
 today and nobody wrote down. You can clamp the cap too, or check it where the cap comes in (for example, the admin
-form). This is the most common way Lean pays off in practice: it forces every hidden assumption into the open.
+form). This is the most common way Lean helps in practice: it makes every hidden assumption visible.
 
 ## Step 5: check the TS code gives the same answers
 
-The proofs are about the Lean copy. Nothing yet checks that `pricing.ts` does the same thing. The simplest bridge:
+The proofs are about the Lean copy. Nothing yet checks that `pricing.ts` does the same thing. The simplest link:
 Lean computes answers for a grid of inputs, and vitest checks the TS function against them.
 
 <a href="/assets/tools/lean/lean-workflow.webp" class="lightbox-trigger"><img src="/assets/tools/lean/lean-workflow.webp" alt="Workflow diagram: pricing.ts is rewritten as Pricing.lean. lake build checks the proofs for every input. lake exe discount writes cases.json with Lean's answers. vitest checks that the TS function gives the same answers." /></a>
@@ -256,7 +237,7 @@ clamp in TS:
 <a href="/assets/tools/lean/vitest-ok.webp" class="lightbox-trigger"><img src="/assets/tools/lean/vitest-ok.webp" alt="vitest output: 2 test files passed, 352 tests passed." /></a>
 
 Commit `cases.json`. The next section shows where everything lives and how CI keeps the three parts (the TS code,
-the Lean copy, the grid) in step.
+the Lean copy, the grid) in sync.
 
 ## Project layout and CI
 
@@ -341,11 +322,6 @@ jobs:
       - run: npm test
 ```
 
-- `leanprover/lean-action` is the official Lean action. It installs the Lean version from `lean/lean-toolchain`,
-  runs `lake build` (so every theorem and `#guard` is checked), and caches `lean/.lake` between runs.
-- The next step rebuilds the grid and fails if it differs from the committed file.
-- The `ts` job is a normal Node job. The cross-check is one more vitest file in it.
-
 What fails when:
 
 | Change | Where CI fails |
@@ -373,12 +349,9 @@ Adding a rule: add a `theorem` to `Pricing.lean`. No other file changes, since a
 Adding a tricky input: add the value to the lists in `Main.lean` and regenerate `cases.json`. When a production bug
 comes from an input nobody thought of, this is where it goes, like a regression test.
 
-Upgrading Lean: change the version in `lean/lean-toolchain`, run `npm run lean:build`, fix anything that no longer
-builds, commit. `elan` and the CI action both read that file, so everyone moves at once.
-
 Reviewing a pull request: if `src/pricing.ts` changed and `lean/` did not, ask why. The cross-check only catches a
-difference that shows up on the grid, so a matching Lean change is the real signal that the rules were thought
-through.
+difference that shows up on the grid, so a matching Lean change is what shows that someone thought about the
+rules.
 
 <Full>
 
@@ -398,7 +371,7 @@ You do not get:
   For real float math the Lean model and the TS code can disagree at the edges.
 - Help with timing, concurrency or I/O. Lean proves functions, not orders of events.
 - Easy proofs every time. `omega` handles plus, minus and comparisons. Multiplication, lists and recursion need more
-  steps, and that is where the learning curve is.
+  steps, and that is the hard part to learn.
 
 ## How to start in your own project
 

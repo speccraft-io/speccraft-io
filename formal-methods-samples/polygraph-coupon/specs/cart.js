@@ -10,6 +10,7 @@ const INITIAL_STATE = { items: 0, coupon: null };
 const control = instance({
   initialState: JSON.parse(JSON.stringify(INITIAL_STATE)),
   component: {
+    // Every state field; the strict profile allows no hidden state.
     modelShape: {
       items: { type: 'number' },
       coupon: { type: 'string', nullable: true },
@@ -20,9 +21,11 @@ const control = instance({
       APPLY_COUPON: {
         action: (data = {}) => ({ ...data }),
         schema: { code: { type: 'string' } },
+        // The payloads the model checker tries: a valid and an unknown code.
         domain: [{ code: 'SAVE5' }, { code: 'SAVE10' }],
       },
     },
+    // Compute the next state; reject(reason) uses the contract's rule names.
     acceptors: {
       ADD_ITEM: (model) => (proposal, { reject, next, unchanged }) => {
         if (model.items === 3) return reject('cart-full');

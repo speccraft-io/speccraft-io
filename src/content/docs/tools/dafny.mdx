@@ -91,18 +91,11 @@ events, not one function. See the Quint page for that.
 <Short>Dafny 4 comes with .NET 8 and Z3.</Short>
 
 ```sh
-brew install dafny
+brew install dafny    # Dafny 4, with .NET 8 and Z3
+npm i bignumber.js    # the generated JavaScript needs it at runtime
 ```
 
-This installs Dafny 4 with its two dependencies: .NET 8 (Dafny runs on it) and Z3 (the solver that does the proving).
-On Linux and Windows, see the [install page](https://dafny.org/latest/Installation). For the editor, install the
-"Dafny" extension in VS Code. It shows errors as you type, like the TypeScript server does.
-
-The generated JavaScript needs one npm package at runtime:
-
-```sh
-npm i bignumber.js
-```
+On Linux and Windows, see the [install page](https://dafny.org/latest/Installation).
 
 ## Step 1: write the function in Dafny, with its rules (use AI)
 
@@ -112,13 +105,13 @@ The Dafny version looks a lot like TS. The new parts are the lines between the s
 
 ```text
 // dafny/Search.dfy
-newtype int53 = x: int | -0x20_0000_0000_0000 < x < 0x20_0000_0000_0000
+newtype int53 = x: int | -0x20_0000_0000_0000 < x < 0x20_0000_0000_0000  // compiles to a plain JS number
 
 method IndexOf(ids: seq<int53>, target: int53) returns (index: int53)
   requires |ids| < 0x20_0000_0000_0000
-  requires forall i, j :: 0 <= i < j < |ids| ==> ids[i] < ids[j]
-  ensures 0 <= index ==> index as int < |ids| && ids[index] == target
-  ensures index < 0 ==> target !in ids
+  requires forall i, j :: 0 <= i < j < |ids| ==> ids[i] < ids[j]      // the caller promises: sorted, no duplicates
+  ensures 0 <= index ==> index as int < |ids| && ids[index] == target  // a found index points at the target
+  ensures index < 0 ==> target !in ids                                // -1 means the id is not in the list
 {
   var lo: int53 := 0;
   var hi: int53 := |ids| as int53 - 1;
@@ -135,17 +128,6 @@ method IndexOf(ids: seq<int53>, target: int53) returns (index: int53)
   return -1;
 }
 ```
-
-How to read it:
-
-- `int53` is a whole number in JavaScript's safe integer range. Dafny's plain `int` has no limit and would compile to
-  a BigNumber. A limited type like this one compiles to a normal JS `number`.
-- `seq<int53>` is a read-only list. `|ids|` is its length.
-- `requires` is what the caller must promise. Here: the list is sorted and has no duplicates ("for any two positions
-  `i` before `j`, `ids[i]` is smaller").
-- `ensures` is what the function promises back. If it returns an index, the id is at that index. If it returns a
-  negative number, the id is not in the list at all.
-- `==>` means "if ... then ...". `!in` means "is not in".
 
 Run the verifier:
 
@@ -193,7 +175,7 @@ Keep looping while there is still something to check:
 
 `0 errors` means both promises hold for every sorted list and every target, of any length.
 
-Dafny also proves that the loop always ends. Change `lo := mid + 1` to `lo := mid`, a common slip, and it says so:
+Dafny also proves that the loop always ends. Change `lo := mid + 1` to `lo := mid`, a common mistake, and it says so:
 
 <a href="/assets/tools/dafny/dafny-loop.webp" class="lightbox-trigger"><img src="/assets/tools/dafny/dafny-loop.webp" alt="dafny verify output: line 11, cannot prove termination; try supplying a decreases clause for the loop, at while lo <= hi. 2 verified, 1 error." /></a>
 
@@ -213,14 +195,7 @@ Add a script to `package.json`:
 }
 ```
 
-What it does:
-
-- `dafny translate js` verifies first. If there is any error, it stops and writes nothing. Unproven code cannot reach
-  the `generated` folder.
-- `--include-runtime` puts Dafny's small runtime into the same file, so there is nothing else to install except
-  `bignumber.js`.
-- The generated file is a plain script with no exports, so the script adds one line that exports it, and renames it to
-  `.cjs` so Node loads it as CommonJS.
+`dafny translate js` verifies first. If there is any error, it stops and writes nothing.
 
 The generated JavaScript has no types, so give it a two-line declaration file next to it. You write it once; the
 Dafny build leaves it alone:
@@ -240,8 +215,7 @@ import search from '../generated/search.cjs';
 export const indexOfId = (ids: readonly number[], target: number): number => search.__default.IndexOf(ids, target);
 ```
 
-The rest of the app imports `indexOfId` exactly as before. Top-level functions land on `__default`. A plain JS array
-works as the `seq`, because the generated code only reads `.length` and `[i]`.
+The rest of the app imports `indexOfId` exactly as before.
 
 Add the edge cases to the tests:
 
@@ -295,9 +269,6 @@ Why commit `generated/`:
 - CI can check that the committed file really comes from the committed, verified source. The build is repeatable:
   the same `.dfy` file gives the same `.cjs` file, byte for byte.
 
-`dafny translate` also writes `generated/search-js.dtr`, a record Dafny uses when other Dafny projects link to this
-one. The TS side does not need it, hence the `.gitignore` line.
-
 Scripts and dependencies in `package.json`:
 
 ```json
@@ -350,12 +321,6 @@ jobs:
       - run: npm test
 ```
 
-- `dafny-lang/setup-dafny-action` is the official action. Pin `dafny-version` to the version the team uses locally
-  (`dafny --version`), so CI and laptops produce the same output.
-- `npm run dafny` verifies first. Any failed proof fails the step, and nothing is written.
-- `git diff --exit-code generated/` fails when the committed JavaScript is not what the committed Dafny code
-  produces.
-
 What fails when:
 
 | Change | Where CI fails |
@@ -378,11 +343,7 @@ Changing the search (for example, returning the insert position instead of `-1`)
 4. Commit `Search.dfy`, `generated/` and `src/` together.
 
 Adding a function: add it to the same `.dfy` file (or `include` a new one), export it through the wrapper, regenerate.
-One wrapper file per generated file keeps the untyped surface in one place.
-
-Upgrading Dafny: change the version on your machine and in `ci.yml` in the same pull request, then run
-`npm run dafny`. The generated file may change even though your code did not. That diff is the new compiler's output,
-and CI checks it like any other.
+One wrapper file per generated file keeps the untyped code in one place.
 
 Reviewing a pull request: read the `.dfy` diff, starting with `requires` and `ensures`. Skim `generated/`. Its diff
 only confirms the rebuild happened, and CI has already checked that it matches.
@@ -402,10 +363,10 @@ You do not get:
 - A check of `requires` at runtime. Dafny proves the function is right when the caller keeps the promise. A TS caller
   can still pass an unsorted list, and nothing stops it. Make sure the list is sorted where it is built, or check it
   there once.
-- Idiomatic JavaScript. The output is readable but generated (`_0_lo`, `_dafny.EuclideanDivisionNumber`). You do not
-  edit it; you edit the `.dfy` file.
-- Free proofs. Loops need invariants, and writing them is the main skill to learn. The upside: a failed invariant
-  points at a line, and the fix is usually a sentence you already had in your head.
+- JavaScript that looks written by hand. The output is readable but generated (`_0_lo`,
+  `_dafny.EuclideanDivisionNumber`). You do not edit it; you edit the `.dfy` file.
+- Proofs without effort. Loops need invariants, and writing them is the main skill to learn. The good part: a failed
+  invariant points at a line, and the fix is usually a sentence you already had in your head.
 - Help with timing, concurrency or I/O. Dafny proves what one function does, not the order of events between
   services.
 

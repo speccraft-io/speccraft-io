@@ -21,8 +21,7 @@ import Full from '../../../components/Full.astro';
 
 [Hegel](https://hegel.dev) is a property-based testing engine built on [Hypothesis](https://hypothesis.works), the
 most widely used property-based testing library, with libraries for Rust, Go, C++, TypeScript, Java and OCaml. The
-TypeScript library, `@hegeldev/hegel`, appeared in January 2026 and had about 37,000 npm downloads a month by
-September 2026. It is in beta.
+TypeScript library is `@hegeldev/hegel`. It is in beta.
 
 Like fast-check, it samples inputs and orders; it does not explore every state.
 
@@ -31,8 +30,7 @@ Like fast-check, it samples inputs and orders; it does not explore every state.
 ## Using Hegel
 
 The code below is in
-[formal-methods-samples/hegel-stock-reservation](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/hegel-stock-reservation) and
-runs on its own with `npm install && npm test`.
+[formal-methods-samples/hegel-stock-reservation](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/hegel-stock-reservation).
 
 ### The problem
 
@@ -63,20 +61,7 @@ reservations that start together both pass the check against the same stock.
 pnpm add -D @hegeldev/hegel
 ```
 
-Hegel runs inside your usual test runner. The example uses Vitest and imports the runner and the generators from two
-entry points:
-
-```ts
-// inventory.hegel.test.ts (shortened)
-import * as hegel from '@hegeldev/hegel';
-import * as gs from '@hegeldev/hegel/generators';
-
-const settings = { database: hegel.Database.disabled, derandomize: true };
-```
-
-Hegel's type declarations import `node:buffer`, so a strict typecheck also needs `@types/node`. The `settings`
-object is optional. By default Hegel keeps a test database so a failure repeats on the next run; the example turns
-it off and derandomizes the search, so every run of the repository's tests gives the same result.
+Runs inside your usual test runner (the example uses Vitest); a strict typecheck also needs `@types/node`.
 
 ### Writing the check
 
@@ -92,6 +77,8 @@ took units out of stock without going below zero. The save is a stub that resolv
 ```ts
 // inventory.hegel.test.ts (shortened)
 const deps = { saveReservation: async () => 'r1' };
+// No saved failures and no randomness, so every run gives the same result.
+const settings = { database: hegel.Database.disabled, derandomize: true };
 
 await hegel.testAsync(async (tc) => {
   const before = tc.draw(gs.integers({ minValue: 0, maxValue: 100 }));
@@ -122,10 +109,6 @@ await hegel.testAsync(async (tc) => {
   }
 }, settings);
 ```
-
-In the repository each call on the buggy class is wrapped as
-`await expect(hegel.testAsync(...)).rejects.toThrow('stock is now')`, so the suite stays green while it shows the
-bug.
 
 ### Running it
 
@@ -160,8 +143,7 @@ It finds the oversell too, shrunk to one mug and two reservations of one.
 
 <Short>Reject quantities below 1 and take the units before the save. Both tests pass 100 cases.</Short>
 
-The fixed class is in `inventory.fixed.ts`, a copy of `inventory.ts` with only the lines of the fix changed. It
-rejects a quantity that is not a whole number of at least 1, and takes the units before the save:
+The fix rejects a quantity that is not a whole number of at least 1, and takes the units before the save:
 
 <CodeFix before={before} after={after} title="inventory.ts" />
 
@@ -176,16 +158,6 @@ With the fix, both tests pass 100 test cases.
 - Hegel draws the numbers, not the order of events. `Promise.all` with a save that resolves at once runs both checks
   before either save returns, which happens to be the order that breaks. Every test case runs that same order, and we
   found no scheduler or stateful testing in the TypeScript library (0.4.6) to vary it.
-
-## What Hegel is
-
-- A test draws values from generators: `tc.draw(gs.arrays(gs.integers()))`. Any thrown error fails the test.
-- Hypothesis's internal shrinking, so the reported failure is a small, readable example.
-- A test database: a failing test fails again the same way on rerun.
-- `hegel.testAsync` for async tests.
-- One engine shared across languages through the Hegel protocol; in TypeScript it runs through a native library on
-  Node, Bun and Deno, and through WebAssembly in the browser.
-- The Rust library has a stateful testing module; we found none in the TypeScript library yet.
 
 ## Strengths and limits
 
@@ -204,13 +176,14 @@ With the fix, both tests pass 100 test cases.
   reservations and their saves were not tried.
 - **No control over async orders** in the TypeScript library yet. [fast-check](/vs/fast-check)'s scheduler samples
   orders of wrapped promises, and exhaustive checkers such as [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or
-  [Quint](/tools/quint) cover every order in a model, with small, finite values.
-
-## Who builds it
-
-David R. MacIver, who created Hypothesis, and Liam DeVoe, a Hypothesis maintainer at Antithesis.
+  [Quint](/tools/quint) cover every order in a model, with small, finite values. Only the Rust library has a
+  stateful testing module so far.
+- **One engine, many runtimes.** The same engine serves all six languages. In TypeScript it runs as a native library
+  on Node, Bun and Deno, and as WebAssembly in the browser.
 
 ## Links
+
+Built by David R. MacIver, who created Hypothesis, and Liam DeVoe, a Hypothesis maintainer at Antithesis; open source.
 
 - Hegel: https://hegel.dev
 - Hegel for TypeScript on GitHub: https://github.com/hegeldev/hegel-typescript

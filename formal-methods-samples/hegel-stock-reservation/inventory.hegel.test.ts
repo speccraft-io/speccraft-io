@@ -12,6 +12,7 @@ interface Reserves {
 
 const deps: InventoryDeps = { saveReservation: async () => await Promise.resolve('r1') };
 
+// No saved failures and no randomness, so every run gives the same result.
 const settings = { database: hegel.Database.disabled, derandomize: true };
 
 function buggy(stock: number): Reserves {

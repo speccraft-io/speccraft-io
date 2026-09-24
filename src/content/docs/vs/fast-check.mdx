@@ -21,16 +21,14 @@ import Full from '../../../components/Full.astro';
 
 
 [fast-check](https://github.com/dubzzz/fast-check) is the property-based testing library for JavaScript and
-TypeScript: about 5,000 stars and about 140 million npm downloads a month in September 2026. Its model-based testing
-runs commands with preconditions against a model and the real system, and it samples orders at random instead of
-trying every one.
+TypeScript. Its model-based testing runs commands with preconditions against a model and the real system, and it
+samples orders at random instead of trying every one.
 
 <Short>fast-check samples orders of async calls with its scheduler. Here it finds a webhook double charge on the first run.</Short>
 
 ## Using fast-check
 
-The code below is in [formal-methods-samples/fast-check-webhook](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/fast-check-webhook)
-and runs on its own with `npm install && npm test`. The same example is on the [Quint page](/tools/quint).
+The code below is in [formal-methods-samples/fast-check-webhook](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/fast-check-webhook).
 
 ### The problem
 
@@ -59,14 +57,7 @@ same time, and each `await` is a point where the other worker can run.
 pnpm add -D fast-check
 ```
 
-fast-check works with any test runner. The example uses Vitest and imports `fc` as the default export:
-
-```ts
-import fc from 'fast-check';
-```
-
-The handler takes its database calls as `deps`, so a test can hand it versions that fast-check controls. Without
-that seam there is nothing for the scheduler to wrap.
+Works with any test runner; the example uses Vitest.
 
 ### Writing the check with the scheduler
 
@@ -80,26 +71,22 @@ each dependency, and starts two deliveries at once against the real handler:
 // webhook.fast-check.test.ts (shortened)
 const property = fc.asyncProperty(fc.scheduler(), async (s) => {
   const db: Db = { status: 'unpaid', charges: 0 };
+  // The handler takes its database calls as deps, so the scheduler can wrap each one.
   const deps = {
     getStatus: s.scheduleFunction(async (_id: string) => db.status),
     chargeCard: s.scheduleFunction(async (_id: string) => { db.charges += 1; }),
     setStatus: s.scheduleFunction(async (_id: string, status: OrderStatus) => { db.status = status; }),
   };
   const run = Promise.all([handleOrderConfirmed('o1', deps), handleOrderConfirmed('o1', deps)]);
+  // Release the queued calls one at a time, in an order the scheduler picks.
   await s.waitIdle();
   await run;
   expect(db.charges).toBe(1);
 });
+// 100 runs by default; seed 1 makes the run repeatable.
 const details = await fc.check(property, { seed: 1 });
 console.log(fc.defaultReportMessage(details));
 ```
-
-- `fc.asyncProperty` takes the arbitraries and an async predicate. Here the only input is the scheduler.
-- `s.waitIdle()` releases the queued calls one at a time, in an order the scheduler picks, until nothing is left.
-- `expect` throws when the rule breaks, which marks that run as failed.
-- `fc.check` runs the property (100 runs by default) and returns the details. `fc.assert` does the same but throws on
-  failure. The example uses `fc.check` with `fc.defaultReportMessage` so it can print the report and stay green.
-- `seed: 1` makes the run repeatable.
 
 ### Running it
 
@@ -131,8 +118,7 @@ replay the failure.
 
 <Short>Claim the order in one step with `claimOrder`. All 100 sampled runs pass.</Short>
 
-The fixed handler is in `webhook.fixed.ts`, a copy of `webhook.ts` with only the lines of the fix changed. It
-replaces the read with `claimOrder`, which sets `'charging'` only if the order is still `'unpaid'` and returns
+The fix replaces the read with `claimOrder`, which sets `'charging'` only if the order is still `'unpaid'` and returns
 whether it did. Only the worker that got the claim charges:
 
 <CodeFix before={before} after={after} title="webhook.ts" />
@@ -152,22 +138,6 @@ In the test, `claimOrder` is wrapped with `s.scheduleFunction` like the others, 
   awaiting `run` first never finishes.
 - Wrap every async dependency the race goes through. A call that is not wrapped resolves on its own, and fast-check
   cannot reorder it.
-- To replay a failure, pass the printed `seed` and `path` back to `fc.assert`. `fc.schedulerFor` pins one order by
-  hand, which turns a found race into an ordinary regression test.
-- A green run means the sampled orders passed. With more awaits or more workers, raise `numRuns`.
-
-## What fast-check is
-
-- Properties over generated inputs: arbitraries for numbers, strings, objects and anything built from them. A failure
-  is shrunk to a small counterexample.
-- Model-based testing: `fc.commands` generates sequences of commands, each with a `check` (the precondition) and a
-  `run` that updates a model and the real system and asserts they agree. `modelRun`, `asyncModelRun` and
-  `scheduledModelRun` run them.
-- The scheduler: `fc.scheduler()` wraps promises so fast-check decides when each one resolves, and tries different
-  orders to find race conditions.
-- Replay: a failure prints a `seed` and `path` (and a `replayPath` for commands) that go straight back to the
-  minimal counterexample.
-- Works with any test runner; integrations for Jest and Vitest.
 
 ## Strengths and limits
 
@@ -180,26 +150,24 @@ In the test, `claimOrder` is wrapped with `s.scheduleFunction` like the others, 
 | Async orders | `fc.scheduler`: sampled orders of wrapped promises |
 | Inputs | Rich generators for any data |
 
-fast-check found the bug on its first run here, because every order of these calls breaks the rule.
-
-- fast-check runs the real code every time and is strong on data: generators for any input and shrinking to the
+- **It runs the real code and is strong on data.** It has generators for any input and shrinks a failure to the
   smallest one.
-- It samples. A bug that needs one rare order can be missed, and a clean run says nothing about the orders it did not
-  try. An exhaustive checker such as [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or [Quint](/tools/quint) walks
-  every reachable state of a model instead, with small, finite values.
-- A trace found by another tool can be pinned with `fc.schedulerFor` as a regression test.
-- Temporal properties over command runs are not built in;
-  [fast-check-ltl](https://www.npmjs.com/package/fast-check-ltl) adds them on top of fast-check.
+- **It samples.** Here it found the bug on the first run, because every order of these calls breaks the rule. A bug
+  that needs one rare order can be missed, and a clean run says nothing about the orders it did not try. An exhaustive
+  checker such as [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or [Quint](/tools/quint) walks every reachable state
+  of a model instead, with small, finite values.
+- **It can pin a trace from another tool.** `fc.schedulerFor` replays a given order as a regression test.
+- **Temporal properties are not built in.** [fast-check-ltl](https://www.npmjs.com/package/fast-check-ltl) adds them
+  over command runs, on top of fast-check.
 
 :::note[To do]
 A second example with a bug that only one rare order triggers, where sampling can miss it.
 :::
 
-## Who builds it
-
-Nicolas Dubien, who started fast-check in 2017 and still maintains it, with a large group of contributors.
-
 ## Links
+
+Built by Nicolas Dubien, who started fast-check in 2017 and still maintains it, with a large group of contributors;
+open source.
 
 - fast-check on GitHub: https://github.com/dubzzz/fast-check
 - fast-check documentation: https://fast-check.dev
