@@ -144,10 +144,12 @@ has downloaded a copy into `~/.quint`.
 
 <Short>A markdown file next to the code: variables, actions with a guard and an effect, and the rules. You and the agent write it together.</Short>
 
-Before any TLA+, write down what the code does in a plain text file in the repo. There is no new syntax to learn:
-variables and the values they can take, actions with a guard (when the step can happen) and an effect (what
-changes), and the rules that must hold. Write it together with a coding agent: it drafts from the TS code and asks
+Before any TLA+, write down what the code does in a plain text file in the repo. There are concepts to learn, but
+no new syntax: variables and the values they can take, actions with a guard (when the step can happen) and an effect
+(what changes), and the rules that must hold. Write it together with a coding agent: it drafts from the TS code and asks
 what is unclear, you decide what the steps and rules are and correct every line. It is the file reviewers read.
+
+Concepts: state, variables, actions, guards, effects, invariants, liveness, fairness.
 
 ```md title="spec/single-flight.md"
 # Single-flight - spec

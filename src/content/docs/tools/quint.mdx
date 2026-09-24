@@ -156,10 +156,12 @@ If you need those, use [TLA+](/tools/tla-plus) directly.
 
 <Short>A markdown file next to the code: variables, actions with a guard and an effect, and the rule. You and the agent write it together.</Short>
 
-Before any Quint, write down what the code does in a plain text file in the repo. There is no new syntax to learn:
-variables and the values they can take, actions with a guard (when the step can happen) and an effect (what
-changes), and the rule that must hold. Write it together with a coding agent: it drafts from the TS code and asks
+Before any Quint, write down what the code does in a plain text file in the repo. There are concepts to learn, but
+no new syntax: variables and the values they can take, actions with a guard (when the step can happen) and an effect
+(what changes), and the rule that must hold. Write it together with a coding agent: it drafts from the TS code and asks
 what is unclear, you decide what the steps and rules are and correct every line. It is the file reviewers read.
+
+Concepts: state, variables, actions, guards, effects, invariants.
 
 ```md title="quint/search.md"
 # Search box - spec
