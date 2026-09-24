@@ -1,6 +1,6 @@
 ---
 // Override of Starlight's Footer: renders the default footer, then appends the
-// comments section on content pages. Skipped on the home/landing page.
+// comments section on content pages. The home page gets the banner instead.
 import Default from '@astrojs/starlight/components/Footer.astro';
 import Comments from './Comments.astro';
 import Lightbox from './Lightbox.astro';
@@ -10,4 +10,15 @@ const isHome = Astro.url.pathname === '/';
 
 <Default><slot /></Default>
 <Lightbox />
-{!isHome && <Comments />}
+{
+	isHome ? (
+		<img
+			class="home-banner"
+			src="/assets/speccraft-linkedin-banner.webp"
+			loading="lazy"
+			alt="Thinking tools. A faint graph of explored states, with one highlighted path ending in a violation."
+		/>
+	) : (
+		<Comments />
+	)
+}

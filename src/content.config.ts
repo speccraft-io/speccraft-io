@@ -10,6 +10,10 @@ export const collections = {
 			extend: z.object({
 				// Adds a Full / Code only switch under the title (see src/components/PageTitle.astro).
 				views: z.boolean().optional(),
+				// Keeps the page title for screen readers only (see src/components/PageTitle.astro).
+				hideTitle: z.boolean().optional(),
+				// Shows the home page intro card in the right sidebar (see src/components/HomeIntro.astro).
+				intro: z.boolean().optional(),
 				// Job mentions (from /market/jobs) and a Google Trends graph (public/trends/<google>.svg), shown in the right sidebar.
 				trend: z
 					.object({ jobs: z.number(), salary: z.string().optional(), google: z.string().optional(), googleUrl: z.string().optional() })

@@ -1,72 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=block">
 <style>
   html, body { margin: 0; padding: 0; }
   body { width: 1200px; height: 640px; overflow: hidden; }
-  text { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; }
+  text { font-family: 'IBM Plex Sans', -apple-system, 'Helvetica Neue', Arial, sans-serif; }
 </style>
 </head>
 <body>
 <svg width="1200" height="640" viewBox="0 0 1200 640" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <radialGradient id="glow" cx="50%" cy="45%" r="85%">
-      <stop offset="0%" stop-color="#171225"/>
-      <stop offset="100%" stop-color="#0b0812"/>
+      <stop offset="0%" stop-color="#17141f"/>
+      <stop offset="100%" stop-color="#0e0c14"/>
     </radialGradient>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 z" fill="#5c5675"/>
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#5c5866"/>
     </marker>
     <marker id="arrowPink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 z" fill="#f0439c"/>
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#c8327f"/>
     </marker>
   </defs>
   <rect width="1200" height="640" fill="url(#glow)"/>
 
-  <text x="60" y="58" font-size="28" font-weight="700" fill="#ffffff">What runs when you call quint</text>
-  <text x="60" y="88" font-size="16" fill="#9a94ad">One npm package on top. The exhaustive check is the TLA+ toolchain underneath, run in Java.</text>
-  <rect x="60" y="150" width="220" height="90" rx="10" fill="#120e1c" stroke="#f0439c"/>
-  <text x="170.0" y="180" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">webhook.qnt</text>
-  <text x="170.0" y="205" font-size="14" fill="#8b86a0" text-anchor="middle">your model</text>
-  <rect x="60" y="300" width="220" height="110" rx="10" fill="#120e1c" stroke="#5c5675"/>
-  <text x="170.0" y="330" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">quint CLI</text>
-  <text x="170.0" y="355" font-size="14" fill="#8b86a0" text-anchor="middle">npm package, runs in Node</text>
-  <text x="170.0" y="376" font-size="14" fill="#8b86a0" text-anchor="middle">typecheck happens here</text>
-  <path d="M 170 240 L 170 292" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <rect x="420" y="130" width="300" height="90" rx="10" fill="#120e1c" stroke="#5c5675"/>
-  <text x="570.0" y="160" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">Rust evaluator</text>
-  <text x="570.0" y="185" font-size="14" fill="#8b86a0" text-anchor="middle">quint_evaluator in ~/.quint</text>
-  <text x="570.0" y="206" font-size="14" fill="#8b86a0" text-anchor="middle">no Java</text>
-  <rect x="860" y="130" width="280" height="90" rx="10" fill="#120e1c" stroke="#5c5675"/>
-  <text x="1000.0" y="160" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">random runs</text>
-  <text x="1000.0" y="185" font-size="14" fill="#8b86a0" text-anchor="middle">traces, ITF JSON</text>
-  <path d="M 280 330 L 412 190" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <text x="300" y="245" font-size="14" font-weight="600" fill="#d6d2e0">quint run</text>
-  <path d="M 720 175 L 852 175" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <rect x="400" y="290" width="760" height="320" rx="14" fill="none" stroke="#332e47" stroke-width="2" stroke-dasharray="6 6"/>
-  <text x="420" y="318" font-size="14" font-weight="600" fill="#9a94ad">TLA+ STACK  ·  apalache.jar in ~/.quint  ·  needs Java 17+</text>
-  <rect x="420" y="340" width="300" height="90" rx="10" fill="#120e1c" stroke="#5c5675"/>
-  <text x="570.0" y="370" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">Apalache server</text>
-  <text x="570.0" y="395" font-size="14" fill="#8b86a0" text-anchor="middle">localhost:8822</text>
-  <text x="570.0" y="416" font-size="14" fill="#8b86a0" text-anchor="middle">compiles Quint to TLA+</text>
-  <rect x="860" y="340" width="280" height="90" rx="10" fill="#120e1c" stroke="#5c5675"/>
-  <text x="1000.0" y="370" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">SANY</text>
-  <text x="1000.0" y="395" font-size="14" fill="#8b86a0" text-anchor="middle">the TLA+ parser</text>
-  <text x="1000.0" y="416" font-size="14" fill="#8b86a0" text-anchor="middle">reads webhook.tla</text>
-  <rect x="420" y="490" width="300" height="100" rx="10" fill="#120e1c" stroke="#57e07a"/>
-  <text x="570.0" y="520" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">Apalache checker + Z3</text>
-  <text x="570.0" y="545" font-size="14" fill="#8b86a0" text-anchor="middle">default backend</text>
-  <text x="570.0" y="566" font-size="14" fill="#8b86a0" text-anchor="middle">checks up to --max-steps (10)</text>
-  <rect x="860" y="490" width="280" height="100" rx="10" fill="#120e1c" stroke="#57e07a"/>
-  <text x="1000.0" y="520" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">TLC</text>
-  <text x="1000.0" y="545" font-size="14" fill="#8b86a0" text-anchor="middle">--backend tlc</text>
-  <text x="1000.0" y="566" font-size="14" fill="#8b86a0" text-anchor="middle">every reachable state</text>
-  <path d="M 280 380 L 412 385" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <text x="292" y="370" font-size="14" font-weight="600" fill="#d6d2e0">quint verify</text>
-  <path d="M 720 385 L 852 385" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <path d="M 940 430 L 640 484" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <path d="M 1000 430 L 1000 484" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="60" y="58" font-size="28" font-weight="700" fill="#eceaf2">What runs when you call quint</text>
+  <text x="60" y="88" font-size="16" fill="#a39eb0">One npm package on top. The exhaustive check is the TLA+ toolchain underneath, run in Java.</text>
+  <rect x="60" y="150" width="220" height="90" rx="10" fill="#17141f" stroke="#c8327f"/>
+  <text x="170.0" y="180" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">webhook.qnt</text>
+  <text x="170.0" y="205" font-size="14" fill="#a39eb0" text-anchor="middle">your model</text>
+  <rect x="60" y="300" width="220" height="110" rx="10" fill="#17141f" stroke="#5c5866"/>
+  <text x="170.0" y="330" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">quint CLI</text>
+  <text x="170.0" y="355" font-size="14" fill="#a39eb0" text-anchor="middle">npm package, runs in Node</text>
+  <text x="170.0" y="376" font-size="14" fill="#a39eb0" text-anchor="middle">typecheck happens here</text>
+  <path d="M 170 240 L 170 292" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <rect x="420" y="130" width="300" height="90" rx="10" fill="#17141f" stroke="#5c5866"/>
+  <text x="570.0" y="160" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">Rust evaluator</text>
+  <text x="570.0" y="185" font-size="14" fill="#a39eb0" text-anchor="middle">quint_evaluator in ~/.quint</text>
+  <text x="570.0" y="206" font-size="14" fill="#a39eb0" text-anchor="middle">no Java</text>
+  <rect x="860" y="130" width="280" height="90" rx="10" fill="#17141f" stroke="#5c5866"/>
+  <text x="1000.0" y="160" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">random runs</text>
+  <text x="1000.0" y="185" font-size="14" fill="#a39eb0" text-anchor="middle">traces, ITF JSON</text>
+  <path d="M 280 330 L 412 190" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="300" y="245" font-size="14" font-weight="600" fill="#eceaf2">quint run</text>
+  <path d="M 720 175 L 852 175" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <rect x="400" y="290" width="760" height="320" rx="14" fill="none" stroke="#2a2633" stroke-width="2" stroke-dasharray="6 6"/>
+  <text x="420" y="318" font-size="14" font-weight="600" fill="#a39eb0">TLA+ STACK  ·  apalache.jar in ~/.quint  ·  needs Java 17+</text>
+  <rect x="420" y="340" width="300" height="90" rx="10" fill="#17141f" stroke="#5c5866"/>
+  <text x="570.0" y="370" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">Apalache server</text>
+  <text x="570.0" y="395" font-size="14" fill="#a39eb0" text-anchor="middle">localhost:8822</text>
+  <text x="570.0" y="416" font-size="14" fill="#a39eb0" text-anchor="middle">compiles Quint to TLA+</text>
+  <rect x="860" y="340" width="280" height="90" rx="10" fill="#17141f" stroke="#5c5866"/>
+  <text x="1000.0" y="370" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">SANY</text>
+  <text x="1000.0" y="395" font-size="14" fill="#a39eb0" text-anchor="middle">the TLA+ parser</text>
+  <text x="1000.0" y="416" font-size="14" fill="#a39eb0" text-anchor="middle">reads webhook.tla</text>
+  <rect x="420" y="490" width="300" height="100" rx="10" fill="#17141f" stroke="#44cf7e"/>
+  <text x="570.0" y="520" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">Apalache checker + Z3</text>
+  <text x="570.0" y="545" font-size="14" fill="#a39eb0" text-anchor="middle">default backend</text>
+  <text x="570.0" y="566" font-size="14" fill="#a39eb0" text-anchor="middle">checks up to --max-steps (10)</text>
+  <rect x="860" y="490" width="280" height="100" rx="10" fill="#17141f" stroke="#44cf7e"/>
+  <text x="1000.0" y="520" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">TLC</text>
+  <text x="1000.0" y="545" font-size="14" fill="#a39eb0" text-anchor="middle">--backend tlc</text>
+  <text x="1000.0" y="566" font-size="14" fill="#a39eb0" text-anchor="middle">every reachable state</text>
+  <path d="M 280 380 L 412 385" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="292" y="370" font-size="14" font-weight="600" fill="#eceaf2">quint verify</text>
+  <path d="M 720 385 L 852 385" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 940 430 L 640 484" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 1000 430 L 1000 484" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
 </svg>
 </body>
 </html>

@@ -15,10 +15,19 @@ const links = config.social || [];
 					<Icon name={icon} />
 				</a>
 			))}
-			{/* zalizniak.com: a personal link with its own favicon, not a built-in icon. */}
-			<a href="https://zalizniak.com/" target="_blank" rel="me noopener noreferrer" class="sl-flex zalizniak-link">
+			{/* zalizniak.com: the site's "OZ" favicon redrawn as a one-color icon, like LinkedIn's "in" square. */}
+			<a href="https://zalizniak.com/" target="_blank" rel="me noopener noreferrer" class="sl-flex">
 				<span class="sr-only">zalizniak.com</span>
-				<img src="/zalizniak-icon.png" alt="" width="16" height="16" decoding="async" />
+				<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+					<mask id="oz-cutout">
+						<rect x="1.5" y="1.5" width="21" height="21" rx="3" fill="#fff" />
+						<g fill="none" stroke="#000" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+							<ellipse cx="8" cy="12" rx="3.6" ry="4.4" />
+							<path d="M14 7.6h5.2L14 16.4h5.2" />
+						</g>
+					</mask>
+					<rect x="1.5" y="1.5" width="21" height="21" rx="3" fill="currentColor" mask="url(#oz-cutout)" />
+				</svg>
 			</a>
 		</>
 	)
@@ -26,20 +35,19 @@ const links = config.social || [];
 
 <style>
 	@layer starlight.core {
+		/* Neutral icons: pink is kept for links in text and for problems (see /design). */
 		a {
-			color: var(--sl-color-text-accent);
+			color: var(--sc-muted);
 			padding: 0.5em;
 			margin: -0.5em;
 		}
 		a:hover {
-			color: var(--sl-color-white);
+			color: var(--sc-text);
 		}
 		/* Match the built-in social SVG icons' rendered size. */
-		.zalizniak-link img {
-			display: block;
+		svg {
 			width: 1em;
 			height: 1em;
-			border-radius: 3px;
 		}
 	}
 </style>

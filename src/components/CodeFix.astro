@@ -236,6 +236,44 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 
 	let monaco: Promise<any> | undefined;
 
+	// Monaco needs literal colors, so its themes are read from the palette's CSS variables (see /design).
+	function defineThemes(m: any): void {
+		const probe = document.createElement('div');
+		document.body.appendChild(probe);
+		for (const theme of ['light', 'dark']) {
+			probe.dataset['theme'] = theme;
+			probe.className = 'code-fix-palette-probe';
+			const value = (name: string) => getComputedStyle(probe).getPropertyValue(name).trim();
+			m.editor.defineTheme(`speccraft-${theme}`, {
+				base: theme === 'dark' ? 'vs-dark' : 'vs',
+				inherit: true,
+				rules: [],
+				colors: {
+					'editor.background': value('--p-surface'),
+					'editor.foreground': value('--p-text'),
+					'editorGutter.background': value('--p-surface'),
+					'editorLineNumber.foreground': value('--p-muted'),
+					'editorLineNumber.activeForeground': value('--p-text'),
+					'diffEditor.insertedLineBackground': value('--p-green-tint'),
+					'diffEditor.removedLineBackground': value('--p-pink-tint'),
+					'diffEditor.insertedTextBackground': value('--p-green-word'),
+					'diffEditor.removedTextBackground': value('--p-pink-word'),
+					'diffEditorGutter.insertedLineBackground': value('--p-green-tint'),
+					'diffEditorGutter.removedLineBackground': value('--p-pink-tint'),
+					'diffEditor.diagonalFill': value('--p-border'),
+					'diffEditor.border': value('--p-border'),
+					'scrollbarSlider.background': value('--p-border'),
+				},
+			});
+		}
+		probe.remove();
+		// Follow the site's theme switch.
+		new MutationObserver(() => m.editor.setTheme(isDark() ? 'speccraft-dark' : 'speccraft-light')).observe(
+			document.documentElement,
+			{ attributes: true, attributeFilter: ['data-theme'] },
+		);
+	}
+
 	function loadMonaco(): Promise<any> {
 		monaco ??= new Promise((resolve, reject) => {
 			const script = document.createElement('script');
@@ -243,7 +281,11 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 			script.onload = () => {
 				const amd = (window as any).require;
 				amd.config({ paths: { vs: `${monacoBase}/vs` } });
-				amd(['vs/editor/editor.main'], () => resolve((window as any).monaco), reject);
+				amd(['vs/editor/editor.main'], () => {
+					const m = (window as any).monaco;
+					defineThemes(m);
+					resolve(m);
+				}, reject);
 			};
 			script.onerror = reject;
 			document.head.appendChild(script);
@@ -295,7 +337,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 				scrollBeyondLastLine: false,
 				minimap: { enabled: false },
 				fontSize: 13,
-				theme: isDark() ? 'vs-dark' : 'vs',
+				theme: isDark() ? 'speccraft-dark' : 'speccraft-light',
 			});
 			const language = ({ ts: 'typescript' } as Record<string, string>)[sources.lang] ?? 'plaintext';
 			editor.setModel({
@@ -396,9 +438,9 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 		cursor: pointer;
 	}
 	.code-fix-tabs button[aria-selected='true'] {
-		background: var(--sl-color-accent-low);
-		border-color: var(--sl-color-accent);
-		color: var(--sl-color-white);
+		background: var(--sc-text);
+		border-color: var(--sc-text);
+		color: var(--sc-bg);
 	}
 	.code-fix-style {
 		display: flex;
@@ -435,11 +477,12 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 	}
 
 	.code-fix-columns {
-		--removed-bg: rgba(229, 83, 75, 0.12);
-		--removed-mark: rgba(229, 83, 75, 0.32);
-		--added-bg: rgba(46, 170, 120, 0.12);
-		--added-mark: rgba(46, 170, 120, 0.32);
+		--removed-bg: var(--sc-pink-tint);
+		--removed-mark: var(--sc-pink-word);
+		--added-bg: var(--sc-green-tint);
+		--added-mark: var(--sc-green-word);
 		border: 1px solid var(--sl-color-hairline);
+		background: var(--sc-surface);
 		border-radius: 0.75rem;
 		padding: 0.5rem 0.75rem 0.75rem;
 		font-family: var(--__sl-font-mono, monospace);
@@ -473,10 +516,10 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 		margin-right: auto;
 	}
 	.code-fix-columns-head .removed-side .count {
-		color: #d1453b;
+		color: var(--sc-pink-text);
 	}
 	.code-fix-columns-head .added-side .count {
-		color: #1f9d6b;
+		color: var(--sc-green-text);
 	}
 	.code-fix-columns-head .dot {
 		display: inline-grid;
@@ -543,7 +586,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 		line-height: 1.7;
 		white-space: pre-wrap;
 		word-break: break-word;
-		background: var(--sl-color-bg);
+		background: var(--sc-surface);
 		color: var(--sl-color-white);
 		margin: 0;
 	}
@@ -551,29 +594,51 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 		min-height: 1.7em;
 	}
 	.code-fix-words .line.removed {
-		background: rgba(229, 83, 75, 0.08);
+		background: var(--sc-pink-tint);
 	}
 	.code-fix-words .line.added {
-		background: rgba(46, 170, 120, 0.1);
+		background: var(--sc-green-tint);
 	}
 	.code-fix-words del {
-		background: rgba(229, 83, 75, 0.18);
-		color: #d1453b;
+		background: var(--sc-pink-word);
+		color: var(--sc-pink-text);
 		text-decoration: line-through;
 		border-radius: 0.15rem;
 	}
 	.code-fix-words ins {
-		background: rgba(46, 170, 120, 0.3);
-		color: inherit;
+		background: var(--sc-green-word);
+		color: var(--sc-green-text);
 		text-decoration: none;
 		border-radius: 0.15rem;
 	}
 </style>
 
 <style is:global>
-	/* Mergely colors: red for the old side, green for the new side, on the site's own background. */
+	/* Palette values for the Monaco themes, per theme, independent of the page's current one. */
+	.code-fix-palette-probe[data-theme='light'] {
+		--p-surface: #ffffff;
+		--p-text: #16131d;
+		--p-muted: #5c5866;
+		--p-border: #e4e2e8;
+		--p-pink-tint: #fbeaf2;
+		--p-green-tint: #e4f7ec;
+		--p-pink-word: #f2c3da;
+		--p-green-word: #b4eac9;
+	}
+	.code-fix-palette-probe[data-theme='dark'] {
+		--p-surface: #17141f;
+		--p-text: #eceaf2;
+		--p-muted: #a39eb0;
+		--p-border: #2a2633;
+		--p-pink-tint: #33142a;
+		--p-green-tint: #0f2a1c;
+		--p-pink-word: #5a1f45;
+		--p-green-word: #1b4a31;
+	}
+
+	/* Mergely colors: pink for the old side, green for the new side, on the surface color (see /design). */
 	.code-fix-split .mergely-editor .CodeMirror {
-		background: var(--sl-color-bg);
+		background: var(--sc-surface);
 		color: var(--sl-color-white);
 	}
 	.code-fix-split .mergely-editor .CodeMirror-gutters {
@@ -585,13 +650,13 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 	}
 	.code-fix-split .mergely-editor .mergely.lhs.d.CodeMirror-linebackground,
 	.code-fix-split .mergely-editor .mergely.lhs.c.CodeMirror-linebackground {
-		background-color: rgba(229, 83, 75, 0.16);
-		border-color: #e5534b;
+		background-color: var(--sc-pink-tint);
+		border-color: var(--sc-pink);
 	}
 	.code-fix-split .mergely-editor .mergely.rhs.a.CodeMirror-linebackground,
 	.code-fix-split .mergely-editor .mergely.rhs.c.CodeMirror-linebackground {
-		background-color: rgba(63, 185, 80, 0.16);
-		border-color: #3fb950;
+		background-color: var(--sc-green-tint);
+		border-color: var(--sc-green);
 	}
 	.code-fix-split .mergely-editor .mergely.start.CodeMirror-linebackground,
 	.code-fix-split .mergely-editor .mergely.end.CodeMirror-linebackground {
@@ -599,13 +664,13 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 	}
 	.code-fix-split .mergely-editor .mergely.ch.d.lhs,
 	.code-fix-split .mergely-editor .mergely.ch.ind.lhs {
-		background-color: rgba(229, 83, 75, 0.35);
+		background-color: var(--sc-pink-word);
 		color: inherit;
-		text-decoration: none;
+		text-decoration: line-through;
 	}
 	.code-fix-split .mergely-editor .mergely.ch.a.rhs,
 	.code-fix-split .mergely-editor .mergely.ch.ina.rhs {
-		background-color: rgba(63, 185, 80, 0.35);
+		background-color: var(--sc-green-word);
 		color: inherit;
 	}
 </style>

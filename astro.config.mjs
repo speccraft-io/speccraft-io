@@ -36,6 +36,21 @@ export default defineConfig({
 		starlight({
 			// No site search: hides the header search bar and skips the Pagefind index.
 			pagefind: false,
+			// Code blocks: flat frames, and diff lines in the palette's pink and green (see /design).
+			expressiveCode: {
+				styleOverrides: {
+					borderColor: 'var(--sc-border)',
+					frames: { frameBoxShadowCssValue: 'none' },
+					textMarkers: {
+						insBackground: 'var(--sc-green-tint)',
+						insBorderColor: 'var(--sc-green)',
+						insDiffIndicatorColor: 'var(--sc-green-text)',
+						delBackground: 'var(--sc-pink-tint)',
+						delBorderColor: 'var(--sc-pink)',
+						delDiffIndicatorColor: 'var(--sc-pink-text)',
+					},
+				},
+			},
 			title: 'SpecCraft',
 			description:
 				'Formal methods for TypeScript: the concepts, the tools that exist, and how to use them from a TypeScript project.',
@@ -66,6 +81,16 @@ export default defineConfig({
 				{ tag: 'link', attrs: { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96x96.png' } },
 				{ tag: 'link', attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' } },
 				{ tag: 'link', attrs: { rel: 'manifest', href: '/site.webmanifest' } },
+				// IBM Plex Sans for text, headings and the name; JetBrains Mono for code (see /design).
+				{ tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
+				{ tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: true } },
+				{
+					tag: 'link',
+					attrs: {
+						rel: 'stylesheet',
+						href: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap',
+					},
+				},
 				// Google Tag Manager — started after the page has loaded, so its scripts do not compete with the first paint.
 				{
 					tag: 'script',
@@ -135,6 +160,8 @@ export default defineConfig({
 						{ label: 'Config document workflow', link: '/case-study-config-document-workflow' },
 					],
 				},
+				{ label: 'Contact', link: '/contact' },
+				{ label: 'Design notes', link: '/design' },
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },

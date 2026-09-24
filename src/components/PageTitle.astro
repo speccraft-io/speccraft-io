@@ -1,11 +1,11 @@
 ---
-// The page title, plus a Full / Code only switch on pages whose frontmatter sets `views: true`.
+// The page title (visible unless `hideTitle` is set), plus a Full / Code only switch on pages whose frontmatter sets `views: true`.
 import Default from '@astrojs/starlight/components/PageTitle.astro';
 
-const views = Astro.locals.starlightRoute.entry.data.views;
+const { views, hideTitle, title } = Astro.locals.starlightRoute.entry.data;
 ---
 
-<Default />
+{hideTitle ? <h1 id="_top" class="sr-only">{title}</h1> : <Default />}
 {
 	views && (
 		<div class="view-switch not-content" role="group" aria-label="How much to show">

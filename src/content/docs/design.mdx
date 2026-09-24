@@ -1,0 +1,96 @@
+---
+title: Design notes
+description: The design decisions behind speccraft.io - what the two brand colors mean, the palette, type and components, and why.
+---
+
+import Swatch from '../../components/Swatch.astro';
+
+The decisions behind how speccraft.io looks, and the reasons for them. New decisions go into the log at the bottom.
+
+<img class="design-banner" src="/assets/speccraft-linkedin-banner.webp" loading="lazy" alt="Thinking tools. A faint graph of explored states, with one highlighted path ending in a violation." />
+
+## The story behind the colors
+
+The site, and the app that may follow, are mostly about improving code. A lot of that is shown as **diffs**: old code
+and new code.
+
+- The logo reads "SC". The top half is pink and the bottom half is green, so the logo itself is a diff: pink is old,
+  green is new.
+- The "Thinking tools." banner uses the same idea. Each dot is a state the system can be in, and each line a step
+  between states. The faint green states are the paths that turned out fine. The pink line is the one path that
+  breaks a rule, marked with "!". That path is what a model checker hands back.
+
+So the two brand colors always mean the same thing, everywhere:
+
+| Color | Means | Examples |
+|---|---|---|
+| <Swatch hex="#C8327F" /> **Pink** | the problem | old code, the bad path, a counterexample, a bug |
+| <Swatch hex="#44CF7E" /> **Green** | fine or fixed | new code, safe states, a rule that holds |
+
+## Principles
+
+1. **Color only where it means something.** Pink and green are never used just for decoration.
+2. **Everything else is neutral.** Layout, cards, borders, step numbers and buttons use the text, background and
+   border colors.
+3. **A calm reading site.** Easy to read for a long time: flat cards, no gradients, no emoji, nothing flashy.
+4. **Don't rely on color alone.** Diffs use −/+ marks and strikethrough, and status tags have icons (✕ / ✓). The pink
+   is darker than the green, so color-blind readers can still tell them apart.
+5. **One palette.** Every color comes from the list below. No new colors.
+6. **Light and dark mode for everything.** The dark base is the banner's purple-black.
+
+## Palette
+
+The brand colors are the same in both modes: pink <Swatch hex="#C8327F" /> and green <Swatch hex="#44CF7E" />.
+
+| Role | Light | Dark |
+|---|---|---|
+| Background | <Swatch hex="#FAFAF7" /> | <Swatch hex="#0E0C14" /> |
+| Surface (cards, code) | <Swatch hex="#FFFFFF" /> | <Swatch hex="#17141F" /> |
+| Text | <Swatch hex="#16131D" /> | <Swatch hex="#ECEAF2" /> |
+| Muted text | <Swatch hex="#5C5866" /> | <Swatch hex="#A39EB0" /> |
+| Border and lines | <Swatch hex="#E4E2E8" /> | <Swatch hex="#2A2633" /> |
+| Pink text and links | <Swatch hex="#97195B" /> | <Swatch hex="#F28DC0" /> |
+| Green text | <Swatch hex="#0F6E45" /> | <Swatch hex="#74E0A1" /> |
+| Pink tint (tag, removed line) | <Swatch hex="#FBEAF2" /> | <Swatch hex="#33142A" /> |
+| Green tint (tag, added line) | <Swatch hex="#E4F7EC" /> | <Swatch hex="#0F2A1C" /> |
+| Pink word in a diff | <Swatch hex="#F2C3DA" /> | <Swatch hex="#5A1F45" /> |
+| Green word in a diff | <Swatch hex="#B4EAC9" /> | <Swatch hex="#1B4A31" /> |
+| Faded green (graph states) | — | <Swatch hex="#2F5A3F" /> |
+
+The logo outline and cutouts use the light-mode text color <Swatch hex="#16131D" />.
+
+## Type
+
+- **Body text:** IBM Plex Sans.
+- **Code:** JetBrains Mono.
+- **Name and headings:** IBM Plex Sans too, in bold. Geist was the other option left on the board.
+
+## Wordmark
+
+"SpecCraft" is set in the plain text color next to the logo: dark in light mode, light in dark mode. The logo carries
+the color, so the name has no color tricks.
+
+## Components
+
+- **Cards:** the surface color, a 1px border and a corner radius of about 12–16px. On hover, the border changes to the
+  text color.
+- **Step numbers:** circles in the text color, dark in light mode and light in dark mode.
+- **Primary button:** a text-color background with background-color text.
+- **Links:** pink text.
+- **Status tags:** pill-shaped, with a tint background, colored text and an icon. Pink "✕ Counterexample found", green
+  "✓ Invariant holds".
+- **Example cards** for a bug (double charge, timer race and so on) get a small brand-pink dot.
+
+## Decision log
+
+| Date | Decision | Why |
+|---|---|---|
+| 2026-09-24 | Pink means the problem, green means fine or fixed, everywhere. | The logo and the banner are both diffs; the colors should keep one meaning. |
+| 2026-09-24 | Structure stays neutral; no gradients or decorative color. | A calm site for long reading, where color always carries meaning. |
+| 2026-09-24 | Body in IBM Plex Sans, code in JetBrains Mono. | Readable body and code faces for long reading. |
+| 2026-09-24 | Headings and the name in IBM Plex Sans as well, replacing Space Grotesk. | One text face is the calmest choice; plain and technical fits a neutral guide. |
+| 2026-09-24 | The wordmark is plain text color, no split colors. | The logo already carries pink and green; a colored name would give them a meaning they don't have there. |
+| 2026-09-24 | The palette replaces Starlight's blue accent everywhere. Links are pink text; the current sidebar page and selected tabs use the text color. | One palette, and a neutral structure. |
+| 2026-09-24 | All images in `public/` redrawn in the dark palette with IBM Plex Sans and JetBrains Mono; the logo and favicons recolored to the brand pink, green and `#16131D`. | Terminal output, diagrams and banners follow the same palette as the pages. The HTML sources and `render.sh` in `public/assets` regenerate them. |
+| 2026-09-24 | Syntax highlighting keeps its default colors for now. | Open question: a grey-scale code theme would leave pink and green as the only colors in code. |
+| 2026-09-24 | Diffs use the pink and green tints for lines and the stronger tints for changed words. | Old code is pink and new code is green, like the logo. |

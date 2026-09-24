@@ -1,11 +1,12 @@
 ---
 // Replaces the right-hand "On this page" column with an adoption box on pages that declare `adoption`
-// in their frontmatter. Other pages keep Starlight's table of contents off (see astro.config.mjs).
+// in their frontmatter, or with an `intro` on pages that declare one. Other pages keep Starlight's table of contents off (see astro.config.mjs).
 import { similarTools } from '../tool-kinds';
+import HomeIntro from './HomeIntro.astro';
 
-const { adoption, requires, useCases, trend } = Astro.locals.starlightRoute.entry.data;
+const { adoption, requires, useCases, trend, intro } = Astro.locals.starlightRoute.entry.data;
 const similar = adoption ? similarTools(Astro.url.pathname) : undefined;
-const toggleLabel = adoption ? 'Adoption, dependencies and similar tools' : useCases || trend ? 'Details' : 'Dependencies';
+const toggleLabel = intro ? 'About this site' : adoption ? 'Adoption, dependencies and similar tools' : useCases || trend ? 'Details' : 'Dependencies';
 
 const shield = (path: string, label: string) =>
 	`https://img.shields.io/${path}?style=flat&label=${encodeURIComponent(label)}`;
@@ -22,7 +23,7 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 ---
 
 {
-	(adoption || requires || useCases || trend) && (
+	(adoption || requires || useCases || trend || intro) && (
 		<button type="button" class="tool-info-toggle" aria-expanded="false" aria-controls="tool-info">
 			{toggleLabel}
 		</button>
@@ -30,6 +31,12 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 }
 
 <div id="tool-info" class="tool-info">
+{
+	intro && (
+		<HomeIntro />
+	)
+}
+
 {
 	adoption && (
 		<div class="adoption">

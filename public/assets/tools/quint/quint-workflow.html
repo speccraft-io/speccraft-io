@@ -1,55 +1,55 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=block">
 <style>
   html, body { margin: 0; padding: 0; }
   body { width: 1200px; height: 490px; overflow: hidden; }
-  text { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; }
+  text { font-family: 'IBM Plex Sans', -apple-system, 'Helvetica Neue', Arial, sans-serif; }
 </style>
 </head>
 <body>
 <svg width="1200" height="490" viewBox="0 0 1200 490" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <radialGradient id="glow" cx="50%" cy="45%" r="85%">
-      <stop offset="0%" stop-color="#171225"/>
-      <stop offset="100%" stop-color="#0b0812"/>
+      <stop offset="0%" stop-color="#17141f"/>
+      <stop offset="100%" stop-color="#0e0c14"/>
     </radialGradient>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 z" fill="#5c5675"/>
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#5c5866"/>
     </marker>
     <marker id="arrowPink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 z" fill="#f0439c"/>
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#c8327f"/>
     </marker>
   </defs>
   <rect width="1200" height="490" fill="url(#glow)"/>
 
-  <text x="60" y="58" font-size="28" font-weight="700" fill="#ffffff">Quint next to a TypeScript project</text>
-  <text x="60" y="88" font-size="16" fill="#9a94ad">Check the model exhaustively, then replay its traces against the real code</text>
-  <rect x="60" y="160" width="240" height="96" rx="10" fill="#120e1c" stroke="#f0439c"/>
-  <text x="180.0" y="202.0" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">webhook.qnt</text>
-  <text x="180.0" y="228.0" font-size="15" fill="#8b86a0" text-anchor="middle">the model</text>
-  <rect x="420" y="120" width="330" height="80" rx="10" fill="#120e1c" stroke="#57e07a"/>
-  <text x="585.0" y="154.0" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">quint verify</text>
-  <text x="585.0" y="180.0" font-size="15" fill="#8b86a0" text-anchor="middle">every reachable state</text>
-  <rect x="420" y="240" width="330" height="80" rx="10" fill="#120e1c" stroke="#5c5675"/>
-  <text x="585.0" y="274.0" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">quint run --mbt --out-itf</text>
-  <text x="585.0" y="300.0" font-size="15" fill="#8b86a0" text-anchor="middle">sample traces as JSON</text>
-  <rect x="860" y="240" width="280" height="80" rx="10" fill="#120e1c" stroke="#5c5675"/>
-  <text x="1000.0" y="274.0" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">traces/*.itf.json</text>
-  <text x="1000.0" y="300.0" font-size="15" fill="#8b86a0" text-anchor="middle">steps + expected state</text>
-  <rect x="420" y="370" width="330" height="80" rx="10" fill="#120e1c" stroke="#57e07a"/>
-  <text x="585.0" y="404.0" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">vitest replay</text>
-  <text x="585.0" y="430.0" font-size="15" fill="#8b86a0" text-anchor="middle">drives the real handler</text>
-  <rect x="860" y="370" width="280" height="80" rx="10" fill="#120e1c" stroke="#5c5675"/>
-  <text x="1000.0" y="404.0" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle">webhook.ts</text>
-  <text x="1000.0" y="430.0" font-size="15" fill="#8b86a0" text-anchor="middle">the real code</text>
-  <path d="M 300 195 L 412 165" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <path d="M 300 220 L 412 275" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <path d="M 750 280 L 852 280" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <path d="M 1000 320 L 760 398" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <path d="M 750 410 L 852 410" stroke="#5c5675" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <text x="805" y="402" font-size="13" fill="#8b86a0" text-anchor="middle">calls</text>
+  <text x="60" y="58" font-size="28" font-weight="700" fill="#eceaf2">Quint next to a TypeScript project</text>
+  <text x="60" y="88" font-size="16" fill="#a39eb0">Check the model exhaustively, then replay its traces against the real code</text>
+  <rect x="60" y="160" width="240" height="96" rx="10" fill="#17141f" stroke="#c8327f"/>
+  <text x="180.0" y="202.0" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">webhook.qnt</text>
+  <text x="180.0" y="228.0" font-size="15" fill="#a39eb0" text-anchor="middle">the model</text>
+  <rect x="420" y="120" width="330" height="80" rx="10" fill="#17141f" stroke="#44cf7e"/>
+  <text x="585.0" y="154.0" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">quint verify</text>
+  <text x="585.0" y="180.0" font-size="15" fill="#a39eb0" text-anchor="middle">every reachable state</text>
+  <rect x="420" y="240" width="330" height="80" rx="10" fill="#17141f" stroke="#5c5866"/>
+  <text x="585.0" y="274.0" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">quint run --mbt --out-itf</text>
+  <text x="585.0" y="300.0" font-size="15" fill="#a39eb0" text-anchor="middle">sample traces as JSON</text>
+  <rect x="860" y="240" width="280" height="80" rx="10" fill="#17141f" stroke="#5c5866"/>
+  <text x="1000.0" y="274.0" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">traces/*.itf.json</text>
+  <text x="1000.0" y="300.0" font-size="15" fill="#a39eb0" text-anchor="middle">steps + expected state</text>
+  <rect x="420" y="370" width="330" height="80" rx="10" fill="#17141f" stroke="#44cf7e"/>
+  <text x="585.0" y="404.0" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">vitest replay</text>
+  <text x="585.0" y="430.0" font-size="15" fill="#a39eb0" text-anchor="middle">drives the real handler</text>
+  <rect x="860" y="370" width="280" height="80" rx="10" fill="#17141f" stroke="#5c5866"/>
+  <text x="1000.0" y="404.0" font-size="18" font-weight="600" fill="#eceaf2" text-anchor="middle">webhook.ts</text>
+  <text x="1000.0" y="430.0" font-size="15" fill="#a39eb0" text-anchor="middle">the real code</text>
+  <path d="M 300 195 L 412 165" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 300 220 L 412 275" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 750 280 L 852 280" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 1000 320 L 760 398" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 750 410 L 852 410" stroke="#5c5866" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="805" y="402" font-size="13" fill="#a39eb0" text-anchor="middle">calls</text>
 </svg>
 </body>
 </html>

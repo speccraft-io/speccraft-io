@@ -1,0 +1,25 @@
+---
+// A color chip with its hex value, for the Design notes page.
+interface Props {
+	hex: string;
+}
+const { hex } = Astro.props;
+---
+
+<span class="swatch"><span class="chip" style={`background: ${hex}`}></span><code>{hex}</code></span>
+
+<style>
+	.swatch {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		white-space: nowrap;
+	}
+	.chip {
+		width: 1.1rem;
+		height: 1.1rem;
+		border-radius: 0.3rem;
+		border: 1px solid var(--sl-color-gray-5);
+		flex: none;
+	}
+</style>

@@ -1,5 +1,5 @@
 ---
-// The site title: "Spec" in white (the logo's near-black on the light theme), "Craft" in the green of the C.
+// The site title: the logo, then "SpecCraft" in the plain text color. The logo carries the color (see /design).
 import { logos } from 'virtual:starlight/user-images';
 import config from 'virtual:starlight/user-config';
 const { siteTitleHref } = Astro.locals.starlightRoute;
@@ -11,31 +11,20 @@ const { siteTitleHref } = Astro.locals.starlightRoute;
 			<img alt={config.logo.alt} src={logos.dark.src} width={logos.dark.width} height={logos.dark.height} />
 		)
 	}
-	<span translate="no"><span class="spec">Spec</span><span class="craft">Craft</span></span>
+	<span translate="no">SpecCraft</span>
 </a>
 
 <style>
 	.site-title {
-		/* Logo colors on dark backgrounds; darker shades of the same hues keep contrast on light ones. */
-		--spec: #ffffff;
-		--craft: #64d673;
 		align-items: center;
 		gap: var(--sl-nav-gap);
 		font-size: var(--sl-text-h4);
 		font-weight: 700;
+		letter-spacing: -0.01em;
+		color: var(--sc-text);
 		text-decoration: none;
 		white-space: nowrap;
 		min-width: 0;
-	}
-	:global([data-theme='light']) .site-title {
-		--spec: #222222;
-		--craft: #1e8a3c;
-	}
-	.spec {
-		color: var(--spec);
-	}
-	.craft {
-		color: var(--craft);
 	}
 	img {
 		height: calc(var(--sl-nav-height) - 2 * var(--sl-nav-pad-y));

@@ -1,51 +1,51 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=block">
 <style>
   html, body { margin: 0; padding: 0; }
   body { width: 1200px; height: 900px; overflow: hidden; }
-  text { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; }
+  text { font-family: 'IBM Plex Sans', -apple-system, 'Helvetica Neue', Arial, sans-serif; }
 </style>
 </head>
 <body>
 <svg width="1200" height="900" viewBox="0 0 1200 900" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <radialGradient id="glow" cx="50%" cy="45%" r="85%">
-      <stop offset="0%" stop-color="#171225"/>
-      <stop offset="100%" stop-color="#0b0812"/>
+      <stop offset="0%" stop-color="#17141f"/>
+      <stop offset="100%" stop-color="#0e0c14"/>
     </radialGradient>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 z" fill="#4a4560"/>
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#5c5866"/>
     </marker>
   </defs>
 
   <rect width="1200" height="900" fill="url(#glow)"/>
 
   <!-- title -->
-  <text x="80" y="64" font-size="30" font-weight="700" fill="#ffffff">All languages</text>
-  <text x="80" y="94" font-size="16" fill="#9a94ad">The wider landscape, in any language</text>
+  <text x="80" y="64" font-size="30" font-weight="700" fill="#eceaf2">All languages</text>
+  <text x="80" y="94" font-size="16" fill="#a39eb0">The wider landscape, in any language</text>
 
   <!-- plot area: x 140..1120, y 140..790 -->
 
   <!-- quadrant zone labels -->
-  <text x="170" y="180" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1">SPEC LANGUAGES + INDUSTRIAL CHECKERS</text>
-  <text x="1090" y="180" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1" text-anchor="end">MODEL CHECKER AS A LIBRARY</text>
-  <text x="1090" y="760" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1" text-anchor="end">PROPERTY-BASED TESTING</text>
-  <text x="170" y="760" font-size="14" font-weight="600" fill="#5c5675" letter-spacing="1">SIMULATORS</text>
+  <text x="170" y="180" font-size="14" font-weight="600" fill="#5c5866" letter-spacing="1">SPEC LANGUAGES + INDUSTRIAL CHECKERS</text>
+  <text x="1090" y="180" font-size="14" font-weight="600" fill="#5c5866" letter-spacing="1" text-anchor="end">MODEL CHECKER AS A LIBRARY</text>
+  <text x="1090" y="760" font-size="14" font-weight="600" fill="#5c5866" letter-spacing="1" text-anchor="end">PROPERTY-BASED TESTING</text>
+  <text x="170" y="760" font-size="14" font-weight="600" fill="#5c5866" letter-spacing="1">SIMULATORS</text>
 
   <!-- axes -->
-  <line x1="140" y1="465" x2="1120" y2="465" stroke="#332e47" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
-  <line x1="630" y1="790" x2="630" y2="140" stroke="#332e47" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <line x1="140" y1="465" x2="1120" y2="465" stroke="#2a2633" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <line x1="630" y1="790" x2="630" y2="140" stroke="#2a2633" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
 
   <!-- axis labels -->
-  <text x="150" y="452" font-size="15" font-weight="600" fill="#8b86a0">New spec language</text>
-  <text x="1110" y="452" font-size="15" font-weight="600" fill="#8b86a0" text-anchor="end">Plain code in your language</text>
-  <text x="645" y="162" font-size="15" font-weight="600" fill="#8b86a0">Exhaustive checking</text>
-  <text x="645" y="782" font-size="15" font-weight="600" fill="#8b86a0">Random sampling</text>
+  <text x="150" y="452" font-size="15" font-weight="600" fill="#a39eb0">New spec language</text>
+  <text x="1110" y="452" font-size="15" font-weight="600" fill="#a39eb0" text-anchor="end">Plain code in your language</text>
+  <text x="645" y="162" font-size="15" font-weight="600" fill="#a39eb0">Exhaustive checking</text>
+  <text x="645" y="782" font-size="15" font-weight="600" fill="#a39eb0">Random sampling</text>
 
   <!-- competitor dots: neutral ink, labels in text tokens -->
-  <g fill="#8b86a0">
+  <g fill="#a39eb0">
     <circle cx="235" cy="235" r="8"/>
     <circle cx="470" cy="200" r="8"/>
     <circle cx="215" cy="320" r="8"/>
@@ -62,7 +62,7 @@
     <circle cx="720" cy="430" r="8"/>
   </g>
 
-  <g font-size="16" fill="#d6d2e0">
+  <g font-size="16" fill="#eceaf2">
     <text x="252" y="240">TLA+ / TLC / Apalache</text>
     <text x="487" y="205">Quint</text>
     <text x="232" y="325">Alloy</text>
@@ -80,12 +80,12 @@
   </g>
 
   <!-- SpecCraft TS (TypeScript): a neutral dot like the others -->
-  <circle cx="990" cy="268" r="8" fill="#8b86a0"/>
-  <text x="973" y="273" font-size="16" fill="#d6d2e0" text-anchor="end">SpecCraft TS (TypeScript)</text>
+  <circle cx="990" cy="268" r="8" fill="#a39eb0"/>
+  <text x="973" y="273" font-size="16" fill="#eceaf2" text-anchor="end">SpecCraft TS (TypeScript)</text>
 
   <!-- footer -->
-  <rect x="80" y="836" width="72" height="4" rx="2" fill="#57e07a"/>
-  <text x="168" y="843" font-size="15" fill="#8b86a0">speccraft.io</text>
+  <rect x="80" y="836" width="72" height="4" rx="2" fill="#44cf7e"/>
+  <text x="168" y="843" font-size="15" fill="#a39eb0">speccraft.io</text>
 </svg>
 </body>
 </html>

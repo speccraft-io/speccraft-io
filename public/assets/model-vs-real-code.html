@@ -1,41 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=block">
 <style>
   html, body { margin: 0; padding: 0; }
   body { width: 1200px; height: 460px; overflow: hidden; }
-  text { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; }
+  text { font-family: 'IBM Plex Sans', -apple-system, 'Helvetica Neue', Arial, sans-serif; }
 </style>
 </head>
 <body>
 <svg width="1200" height="460" viewBox="0 0 1200 460" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <radialGradient id="glow" cx="50%" cy="45%" r="85%">
-      <stop offset="0%" stop-color="#171225"/>
-      <stop offset="100%" stop-color="#0b0812"/>
+      <stop offset="0%" stop-color="#17141f"/>
+      <stop offset="100%" stop-color="#0e0c14"/>
     </radialGradient>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 z" fill="#4a4560"/>
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#5c5866"/>
     </marker>
     <marker id="arrowPink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 z" fill="#f0439c"/>
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#c8327f"/>
     </marker>
   </defs>
 
   <rect width="1200" height="460" fill="url(#glow)"/>
 
   <!-- title -->
-  <text x="80" y="64" font-size="30" font-weight="700" fill="#ffffff">What gets checked: a model, or the real thing</text>
-  <text x="80" y="94" font-size="16" fill="#9a94ad">A second axis - not how the spec is written, but what the checker actually runs against</text>
+  <text x="80" y="64" font-size="30" font-weight="700" fill="#eceaf2">What gets checked: a model, or the real thing</text>
+  <text x="80" y="94" font-size="16" fill="#a39eb0">A second axis - not how the spec is written, but what the checker actually runs against</text>
 
   <!-- axis -->
-  <line x1="140" y1="250" x2="1120" y2="250" stroke="#332e47" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
-  <text x="150" y="280" font-size="15" font-weight="600" fill="#8b86a0">Checks a model of the system</text>
-  <text x="1110" y="280" font-size="15" font-weight="600" fill="#8b86a0" text-anchor="end">Exercises the real running code</text>
+  <line x1="140" y1="250" x2="1120" y2="250" stroke="#2a2633" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <text x="150" y="280" font-size="15" font-weight="600" fill="#a39eb0">Checks a model of the system</text>
+  <text x="1110" y="280" font-size="15" font-weight="600" fill="#a39eb0" text-anchor="end">Exercises the real running code</text>
 
   <!-- points, on the axis, labels alternating above/below -->
-  <g fill="#8b86a0">
+  <g fill="#a39eb0">
     <circle cx="175" cy="250" r="7"/>
     <circle cx="320" cy="250" r="7"/>
     <circle cx="450" cy="250" r="7"/>
@@ -44,34 +44,34 @@
     <circle cx="1090" cy="250" r="7"/>
   </g>
 
-  <g font-size="15" fill="#d6d2e0">
+  <g font-size="15" fill="#eceaf2">
     <text x="113" y="212">Dedicated spec languages</text>
-    <text x="100" y="190" font-size="12" fill="#5c5675">TLA+, Quint, Alloy, FizzBee, SPIN, P</text>
+    <text x="100" y="190" font-size="12" fill="#5c5866">TLA+, Quint, Alloy, FizzBee, SPIN, P</text>
 
     <text x="270" y="305">Statechart tools</text>
-    <text x="290" y="322" font-size="12" fill="#5c5675">GraphWalker</text>
+    <text x="290" y="322" font-size="12" fill="#5c5866">GraphWalker</text>
 
     <text x="390" y="212">Stateright</text>
 
 
     <text x="792" y="212">Property-based testing</text>
-    <text x="802" y="192" font-size="12" fill="#5c5675">QuickCheck, Hypothesis, proptest</text>
+    <text x="802" y="192" font-size="12" fill="#5c5866">QuickCheck, Hypothesis, proptest</text>
 
     <text x="908" y="305">Concurrency testers</text>
-    <text x="915" y="322" font-size="12" fill="#5c5675">Coyote, loom, shuttle</text>
+    <text x="915" y="322" font-size="12" fill="#5c5866">Coyote, loom, shuttle</text>
 
     <text x="992" y="212">Whole-system simulation</text>
-    <text x="1015" y="192" font-size="12" fill="#5c5675">DST, Antithesis</text>
+    <text x="1015" y="192" font-size="12" fill="#5c5866">DST, Antithesis</text>
   </g>
 
   <!-- SpecCraft TS: a neutral dot like the others -->
-  <circle cx="570" cy="250" r="7" fill="#8b86a0"/>
-  <text x="525" y="305" font-size="15" fill="#d6d2e0">SpecCraft TS</text>
-  <text x="515" y="322" font-size="12" fill="#5c5675">model + conformance</text>
+  <circle cx="570" cy="250" r="7" fill="#a39eb0"/>
+  <text x="525" y="305" font-size="15" fill="#eceaf2">SpecCraft TS</text>
+  <text x="515" y="322" font-size="12" fill="#5c5866">model + conformance</text>
 
   <!-- footer -->
-  <rect x="80" y="410" width="72" height="4" rx="2" fill="#57e07a"/>
-  <text x="168" y="417" font-size="15" fill="#8b86a0">speccraft.io</text>
+  <rect x="80" y="410" width="72" height="4" rx="2" fill="#44cf7e"/>
+  <text x="168" y="417" font-size="15" fill="#a39eb0">speccraft.io</text>
 </svg>
 </body>
 </html>

@@ -1,7 +1,9 @@
 ---
 title: SpecCraft
 description: Formal methods for TypeScript - the concepts, the tools that exist, and how to use them from a TypeScript project.
+hideTitle: true
 tableOfContents: true
+intro: true
 head:
   # Homepage title === site title, so Starlight's "title | siteTitle" format
   # duplicates it. Pin a single title for this page.
@@ -9,54 +11,64 @@ head:
     content: SpecCraft
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
-import Waitlist from '../../components/Waitlist.astro';
+import CodeFix from '../../components/CodeFix.astro';
+import quintBefore from '../../fixes/quint-ts/before.txt?raw';
+import quintAfter from '../../fixes/quint-ts/after.txt?raw';
+import tlaBefore from '../../fixes/tla-claim-ts/before.txt?raw';
+import tlaAfter from '../../fixes/tla-release-ts/after.txt?raw';
+import leanBefore from '../../fixes/lean-ts/before.txt?raw';
+import leanAfter from '../../fixes/lean-ts/after.txt?raw';
+import dafnyBefore from '../../fixes/dafny-ts/before.txt?raw';
+import dafnyAfter from '../../fixes/dafny-ts/after.txt?raw';
 
-<img class="home-banner" src="/assets/speccraft-linkedin-banner.webp" fetchpriority="high" alt="Thinking tools. A faint graph of explored states, with one highlighted path ending in a violation." />
+## Can a retried webhook charge the card twice?
 
-Formal methods for TypeScript: the concepts, the tools that exist, and how to use them from a TypeScript project.
+The first delivery is slow, so the sender retries. Two workers get the two deliveries. Both read `unpaid` before
+either one writes `paid`, and both charge the card.
 
-## The problem
+<CodeFix before={quintBefore} after={quintAfter} title="src/webhook.ts" />
 
-Some of the worst bugs are not in any one function. They are in the order of events: a retry that lands while the
-first attempt is still running, two workers reading the same row, an async reply that arrives after the user already
-changed something, a webhook delivered twice, a long-running workflow or an AI agent deciding at runtime which step
-comes next.
+**Found with Quint.** `quint verify` checks every state of a model with two workers and two deliveries, and prints
+the order of steps that charges twice. The fix makes the read and the claim one step, as a conditional
+`UPDATE ... WHERE status = 'unpaid'` in the database.
 
-Tests run the orders someone thought of. The bug is usually in an order nobody did. Formal methods are the tools that
-check every order, or prove a function right for every input. Most of them live outside TypeScript, and a growing
-number now work from inside it. This site maps both and shows how to use them.
+Full walkthrough: [Quint for TypeScript developers](/tools/quint)
 
-## What is here <a id="what-is-here" />
+## What if the approval and the 24h timeout fire at the same time?
 
-<CardGrid>
-	<Card title="Concepts">
-		The ideas the tools are built on: [state machines and FSMs](/concepts/state-machines), [Petri nets](/concepts/petri-nets) and [formal specs](/concepts/formal-specs).
-	</Card>
-	<Card title="TypeScript tools">
-		The [map of TypeScript tools](/ts-tools) that check state and order, from [fast-check](/vs/fast-check) to [pnueli](/vs/pnueli), each with a worked example.
-	</Card>
-	<Card title="Tools from other languages">
-		[TLA+](/tools/tla-plus), [Quint](/tools/quint), [Dafny](/tools/dafny) and [Lean](/tools/lean), used step by step from a TypeScript project, plus the [wider field](/tools/non-ts-tools).
-	</Card>
-	<Card title="Durable execution and the market">
-		Where these bugs show up in [durable workflows](/durable-execution-problems), and who uses and hires for formal methods: [the market](/market/).
-	</Card>
-</CardGrid>
+A manager approves a payment hold while the 24h timer fires. Both handlers read `settled = false` before either one
+sets it. The money is captured and released.
 
-## Where it started
+<CodeFix before={tlaBefore} after={tlaAfter} title="src/payment-hold.ts" />
 
-This research started from a Temporal workflow that grew too hard to reason about, and a two-page formal spec that
-made it clear again. That work, on durable execution and its correctness problems, is in the
-[Durable execution](/durable-execution-problems) pages. The same problem shows up anywhere events can interleave, so
-the site now covers TypeScript in general.
+**Found with TLA+.** TLC finds the race in 13 states. The obvious fix, setting the flag before the `await`, removes
+the race but leaves the hold stuck forever when the card is declined. TLC finds that too, with a liveness check. The
+final version releases the hold itself when the capture fails.
 
-## Stay in touch
+Full walkthrough: [TLA+ for TypeScript developers](/tools/tla-plus)
 
-New pages and tools are added as they are found. Drop your email to hear about them.
+## Can this discount make the price negative?
 
-<Waitlist />
+Nothing stops `percent` from being over 100. The discount is then bigger than the price, unless the cap happens to
+catch it.
 
----
+<CodeFix before={leanBefore} after={leanAfter} title="src/pricing.ts" />
 
-speccraft.io is written by [Oleksandr Zalizniak](https://zalizniak.com). Follow along on [GitHub](https://github.com/orgs/speccraft-io/repositories), [LinkedIn](https://www.linkedin.com/company/speccraft-io) and [Bluesky](https://bsky.app/profile/speccraft.bsky.social), or get in touch: [alex@zalizniak.com](mailto:alex@zalizniak.com).
+**Found with Lean.** The proof that the result is never negative fails, and Lean shows the kind of input that breaks
+it. After the clamp, three rules are proven for every whole-number input. The proof also shows a precondition nobody
+wrote down: a negative cap makes the price go up.
+
+Full walkthrough: [Lean for TypeScript developers](/tools/lean)
+
+## Does this binary search find every id?
+
+Tests for a found id and a missing id both pass. But `indexOfId([10, 20, 30], 10)` returns `-1`. When the search
+narrows down to one last element, the loop stops before looking at it.
+
+<CodeFix before={dafnyBefore} after={dafnyAfter} title="src/ids.ts" />
+
+**Found with Dafny.** The verifier cannot prove that `return -1` means "the id is not in the list", and points at
+that line. With `while lo <= hi` it proves the function for every sorted list and every target, and compiles the
+proven code to JavaScript you import from TS.
+
+Full walkthrough: [Dafny for TypeScript developers](/tools/dafny)

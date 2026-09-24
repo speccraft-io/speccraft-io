@@ -1,3 +1,83 @@
+/* SpecCraft palette (see /design). Pink means the problem, green means fine or fixed; everything else is neutral.
+   Starlight's own color variables are mapped onto the palette below, so its components follow it too. */
+:root {
+	--sc-pink: #c8327f;
+	--sc-green: #44cf7e;
+
+	/* Dark mode (Starlight's default :root). */
+	--sc-bg: #0e0c14;
+	--sc-surface: #17141f;
+	--sc-text: #eceaf2;
+	--sc-muted: #a39eb0;
+	--sc-border: #2a2633;
+	--sc-pink-text: #f28dc0;
+	--sc-green-text: #74e0a1;
+	--sc-pink-tint: #33142a;
+	--sc-green-tint: #0f2a1c;
+	--sc-pink-word: #5a1f45;
+	--sc-green-word: #1b4a31;
+
+	--sl-font: 'IBM Plex Sans';
+	--sl-font-mono: 'JetBrains Mono';
+	--sc-font-heading: var(--__sl-font);
+}
+:root[data-theme='light'] {
+	--sc-bg: #fafaf7;
+	--sc-surface: #ffffff;
+	--sc-text: #16131d;
+	--sc-muted: #5c5866;
+	--sc-border: #e4e2e8;
+	--sc-pink-text: #97195b;
+	--sc-green-text: #0f6e45;
+	--sc-pink-tint: #fbeaf2;
+	--sc-green-tint: #e4f7ec;
+	--sc-pink-word: #f2c3da;
+	--sc-green-word: #b4eac9;
+}
+:root,
+:root[data-theme='light'] {
+	--sl-color-white: var(--sc-text);
+	--sl-color-gray-1: var(--sc-text);
+	--sl-color-gray-2: var(--sc-text);
+	--sl-color-gray-3: var(--sc-muted);
+	--sl-color-gray-4: var(--sc-muted);
+	--sl-color-gray-5: var(--sc-border);
+	--sl-color-gray-6: var(--sc-surface);
+	--sl-color-gray-7: var(--sc-surface);
+	--sl-color-black: var(--sc-bg);
+
+	--sl-color-accent-low: var(--sc-border);
+	--sl-color-accent: var(--sc-text);
+	--sl-color-accent-high: var(--sc-text);
+
+	--sl-color-text: var(--sc-text);
+	--sl-color-text-accent: var(--sc-pink-text);
+	--sl-color-text-invert: var(--sc-bg);
+	--sl-color-bg: var(--sc-bg);
+	--sl-color-bg-nav: var(--sc-bg);
+	--sl-color-bg-sidebar: var(--sc-bg);
+	--sl-color-bg-inline-code: var(--sc-border);
+	--sl-color-bg-accent: var(--sc-text);
+	--sl-color-hairline-light: var(--sc-border);
+	--sl-color-hairline: var(--sc-border);
+	--sl-color-hairline-shade: var(--sc-border);
+}
+
+/* Headings and the site name share the body face (IBM Plex Sans); --sc-font-heading keeps them switchable in one place. */
+h1,
+.sl-markdown-content :is(h2, h3, h4, h5),
+.site-title {
+	font-family: var(--sc-font-heading);
+}
+
+/* The current sidebar page, like the primary button: text-color background, background-color text. */
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus {
+	background-color: var(--sc-text);
+	color: var(--sc-bg);
+}
+
 /* Splash hero sits too low by default — tighten the top spacing so the
    "SpecCraft" headline starts near the top, and pull the first content
    section up closer to the hero's call-to-action buttons. */
@@ -84,13 +164,21 @@
 	}
 }
 
-/* "Thinking tools." banner at the top of the home page. */
+/* "Thinking tools." banner in the home page footer. */
 .home-banner {
 	display: block;
 	width: 100%;
 	height: auto;
 	border-radius: 0.5rem;
-	margin-bottom: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+/* The banner at the top of the Design notes page. */
+.design-banner {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: 0.5rem;
 }
 
 /* Full / Code only views (src/components/PageTitle.astro). In "Code only", prose is hidden and only headings,
@@ -108,4 +196,13 @@
 	.sl-markdown-content
 	:is(p, ul, ol, blockquote, table):not(:has(img)):not(.code-fix *):not(.view-short, .view-short *) {
 	display: none;
+}
+
+/* Pages with `hideTitle` (the home page): the title panel holds only a screen-reader heading, so drop its padding
+   and the line under it. */
+.content-panel:has(#_top.sr-only) {
+	padding: 0;
+}
+.content-panel:has(#_top.sr-only) + .content-panel {
+	border-top: 0;
 }
