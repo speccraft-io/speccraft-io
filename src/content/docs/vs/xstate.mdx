@@ -167,25 +167,21 @@ XState fits when the flow of one component or one process is the problem. When t
 at once (two tabs, a retry and a timer, two workers), see [TLA+](/tools/tla-plus) and [Quint](/tools/quint). More on
 the difference in [State machines and FSMs](/concepts/state-machines).
 
-## Strengths and limits
+## Strengths
 
-| | XState |
-|---|---|
-| Model | The XState machine the app runs |
-| Event choice | You list the events |
-| Search | Every reachable state, with a shortest path to each |
-| Rules | Checked by you, in a test, on the states it returns |
-| Async work | Not walked |
-| Counterexample | A list of events you can send to the real actor |
+- **It checks the machine that runs.** There is no separate model to write or keep in sync.
+- **The shortest path to the bug.** You get the shortest list of events that breaks your rule, and you can send it to
+  the real machine.
+- **Nothing extra to install.** `xstate/graph` ships with xstate 5.
 
-- **It checks the machine that runs.** There is no separate model, and the path it finds replays on the real actor.
-- **It sees only the machine's own states and events.** The async code the machine calls (`invoke`, promises) is not
-  walked, and neither are two machines running side by side.
-- **It walks, you check.** `xstate/graph` returns states and paths; it has no invariants of its own. The rule is plain
-  code in your test.
-- **Only the events you list.** An event missing from `events` is never tried. Context with many values (counters,
-  text) makes the number of states grow fast, so keep it small in the check.
-- **No "eventually" rules.** It checks what is true in each state, not whether something always happens in the end.
+## Limitations
+
+- **It sees only the machine's own states and events.** The async code the machine calls is not checked, and neither
+  are two machines running side by side.
+- **Only the events you list.** An event you do not list is never tried, and data with many values (counters, text)
+  makes the number of states grow fast.
+- **Your test holds the rules.** It lists states and paths but has no rules of its own.
+- **No "eventually" rules.** It cannot check them.
 
 ## Links
 

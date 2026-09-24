@@ -21,7 +21,7 @@ import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
 [Bombadil](https://github.com/antithesishq/bombadil) is property-based testing for web and terminal user
-interfaces. Its specs are TypeScript modules, which makes it the best-known tool where TypeScript developers write temporal properties today.
+interfaces. Its specs are TypeScript modules with temporal properties.
 It samples runs of a real UI against temporal properties; it does not explore every state of a model.
 
 A temporal property is a rule about a whole run, not one moment: "there is never more than one order" (always, aka
@@ -123,7 +123,6 @@ at_most_one_order was violated:
 
 as of 00:00.000, it should always be the case that () => confirmations.current <= 1, however at 00:03.389, confirmations = 2
 
-
 Test finished, finding 1 violation!
 
 Inspect the test results using:
@@ -152,39 +151,21 @@ found in this run.
 
 <Full>
 
-### Tips
+## Strengths
 
-- **Give every state something to do.** Our first fixed page had nothing clickable while the order was pending (the
-  button disabled, the link hidden), and a ticked checkbox did not count either. Each run then stopped with
-  "Error: no actions available" and exit code 1. Two delivery radio buttons, one always unticked, fixed that.
-- **Watch what the defaults click.** A "Continue shopping" link that was visible from the start got about half of
-  the clicks and reloaded the page, cancelling the pending order each time. Three 30-second runs then found nothing. The
-  sample shows the link only after an order is confirmed.
-- **Inspect and replay.** `bombadil browser inspect out` opens a web app over the recorded run: the actions, a
-  timeline you can move along, the state before and after each action, and a mark for each violation. `--reproduce=out`
-  runs the same actions again to check a fix.
+- **It tests your real app.** It clicks through the page in Chrome, and you write no model of the app.
+- **It finds bugs before you write any rule.** Its default checks come first; your own rules are TypeScript, such as
+  "never two orders".
+- **You can watch the bug.** It records the clicks that broke the rule, and you can replay them.
 
-## Strengths and limits
+## Limitations
 
-| | Bombadil |
-|---|---|
-| Spec | TypeScript module: temporal properties and action generators |
-| What is explored | The real running web or terminal UI |
-| Search | Random, guided by action generators |
-| Properties | `always`, `eventually`, `next` |
-| A clean run means | Not found in this run |
-| Counterexample | A recorded run you can inspect and replay |
-
-- **Bombadil tests the real UI.** It needs no model of the app to start, its defaults find bugs before you
-  write a property, and `eventually` and `next` are there today.
-- **It samples.** A run covers the actions and timings it happened to try, so a clean run says nothing about
-  every order. Exhaustive checkers such as [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or
-  [Quint](/tools/quint) cover every reachable state of a model instead, and return the shortest failing trace.
-- **It sees the UI, not the logic underneath.** Which reply may arrive when, or what a retry does, shows up only
-  through whatever timing the run produced.
-- **Replays can differ.** The manual says a reproduction is not guaranteed, and it needs the same options as the
-  original run.
-- **It is still 0.x.** The API may change between versions.
+- **A clean run is not a proof.** It tries a random sample of clicks and timings. For every order,
+  [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or [Quint](/tools/quint) check a model instead.
+- **It sees the page, not the logic behind it.** Which reply arrives when, or what a retry does, shows only through the
+  timings the run happened to try.
+- **A replay may not show the bug again.** The same clicks can get different timings on the next run.
+- **It is still early.** It needs Chrome on macOS or Linux, and the API may change between versions.
 
 ## Links
 

@@ -700,27 +700,26 @@ replay follows the spec's steps.
 
 <Full>
 
-## What you get, and what you do not
+## Strengths
 
-You get:
+- **Every order of steps is checked.** TLC tries them all in the spec, in under a second at this size.
+- **Liveness, not only safety.** "Every caller gets the connection in the end" is checked, not only "nothing bad
+  happens".
+- **A short, readable failing trace.** You get the shortest order that breaks the spec, not a bug that shows up once in
+  a while at startup.
+- **Fixes checked before code.** You can check a fix in the spec, then replay every behavior of a small spec against
+  the real TS code.
 
-- Every order of steps checked, in the spec, in under a second at this size.
-- Liveness: "every caller gets the connection in the end" is checked, not only "nothing bad happens".
-- A shortest failing order, as a readable trace, instead of a bug that shows up once in a while at startup.
-- A fix you can check before you write it in TS.
-- Every behavior of a small spec, up to its first loop, replayed against the real code.
+## Limitations
 
-You do not get:
-
-- A proof about the TS code. TLC checks the spec. The replay checks the code on the spec's behaviors, and it cannot
-  check liveness in the code.
-- A spec without effort. You choose where the steps split. If you merge steps that the real code keeps apart, the spec hides
-  the bug.
-- Anything the spec leaves out. Here: a connection that drops later, and more than one process. Neither is in the
-  spec, so TLC says nothing about them.
-- A familiar syntax. `/\`, `'`, `EXCEPT` and `<>` take a day to get used to. You and a coding agent write the text
-  spec, the agent writes the TLA+ from it, and [Quint](/tools/quint) exists for teams who want the same checkers with
-  a friendlier language.
+- **No proof about the TS code.** TLC checks the spec. The replay checks the code on the spec's behaviors, but not
+  liveness.
+- **The spec takes effort.** You choose where the steps split. If you merge steps that the real code keeps apart, the
+  spec hides the bug.
+- **Only what the spec models.** A connection that drops later, or more than one process, is not in this spec, so TLC
+  says nothing about it.
+- **Unfamiliar syntax.** `/\`, `'`, `EXCEPT` and `<>` take a day to learn. [Quint](/tools/quint) runs the same
+  checkers with a friendlier language.
 
 </Full>
 

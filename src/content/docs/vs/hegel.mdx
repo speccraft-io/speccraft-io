@@ -18,7 +18,6 @@ import after from '../../../fixes/hegel/after.ts.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
-
 [Hegel](https://hegel.dev) is a property-based testing engine built on [Hypothesis](https://hypothesis.works), the
 most widely used property-based testing library, with libraries for Rust, Go, C++, TypeScript, Java and OCaml. The
 TypeScript library is `@hegeldev/hegel`. It is in beta.
@@ -151,35 +150,21 @@ With the fix, both tests pass 100 test cases.
 
 <Full>
 
-### Tips
+## Strengths
 
-- Draw the widest range the code accepts. The first bug shows up because `gs.integers()` has no bounds; a test that
-  drew quantities from 1 up would have missed it.
-- Hegel draws the numbers, not the order of events. `Promise.all` with a save that resolves at once runs both checks
-  before either save returns, which happens to be the order that breaks. Every test case runs that same order, and we
-  found no scheduler or stateful testing in the TypeScript library (0.4.6) to vary it.
+- **It runs your real code.** You write normal tests that ask for generated values.
+- **It is strong on data.** It found the quantity-0 bug from generated inputs, and cuts a failure down to the smallest
+  input that still fails.
+- **A failure comes back.** It saves the smallest failing input and replays it on the next run.
+- **It runs in many places.** In TypeScript it works on Node, Bun and Deno, and in the browser.
 
-## Strengths and limits
+## Limitations
 
-| | Hegel |
-|---|---|
-| What you write | Tests that draw generated values |
-| Search | Random generation, guided by Hypothesis |
-| A clean run means | Not found in the runs made |
-| Counterexample | A shrunk input, replayed from its database |
-| Async orders | Not controlled |
-| Languages | Six, one engine |
-
-- **Strong on data.** It found the quantity-0 bug from generated inputs. Hegel's generators and shrinking are the
-  best known in the field.
-- **A clean run is a sample.** It says 100 drawn cases passed in one order of events. Other orders of the
-  reservations and their saves were not tried.
-- **No control over async orders** in the TypeScript library yet. [fast-check](/vs/fast-check)'s scheduler samples
-  orders of wrapped promises, and exhaustive checkers such as [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or
-  [Quint](/tools/quint) cover every order in a model, with small, finite values. Only the Rust library has a
-  stateful testing module so far.
-- **One engine, many runtimes.** The same engine serves all six languages. In TypeScript it runs as a native library
-  on Node, Bun and Deno, and as WebAssembly in the browser.
+- **A clean run is not a proof.** It tries a sample of random inputs (100 cases in the example), not every input.
+- **It does not control the order of async calls in TypeScript yet.** Every case ran one order of events, so other
+  orders of the reservations and their saves were never tried. [fast-check](/vs/fast-check) can try random orders of
+  promises, and [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or [Quint](/tools/quint) check every order in a model.
+- **The TypeScript library is in beta.** The example uses version 0.4.6.
 
 ## Links
 

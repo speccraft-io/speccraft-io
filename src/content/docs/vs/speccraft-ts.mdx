@@ -144,27 +144,21 @@ SpecCraft TS was also run on the examples from the other tool pages:
 | [Autosave](/vs/other-ts-tools) | A stale save in 6 steps, where three fake-timer tests pass on the buggy code |
 | [Job lease](/vs/other-ts-tools#complements) | The late renewal in 29 states, where the Effect cancel tests pass on the buggy code |
 
-## Strengths and limits
+## Strengths
 
-| | SpecCraft TS |
-|---|---|
-| What you write | A spec: state, actions with guards and effects, invariants; or the same on a real class |
-| Search | Every reachable state, breadth-first |
-| A clean run means | No reachable state breaks an invariant, within the spec's own bounds |
-| Counterexample | The shortest trace, as a list of action names |
-| Output | State count, endings, stuck states, a result per invariant |
-| Real code | `checkConformance`, or inline specs on existing classes |
-| Async orders | Inline specs: every order of async replies |
+- **The model is plain TypeScript.** Nothing is translated, and the model can call your own helper functions.
+- **Only the npm package.** No Java or other tools are needed.
+- **It checks every reachable state of the model.** When a rule breaks, you get the shortest list of actions that
+  breaks it.
+- **It can check your real class against the model.** With rules on a real class, it also tries every order of async
+  replies.
 
-- **The spec runs as TypeScript.** There is no translation step to trust and no Java. Guards and effects can call
-  your own helpers and use any language feature.
-- **The real code is checked against the spec.** The check covers the whole state graph, but only the moves the spec
-  allows; what the code does where the spec says no is not checked.
-- **Safety only.** There is no liveness check yet, so "eventually" properties cannot be checked.
-- **Small, finite values on purpose.** A bug that needs a value the spec never tries is missed, like the quantity-0
-  bug above; property-based testing covers rich data better.
-- **Built for small models.** There are no reductions, an action has one next state, and states are keyed by
-  `JSON.stringify`, so large state spaces hit time and memory limits sooner.
+## Limitations
+
+- **Only what the model allows is checked.** What the code does where the model says no is not tried.
+- **No "eventually" rules yet.** It only checks rules that must hold in every state.
+- **Only the values you pick.** A bug that needs another value is missed, like the quantity-0 bug above.
+- **Built for small models.** Large models run out of time or memory sooner.
 
 ## Links
 

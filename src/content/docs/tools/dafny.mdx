@@ -350,25 +350,20 @@ only confirms the rebuild happened, and CI has already checked that it matches.
 
 <Full>
 
-## What you get, and what you do not
+## Strengths
 
-You get:
+- **Shipped code is the proven code.** The JavaScript is compiled from the `.dfy` file, so no hand-made copy can drift.
+- **Proven for every input.** Index access in range, loops that end, and every `ensures` hold for all inputs.
+- **Assumptions are written down.** Hidden assumptions become `requires` lines that the next developer can read.
 
-- The shipped JavaScript comes from the proven code. There is no hand-made copy that can drift.
-- Every index access is proven in range, every loop is proven to end, and every `ensures` is proven for every input.
-- Hidden assumptions become explicit `requires` lines that the next developer can read.
+## Limitations
 
-You do not get:
-
-- A check of `requires` at runtime. Dafny proves the function is right when the caller keeps the promise. A TS caller
-  can still pass an unsorted list, and nothing stops it. Make sure the list is sorted where it is built, or check it
-  there once.
-- JavaScript that looks written by hand. The output is readable but generated (`_0_lo`,
-  `_dafny.EuclideanDivisionNumber`). You do not edit it; you edit the `.dfy` file.
-- Proofs without effort. Loops need invariants, and writing them is the main skill to learn. The good part: a failed
-  invariant points at a line, and the fix is usually a sentence you already had in your head.
-- Help with timing, concurrency or I/O. Dafny proves what one function does, not the order of events between
-  services.
+- **`requires` is not checked at runtime.** A TS caller can still pass an unsorted list. Check it once where the list
+  is built.
+- **Generated JavaScript.** The output is readable but not hand-written. You edit the `.dfy` file, not the output.
+- **Loop invariants take effort.** Writing them is the main skill to learn. A failed invariant points at a line, which
+  helps.
+- **One function at a time.** Dafny does not cover timing, concurrency, I/O or the order of events between services.
 
 </Full>
 

@@ -156,35 +156,23 @@ The same exploration, with every reply still in flight, passes:
 
 <Full>
 
-### Tips
+## Strengths
 
-- **Offer every event that can still arrive.** A complete result only covers the events the test listed. Offering
-  only the current reply hid the bug.
-- **Put what the events depend on into `stateKey`.** If the events depend on the trace, as `inFlight` does, the key
-  must include it, or two different situations are merged into one state.
+- **It checks the machine your app runs.** There is no separate model to keep in line with the code.
+- **It checks every state reachable with the events you list.** A failure comes back as the shortest list of events
+  that breaks the rule.
+- **Its coverage report is clear.** It named the exact step that was never taken, and it says so when it stopped at a
+  limit instead of checking everything.
+- **It does more than explore.** It can also generate test scenarios, compare recorded runs with a reference model, and
+  inspect a running machine.
 
-## Strengths and limits
+## Limitations
 
-| | effect-machine |
-|---|---|
-| Model | A statechart built from Effect schemas, Effect only |
-| Event choice | You list representative events per state |
-| State identity | A user-defined `stateKey` |
-| Result | Shortest counterexample, completeness, coverage |
-| Async work | Not run during exploration |
-| Real code | The machine is the real code, when the app is written with it |
-
-- **effect-machine found the bug, but only once the test was written for it.** With the charge as an `invoke` it
-  cannot, and with only the current reply it gave a complete result, full coverage, and no bug. The replies in flight
-  had to be listed by hand in the test's events and state key.
-- **effect-machine explores the machine that runs.** There is no separate model. In exchange, it only checks code
-  written as an effect-machine statechart. Model checkers such as [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or
+- **You add the async replies yourself.** It does not run them while exploring. In the example it reported full
+  coverage and no bug until the replies still in flight were listed by hand in the test.
+- **It only works on code written with effect-machine.** [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or
   [Quint](/tools/quint) check a separate model instead.
-- **The coverage report is a strength.** It named the exact transition that was never taken, and hard limits are
-  reported as completeness, so a bounded run is never mistaken for an exhaustive one. The default limits are 20 events
-  deep, 1,000 states and 10,000 transitions.
-- **It does more than explore.** It can also generate scenarios from the schemas, check traces against a reference
-  model, and `probe` a running machine's commands, timers and invokes.
+- **It needs Effect 4.** Today that is a pinned release candidate.
 
 ## Links
 

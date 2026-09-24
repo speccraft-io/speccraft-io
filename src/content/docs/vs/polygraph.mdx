@@ -212,35 +212,21 @@ no session removed an item from a cart at the minimum. Only the model checker fo
 
 <Full>
 
-### Tips
+## Strengths
 
-- **Read the rejection counts.** "below-minimum ×4" shows a special rule was actually reached. A declared rule that
-  never fires is flagged as a warning.
-- **Call the scripts directly.** Through the npm bin link, `npx polygraph` printed nothing and exited 0 in our run,
-  so the sample calls `scripts/verify.mjs` and `scripts/check.mjs` with `node`.
+- **It starts from code you already have.** You write nothing at first: an LLM writes a model from your code.
+- **It checks every state of the model.** It also compares the model with recorded runs of your real code.
+- **It says where the bug is.** Each list of steps it finds is marked as a mistake in the model or a bug in the code.
+- **It has found real bugs.** It found a double-charge bug in a production billing machine. In a test, checking every
+  state caught 5 of 5 planted bugs, while replaying recorded runs caught 0.
 
-## Strengths and limits
+## Limitations
 
-| | Polygraph |
-|---|---|
-| Where the spec comes from | An LLM derives it from your code |
-| What the spec is checked against | Recorded execution traces of the real code |
-| Model checking | Exhaustive over a declared finite domain, plain JS invariants |
-| LLM | Needed to generate specs and write code; checking runs without it |
-| Async orderings in real code | Covered only as far as the traces and the spec model them |
-| Scope and packaging | Audit, authoring, runtime, versioning, invariant grading; Claude Code plugin plus CLI, Apache-2.0 |
-
-- **It starts from the code.** It works on code you already have, but a spec read from buggy code describes the wrong
-  behavior faithfully, so the invariants must come from you.
-- **It covers a lot and has evidence.** It also writes new machines, runs them, checks new versions and grades
-  invariants. It found a double-charge bug on a production billing machine; in an evaluation, replay found 0 of 5
-  planted bugs and model checking found 5 of 5.
-- **The traces set the limit.** The spec is checked against recorded runs, not every state of the real code. The
-  code must run on its own to record them, so code tied to a database or device needs test doubles first.
-- **A consistency check, not a proof.** It is exhaustive only over the finite actions and data declared in the
-  contract, and the README calls it experimental. A field that only grows needs a cap or `--max-states`.
-- **Worth copying:** grade invariants by how many broken models they catch, run a known-good and a known-bad control
-  before a run counts, and replay real traces as a cheap first check for existing code.
+- **The rules must come from you.** The model is written from your code, so a bug in the code ends up in the model too.
+- **It checks the model, not every run of your code.** Timing and async are covered only as far as the model and the
+  recordings include them. Code that needs a database or a device must first be made to run on its own.
+- **Only the actions and values you list.** A field that only grows needs a limit on the number of states.
+- **It is experimental and needs an LLM.** You run it from Claude Code or the CLI, with an API key for the LLM steps.
 
 ## Links
 

@@ -168,36 +168,26 @@ The fix: the renewal job now renews active plans only; a canceling plan runs out
 ```
 
 The machine has no end state: `resubscribe` leads out of `canceled`. That matters, because deadlock checking is on by
-default and a state with no way out fails the check (see Strengths and limits).
+default and a state with no way out fails the check (see Limitations).
 
 <Full>
 
-### Tips
+## Strengths
 
-- **Check `statesExplored`, not only `ok`.** A run that could not start TLC still says `ok: true`.
-- **Keep guards and actions to plain reads and writes of `ctx`.** Only a small subset of TypeScript translates (see
-  Strengths and limits).
+- **It checks every reachable state.** A TLA+ copy is made from your builder code and checked by TLC.
+- **Strong on "eventually" rules.** They work through TLC.
+- **It does more than check.** It can also draw diagrams, compare versions of a spec and check a real implementation.
 
-## Strengths and limits
+## Limitations
 
-| | stateproof |
-|---|---|
-| How guards and effects run | Source captured with `fn.toString()` and re-parsed into TLA+ |
-| TypeScript you can use | A small subset: comparisons, `&&` / `\|\|`, arithmetic, a few array methods |
-| Where checking happens | TLC in Java, results parsed from its text output |
-| Shape of the model | Required state enum with from/to transitions and a flat context |
-| What you get back | Pass/fail plus violations parsed from TLC |
-| Spec vs implementation | The same artifact at runtime |
-
-- **It has a translator you have to trust.** The translation can be silently wrong: `.filter()` becomes
-  `Filter(...)`, which is not a TLA+ operator, and `null` becomes the string `"null"`. The runtime runs the same
-  parsed model, so what TLC checks and what runs can differ.
-- **It needs Java and an absolute `tlcPath`.** TLC runs out of process from a temp folder, so a jar path relative to
-  your folder fails. Parameterized actions need raw TLA+ strings.
-- **Deadlock checking is on by default.** A machine with a final state fails until you pass `checkDeadlocks: false`;
-  this is why the README's quick start fails.
-- **It is strong on liveness and tooling.** "Eventually this happens" works through TLC, and it has Mermaid diagrams,
-  spec diff, the Studio and adapters to check a real implementation.
+- **You have to trust its translation to TLA+.** It covers only code the translator understands, and it can be silently
+  wrong (for example, `null` becomes the string `"null"`), so what TLC checks and what runs can differ.
+- **`ok: true` is not enough.** A run where TLC could not start still says `ok: true`; check `statesExplored` too.
+- **Timing and async are not covered.** The check does not look at async code.
+- **It needs Java and some setup.** You give it the full path to the TLC jar, and actions that take arguments must be
+  written in raw TLA+.
+- **A final state fails by default.** It counts a final state as a deadlock until you pass `checkDeadlocks: false`; this
+  is why the README's quick start fails.
 
 ## Links
 

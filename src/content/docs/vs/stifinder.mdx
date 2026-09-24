@@ -184,34 +184,24 @@ edge of the state space.
 
 <Full>
 
-### Tips
+## Strengths
 
-- **Always pass a `baseBudget`.** The default is `{}`, which puts every costed event over budget. A run with no
-  budget on the buggy duplicate relay says `violation: null`, `completed: true`, `exhaustive: false`: no bug without
-  faults, and explicitly not a proof.
-- **Read `exhaustive`, not `completed`.** `completed` only says the budget that was tried was searched to the end.
-  Only `violation: null` with `exhaustive: true` means the model has no violation.
+- **It tells you what the failure costs.** It finds the failure with the fewest faults (crashes, retries) first, then
+  the shortest.
+- **It says if the search was complete.** A clean full run covers any number of faults, while in [pnueli](/vs/pnueli)
+  it covers only the limits written in the spec.
+- **It checks how the run ends.** A rule on the final state comes with the steps that break it.
+- **A deeper search does not start over.** Earlier results are kept when you raise the fault limit.
+- **Small to set up.** You need only the npm package and four functions: the start state, the possible events, what
+  each event does, and the rules.
 
-## Strengths and limits
+## Limitations
 
-| | stifinder |
-|---|---|
-| Spec | `initialState`, `getEvents`, `applyEvent`, invariants |
-| Search | Iterative deepening over a deviation budget, then depth |
-| Which trace is reported | Fewest deviations, then lowest cost, then fewest steps |
-| Clean result | Says whether it was exhaustive or only budget-bounded |
-| Endings | `terminalInvariant` on states with no events |
-| Real code | Not covered by the library itself |
-
-- **It says what the failure costs, and a clean exhaustive run covers every number of faults.** In a plain
-  breadth-first checker such as [pnueli](/vs/pnueli), fault counters are part of the state, so a result covers only
-  the bounds in the spec.
-- **It checks the ending directly.** A `terminalInvariant` violation comes with a trace.
-- **It builds on known research.** The search is delay bounding (Emmi, Qadeer and Rakamaric, POPL 2011) with
-  user-defined costs. The cache survives a change of budget, so a deeper search does not repeat work.
-- **It is a search core by design.** There are no named actions with guards next to effects, and nothing to check a
-  real implementation against the model.
-- **Worth copying:** deviation-ordered search, named cost budgets, and a result that states its own completeness.
+- **It checks the model, not your code.** There is nothing to check your real code against the model.
+- **It is a checking engine only.** There are no named actions.
+- **Faults must be written into the model.** Crashes and retries are events you add yourself.
+- **Always pass a budget.** With the default `baseBudget` of `{}`, every fault is over budget and the search finds
+  nothing, even when the code is broken.
 
 ## Links
 

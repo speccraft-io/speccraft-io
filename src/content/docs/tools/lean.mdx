@@ -355,23 +355,20 @@ rules.
 
 <Full>
 
-## What you get, and what you do not
+## Strengths
 
-You get:
+- **True for every input.** The rules hold for every whole-number input of the Lean copy. No test suite can say that.
+- **Hidden assumptions show up.** A failed proof points at them, like `percent` over 100 or a negative cap.
+- **Drift is caught.** The cross-check fails when the TS code stops matching the proven copy on the grid.
 
-- The rules hold for every whole-number input of the Lean copy. No test suite can say that.
-- Every hidden assumption shows up as a failed proof (`percent` over 100, a negative cap).
-- The cross-check catches the TS code drifting from the proven copy, on the grid you chose.
+## Limitations
 
-You do not get:
-
-- A proof about the TS code itself. The link is the grid of cases, not a proof. The grid is only as good as the values
-  you put in it.
-- Floating point. TS `number` is a float, Lean's `Int` is exact. This example stays safe by working in whole cents.
-  For real float math the Lean model and the TS code can disagree at the edges.
-- Help with timing, concurrency or I/O. Lean proves functions, not orders of events.
-- Easy proofs every time. `omega` handles plus, minus and comparisons. Multiplication, lists and recursion need more
-  steps, and that is the hard part to learn.
+- **No proof about the TS code.** The link is the grid of cases, and it is only as good as the values you put in it.
+- **No floating point.** Lean's `Int` is exact and TS `number` is a float. For real float math the two can disagree at
+  the edges.
+- **Functions only.** Lean does not cover timing, concurrency, I/O or the order of events.
+- **Some proofs are hard.** `omega` handles plus, minus and comparisons. Multiplication, lists and recursion need more
+  steps.
 
 ## How to start in your own project
 

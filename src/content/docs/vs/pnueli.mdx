@@ -248,37 +248,24 @@ keeps running out can be shut out forever.
 
 <Full>
 
-### Tips
+## Strengths
 
-- **Keep the state finite.** A counter that only goes up (here, the lock epoch) makes the state space infinite.
-  Renumbering values by rank after every step keeps it finite when only their order matters.
-- **Declare `reads` and `writes` honestly.** An undeclared field makes partial-order reduction unsound, and a wrong
-  reduction prints the same "no violation found" as a correct one. The example runs `checkExhaustive` and
-  `checkReduced` on every size and expects the same result from both.
-- **Run without symmetry to read a trace.** Symmetric traces print canonical states, so node names shift between
-  lines. The unreduced run gives the same trace with stable names.
+- **It checks every reachable state of the model.** It tries every order of steps, and a failure comes back as the
+  shortest list of steps that breaks the rule.
+- **It checks "eventually" rules too.** In the example every "never" rule passed; only the "eventually" check showed
+  that n0 can be shut out forever, as a loop that never ends.
+- **It skips states that are mirror copies.** Treating the nodes as interchangeable cut the check from 2,521 states to
+  119 at four nodes.
+- **Plain TypeScript, no Java.** You write the model as state and actions and install only the npm package; unlike
+  [stateproof](/vs/stateproof) and [tla-precheck](/vs/tla-precheck), there is no translation step.
 
-## Strengths and limits
+## Limitations
 
-| | pnueli |
-|---|---|
-| An action's result | A list of next states (several outcomes allowed) |
-| Reductions | Symmetry and partial-order, validated against the full search |
-| Liveness | "Eventually P" under weak fairness |
-| Output | Result per invariant, trace, liveness cycle |
-| Real code | Not covered: "the specification is not the implementation" |
-| Async in real code | Not covered |
-
-- **Liveness finds what a safety check cannot.** The fenced spec passes every invariant, and only the liveness check
-  shows that n0 can be shut out forever.
-- **Symmetry saves a lot of states.** It cut the proof from 2,521 states to 119 at four nodes.
-- **It checks the model, not the code.** pnueli proves the model and stops there; its author points to separate
-  sampling tools (unflake, bulwark) for the code.
-- **All in-process TypeScript.** No Java and no translation step, unlike [stateproof](/vs/stateproof) and
-  [tla-precheck](/vs/tla-precheck), which hand the model to TLC. For full temporal logic or strong fairness,
-  [TLA+](/tools/tla-plus) with TLC covers more. States are kept in memory only; there is no disk-backed storage.
-- **Tested on problems with known answers.** Peterson's algorithm, dining philosophers, Raft election safety (up to
-  6.8M states) and write skew under snapshot isolation.
+- **It checks the model, not your code.** Your real async code is not run; to check it, you need a separate testing
+  tool.
+- **The number of states must stay finite.** A counter that only goes up makes it endless, so you renumber such values
+  by hand in the model.
+- **Fewer kinds of "eventually" rules.** [TLA+](/tools/tla-plus) covers more.
 
 ## Links
 

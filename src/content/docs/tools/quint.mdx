@@ -538,26 +538,23 @@ the replay follows the model's steps.
 
 <Full>
 
-## What you get, and what you do not
+## Strengths
 
-You get:
+- **Every order of steps is checked.** Quint tries them all in the model, in under a second at this size.
+- **A short, readable failing trace.** You get the shortest order that breaks the model, not a flaky test that fails
+  once a week.
+- **Fixes checked before code.** You can check a fix in the model before you write it in TS.
+- **Traces become tests.** Each trace turns into an ordinary vitest case for the real code.
 
-- Every order of steps checked, in the model, in under a second at this size.
-- A shortest failing order, as a readable trace, instead of a flaky test that fails once a week.
-- A fix you can check before you write it in TS.
-- Traces that become ordinary vitest cases for the real code.
+## Limitations
 
-You do not get:
-
-- A proof about the TS code. `quint verify` checks the model. The replay checks the code only on the traces you
-  replay: 50 random runs here, not every path. The model and the code can still differ on a path no trace took.
-- A model without effort. You choose where the steps split. This model splits `onInput` at its one `await`. If you
-  merge steps that the real code keeps apart, the model hides the bug.
-- Anything the model leaves out. Here: a request that fails. `onInput` rejects, the list keeps the old results and
-  nothing tells the user. The model has no failure step, so Quint says nothing about it. Adding one is the next
-  exercise.
-- Big numbers. Checking every state works for a few events and a few actors. That is usually enough to find the bug,
-  but it is not a load test.
+- **No proof about the TS code.** `quint verify` checks the model. The replay checks the code only on the traces you
+  replay, here 50 random runs.
+- **The model takes effort.** You choose where the steps split. If you merge steps that the real code keeps apart, the
+  model hides the bug.
+- **Only what the model has.** This model has no failure step, so Quint says nothing about a request that rejects.
+- **Small numbers only.** Checking every state works for a few events and a few actors. That usually finds the bug, but
+  it is not a load test.
 
 </Full>
 
