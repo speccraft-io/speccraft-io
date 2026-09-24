@@ -106,6 +106,50 @@ fixed.exhaustive; // true, 7 states
 
 Faults are a budget, not part of the state, so a complete clean run holds for any number of crashes and retries.
 
+## Project layout and CI
+
+<Short>Commit the model and the test. CI runs the test like any other test on Node 22+. No API key.</Short>
+
+```text
+./
+├── .github/workflows/ci.yml
+├── src/relay.ts                   the real relay and consumer
+└── model/
+    ├── outbox.ts                  the steps, as plain functions
+    ├── stifinder-model.ts         events, faults and rules
+    └── outbox.stifinder.test.ts   runs the search in Vitest
+```
+
+Everything is committed; nothing is generated. stifinder is a library with no CLI. `exploreIteratively` returns a
+result and does not throw, so the test checks two things: `violation` is `null`, and `exhaustive` is `true`. A run
+that finds nothing is complete only when `exhaustive` is `true`.
+
+```yaml
+# .github/workflows/ci.yml (steps)
+- uses: actions/setup-node@v7
+  with:
+    node-version: 22
+- run: npm ci
+- run: npm test
+```
+
+What fails when:
+
+- **The model can apply an order twice, or lose it:** the `violation` check, with the steps and the faults they need.
+- **The budget is too small to reach every state:** the `exhaustive` check.
+- **Only the real code changes:** nothing. The test does not run `src/`.
+
+## Making changes
+
+<Short>Change the code, make the same change in the model, run the test, commit both.</Short>
+
+1. Change the real code.
+2. Make the same change in `model/outbox.ts`, by hand or with a coding agent. Nothing checks that the two match.
+3. A new fault, like a timeout or a crash at a new step, is a new event in `getEvents` with its own budget key. Add
+   the key to `baseBudget`.
+4. Run `npm test`.
+5. Commit the code and the model together.
+
 <Full>
 
 ## Strengths

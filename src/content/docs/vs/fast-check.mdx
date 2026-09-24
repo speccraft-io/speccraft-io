@@ -129,6 +129,45 @@ In the test, `claimOrder` is wrapped with `s.scheduleFunction` like the others, 
 ✓ webhook under fast-check > holds for every sampled order once the claim is atomic 4ms
 ```
 
+## Project layout and CI
+
+<Short>The property is a normal test file next to the code. CI runs the tests. Nothing else to install.</Short>
+
+```text
+./
+├── .github/workflows/ci.yml
+└── src/
+    ├── webhook.ts                     the handler
+    └── webhook.fast-check.test.ts     the property, with the wrapped dependencies
+```
+
+Commit the code and the test together. CI needs no API key and no extra tool, only the test runner. `fc.assert`
+throws when the property fails, so the test run exits non-zero:
+
+```yaml
+# .github/workflows/ci.yml (steps)
+- run: npm ci
+- run: npm test    # vitest run
+```
+
+What fails when:
+
+- **A change lets two deliveries charge twice:** the test, with the seed and the order of calls that broke it.
+- **A change adds an async call that is not wrapped:** the test can still pass, because the scheduler does not
+  reorder that call.
+
+## Making changes
+
+<Short>Change the code, wrap any new async call, run the tests, commit.</Short>
+
+1. Change the handler.
+2. If it calls a new async dependency, wrap it with `s.scheduleFunction` in the test.
+3. Run `npm test`.
+4. If it fails, pass the printed `{ seed, path }` to `fc.assert` to get the same order again while you fix it.
+5. Commit the code and the test together.
+
+Without a fixed seed, each run picks a new seed, so CI tries different orders on each push.
+
 <Full>
 
 ## Strengths

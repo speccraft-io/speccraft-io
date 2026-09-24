@@ -146,6 +146,43 @@ The fix: Submit checks the box too.
 
 With the fix, the machine has 5 reachable states, none of them breaks the rule, and the test passes.
 
+## Project layout and CI
+
+<Short>The graph check is a normal test file next to the machine. CI runs your tests; nothing else to install.</Short>
+
+```text
+./
+├── .github/workflows/ci.yml
+└── src/
+    ├── signup.ts                  the machine the app runs
+    ├── signup.test.ts             normal unit tests
+    └── signup.graph.test.ts       walks every reachable state, checks the rule
+```
+
+Everything is committed. Nothing is generated, and CI needs only Node:
+
+```yaml
+# .github/workflows/ci.yml (steps)
+- run: npm ci
+- run: npx vitest run
+```
+
+What fails when:
+
+- **A change lets a reachable state break the rule:** `signup.graph.test.ts`, with the list of events that leads to
+  it.
+- **A new event is not in the test's `events` list:** nothing fails. The walk never sends that event.
+
+## Making changes
+
+<Short>Change the machine, add new events and rules to the graph test, run the tests, commit.</Short>
+
+1. Change the machine.
+2. Add any new event to the `events` list in `signup.graph.test.ts`.
+3. If the change adds a rule, check it in the same test.
+4. Run `npx vitest run`. If it fails, send the printed events to the real actor to see the bug.
+5. Commit the machine and the tests together.
+
 <Full>
 
 ## XState machines and TLA+ state machines

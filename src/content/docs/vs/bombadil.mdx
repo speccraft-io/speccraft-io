@@ -149,6 +149,49 @@ Against the fixed page, two 30-second runs finished with "Test finished after ti
 reached a confirmed order, and none showed a second one. That is evidence, not proof: a clean run means nothing was
 found in this run.
 
+## Project layout and CI
+
+<Short>Commit the spec next to the app. CI starts the app and runs Bombadil in Chrome. No API key.</Short>
+
+```text
+./
+├── .github/workflows/ci.yml
+├── server.ts             starts the app
+├── public/index.html     the checkout page
+├── checkout.js           the page script
+└── spec.ts               your rules
+```
+
+`out/` is not committed: it holds the run's trace and screenshots. CI needs Chrome and the app running on a URL.
+GitHub's Ubuntu runners have Chrome, and Bombadil finds it on the `PATH`. Chrome needs `--no-sandbox` there.
+Bombadil's own action, `antithesishq/bombadil-action`, can install Chrome and run the test instead.
+
+```yaml
+# .github/workflows/ci.yml (steps), on ubuntu-latest
+- run: npm ci
+- run: node server.ts &
+- run: curl --retry 30 --retry-all-errors --retry-delay 1 --silent --fail http://localhost:4500 > /dev/null
+- run: npx bombadil browser test http://localhost:4500 spec.ts --time-limit=30s --exit-on-violation --output-path out --no-sandbox --chrome-grant-permissions=geolocation
+```
+
+What fails when:
+
+- **The run breaks a rule:** Bombadil exits with code 2 and prints the clicks that led to it.
+- **The app is not running:** Bombadil exits with code 1.
+- **Nothing is found:** exit code 0. The run tried only some clicks and timings, so a later run can still find a bug.
+
+## Making changes
+
+<Short>Change the page, run Bombadil locally for longer, add rules to `spec.ts`, commit.</Short>
+
+1. Change the page.
+2. Run Bombadil locally against it, with a longer `--time-limit` than CI.
+3. If the change needs a new rule, export it from `spec.ts`.
+4. When a rule breaks, look at the run with `bombadil browser inspect out`.
+5. Commit the page and the spec together.
+
+Bombadil's manual also suggests running longer tests on a schedule, for example on the main branch.
+
 <Full>
 
 ## Strengths

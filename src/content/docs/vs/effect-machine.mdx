@@ -154,6 +154,42 @@ The same exploration, with every reply still in flight, passes:
 { states: 6, plannedTransitions: 7, retainedEdges: 7, maxDepth: 3 } Complete
 ```
 
+## Project layout and CI
+
+<Short>Commit the machine and the test. CI runs the test like any other Vitest test. Nothing else to install.</Short>
+
+```text
+./
+├── .github/workflows/ci.yml
+├── src/checkout.ts                        the machine
+└── src/checkout.effect-machine.test.ts    the events to offer, the rule, the exploration
+```
+
+Both files are committed; nothing is generated. CI needs no API key, browser or other tool. In a project, the test
+expects the exploration to pass and checks that `completeness._tag` is `Complete`:
+
+```yaml
+# .github/workflows/ci.yml (steps)
+- run: npm ci
+- run: npx vitest run
+```
+
+What fails when:
+
+- **A change breaks the rule:** `vitest run`, with the shortest list of events to the bug.
+- **The machine grows past the limits** (by default 1,000 states): the `Complete` check. Without it, the test passes
+  after checking only part of the machine.
+
+## Making changes
+
+<Short>Change the machine, offer the new events, run the test, commit.</Short>
+
+1. Change the machine.
+2. Add any new event to the events the test offers. The explorer only sends the events you list.
+3. If a new async reply can arrive late, offer it too, like `inFlight` does.
+4. Run the test. It must pass and report `Complete`.
+5. Commit the machine and the test together.
+
 <Full>
 
 ## Strengths

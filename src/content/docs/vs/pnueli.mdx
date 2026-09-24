@@ -246,6 +246,50 @@ write. The cycle is fair, because every process either moves in it or is blocked
 scheduler that simply never runs n0. Fencing keeps the data safe, but it does nothing for progress: a node whose lease
 keeps running out can be shut out forever.
 
+## Project layout and CI
+
+<Short>Commit the model, the spec and the test. CI runs the test like any other test. No Java, no API key.</Short>
+
+```text
+./
+├── .github/workflows/ci.yml
+├── src/lock-client.ts             the real lock and storage code
+└── model/
+    ├── lock.ts                    the steps, as plain functions
+    ├── lock.pnueli.ts             the spec: actions, rules, symmetry
+    └── lock.pnueli.test.ts        runs the checks in Vitest
+```
+
+Everything is committed; nothing is generated. pnueli is a library with no CLI. `checkExhaustive` and
+`checkLiveness` return a result and do not throw, so the test must check `ok`:
+
+```ts
+expect(checkExhaustive(lockSpec(3, 'fencing', lock, true)).ok).toBe(true);
+```
+
+```yaml
+# .github/workflows/ci.yml (steps)
+- run: npm ci
+- run: npm test
+```
+
+What fails when:
+
+- **The model lets the storage take an older write:** the `checkExhaustive` test, with the shortest trace.
+- **The model can stop every node from writing:** the `checkLiveness` test, with the loop.
+- **Only the real code changes:** nothing. The test does not run `src/`.
+
+## Making changes
+
+<Short>Change the code, make the same change in the model, run the test, commit both.</Short>
+
+1. Change the real code.
+2. Make the same change in `model/lock.ts`, by hand or with a coding agent. Nothing checks that the two match.
+3. If the change adds an action or a state field, add it to the spec, with the fields it reads and writes.
+   If that list is wrong, the check can skip some orders and miss a bug.
+4. Run `npm test`, and fix the code and the model until the rules hold.
+5. Commit the code and the model together.
+
 <Full>
 
 ## Strengths

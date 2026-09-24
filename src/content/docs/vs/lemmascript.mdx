@@ -158,6 +158,53 @@ Dafny program verifier finished with 4 verified, 0 errors
 Dafny proved the fixed function on its own, with no extra hints from us. For every bill total and every number of
 people, the shares add up to the total and nobody pays a negative amount. A test can only check the inputs it tries.
 
+## Project layout and CI
+
+<Short>Commit the `.ts`, `.dfy` and `.dfy.gen` files. CI installs Dafny and runs `lsc check`.</Short>
+
+```text
+./
+├── .github/workflows/ci.yml
+├── LemmaScript-files.txt          the files to prove, one per line
+└── src/
+    ├── splitBill.ts               the code, with //@ contracts
+    ├── splitBill.dfy.gen          made by lsc from splitBill.ts
+    └── splitBill.dfy              the .dfy.gen file plus any proof hints
+```
+
+All three files in `src/` are committed. `lsc regen` needs the old `.dfy.gen` to merge a change into `.dfy`. CI needs
+Dafny; this example does not use Lean:
+
+```yaml
+# .github/workflows/ci.yml (steps)
+- run: npm ci
+- uses: dafny-lang/setup-dafny-action@v1
+  with:
+    dafny-version: "4.11.0"
+# With no file, lsc check proves every file in LemmaScript-files.txt. It exits 1 if a proof fails.
+- run: npx lsc check --backend=dafny
+- run: git diff --exit-code -- '*.dfy.gen'
+```
+
+What fails when:
+
+- **A change breaks a promise:** `lsc check`, with the `ensures` line Dafny could not prove.
+- **The code changes and `.dfy` is not updated:** `lsc check`. The `.dfy` file may only add lines to `.dfy.gen`.
+- **The new `.dfy.gen` is not committed:** `git diff`.
+
+## Making changes
+
+<Short>Change the contract and the code, run `lsc regen`, fix what Dafny cannot prove, commit all three files.</Short>
+
+1. If the promise changes, change the `//@` lines first. Then change the code.
+2. Run `npx lsc regen --backend=dafny src/splitBill.ts`. It writes a new `.dfy.gen`, merges it into `.dfy`, keeps
+   your proof hints, and runs Dafny.
+3. If Dafny cannot prove it, fix the code, or add hints to `.dfy` (you or an LLM). Only add lines; do not change the
+   generated ones.
+4. Commit the `.ts`, `.dfy` and `.dfy.gen` files together.
+
+A new file goes into `LemmaScript-files.txt`, so CI proves it too.
+
 <Full>
 
 ## Strengths

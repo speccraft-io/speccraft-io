@@ -65,9 +65,12 @@ and the fix both live in the `.machine.ts` file.
 
 ```sh
 npm install -D tla-precheck
-npx tla-precheck setup
-npx tla-precheck doctor
+curl -fsSL -o tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.8.0/tla2tools.jar
+export TLA2TOOLS_JAR=$PWD/tla2tools.jar
 ```
+
+`npx tla-precheck setup` is meant to download TLC, but in tla-precheck 0.1.7 it rejects the download with "TLC
+checksum mismatch", so download the jar yourself. The path in `TLA2TOOLS_JAR` must be absolute.
 
 Needs Java 17+ for TLC, and a `tsconfig.json` in the folder you run from (without one, `check` stops with `TS5083`).
 
@@ -195,6 +198,52 @@ the TypeScript interpreter found the same graph.
 Deadlock checking is on by default. Our first version had no `refund` action, and the fixed machine then failed with
 "Deadlock reached" once both customers had bought a seat: no action was enabled. A real shop refunds, so the action
 went into both files.
+
+## Project layout and CI
+
+<Short>Commit the machine and the generated adapter. CI sets up Java, downloads TLC, runs `build` and checks the adapter is up to date.</Short>
+
+```text
+./
+├── .github/workflows/ci.yml
+├── tsconfig.json                    check stops without one
+├── src/
+│   ├── tickets.machine.ts           the machine
+│   └── machine-adapters/
+│       └── Tickets.adapter.ts       written by build, committed
+└── .generated-machines/             TLA+ and TLC output, not committed
+```
+
+`build` writes the adapter only when the machine has `metadata.runtimeAdapter` (the Postgres table it runs on). The
+same machine always gives the same file, so CI can check that the committed adapter is up to date:
+
+```yaml
+# .github/workflows/ci.yml (steps)
+- uses: actions/setup-java@v6
+  with: { distribution: temurin, java-version: 21 }
+- run: npm ci
+- run: curl -fsSL -o tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.8.0/tla2tools.jar
+# build runs check first.
+- run: TLA2TOOLS_JAR=$PWD/tla2tools.jar npx tla-precheck build src/tickets.machine.ts
+- run: git diff --exit-code src/machine-adapters
+```
+
+What fails when:
+
+- **A change breaks a rule:** `build`, with TLC's trace. The adapter is not written.
+- **A change leaves no action enabled:** `build`, with "Deadlock reached".
+- **The machine changed and the adapter was not rebuilt:** `git diff`.
+
+## Making changes
+
+<Short>Change the machine, run build, commit the machine and the adapter together.</Short>
+
+1. Change `tickets.machine.ts`. Do not edit the adapter; its first line says "Generated. Do not edit."
+2. For a new rule, add it to `invariants`.
+3. Run `build`. If the check fails, fix the machine and run it again.
+4. Commit the machine and the adapter together.
+
+Without adapter metadata, run `check` instead of `build`, and skip the `git diff` step.
 
 <Full>
 

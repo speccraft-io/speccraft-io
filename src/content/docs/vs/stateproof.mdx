@@ -170,6 +170,52 @@ The fix: the renewal job now renews active plans only; a canceling plan runs out
 The machine has no end state: `resubscribe` leads out of `canceled`. That matters, because deadlock checking is on by
 default and a state with no way out fails the check (see Limitations).
 
+## Project layout and CI
+
+<Short>Commit the machine and a verify script. CI clones stateproof, sets up Java and runs TLC.</Short>
+
+```text
+./
+├── .github/workflows/ci.yml
+├── src/subscription.ts        the machine; your code also runs it with createRuntime
+├── stateproof/
+│   ├── setup.ts               clones stateproof at a fixed commit
+│   └── verify.ts              runs verify() and sets the exit code
+└── vendor/stateproof/         the clone, not committed
+```
+
+The TLA+ copy is written to a temp folder on each run, so nothing generated is committed. CI needs Java. stateproof
+downloads `tla2tools.jar` if it does not find one, and Node 24 runs the `.ts` files as they are:
+
+```yaml
+# .github/workflows/ci.yml (steps)
+- uses: actions/setup-node@v7
+  with: { node-version: 24 }
+- uses: actions/setup-java@v6
+  with: { distribution: temurin, java-version: 21 }
+- run: node stateproof/setup.ts
+# Without Java or TLC, verify() returns ok: true and 0 states. So verify.ts ends with
+# process.exit(result.ok && result.statesExplored > 0 ? 0 : 1)
+- run: node stateproof/verify.ts
+```
+
+What fails when:
+
+- **A change breaks a rule:** `verify.ts`, with the trace to the bug.
+- **A change adds a state with no way out:** `verify.ts`, as a `deadlock` violation, unless you pass
+  `checkDeadlocks: false`.
+- **Java or TLC is missing:** `verify.ts`, but only because of the `statesExplored` check.
+
+## Making changes
+
+<Short>Change the machine, add a rule if needed, run verify, read the TLA+ for new code, commit.</Short>
+
+1. Change the machine in `subscription.ts`. Your code runs the same machine, so there is no second copy to update.
+2. For a new rule, add an `.invariant(...)`.
+3. Run `verify.ts`. In a trace, find which transition ran from the difference between two states.
+4. For a new guard or action, read the TLA+ in the result's `tlaSpec`. The translation can be wrong without an error.
+5. Commit the machine.
+
 <Full>
 
 ## Strengths
