@@ -21,6 +21,8 @@ import modelBefore from '../../../fixes/tla-model/before.txt?raw';
 import modelAfter from '../../../fixes/tla-model/after.txt?raw';
 import tsBefore from '../../../fixes/tla-ts/before.txt?raw';
 import tsAfter from '../../../fixes/tla-ts/after.txt?raw';
+import textBefore from '../../../fixes/tla-text/before.txt?raw';
+import textAfter from '../../../fixes/tla-text/after.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
@@ -41,7 +43,7 @@ TLA+ describes a system as state, steps and "must never happen" rules, checked i
 language and checks the spec, not the real code. For tools that do the same kind of checking with the model written
 in TypeScript, see [TypeScript tools](/ts-tools); for the wider field, see [Non-TypeScript tools](/tools/non-ts-tools).
 
-<Short>Write the spec, let TLC find the order that breaks the key for good, then replay every behavior of the spec against the real TS code.</Short>
+<Short>Write the spec as plain text, let an agent turn it into TLA+, let TLC find the order that breaks the key for good, then replay every behavior of the spec against the real TS code.</Short>
 
 <Full>
 
@@ -138,9 +140,88 @@ VS Code: it highlights and parses specs and runs TLC from the editor.
 releases and put `bin/apalache-mc` on your `PATH`. It needs Java 17 or newer. If you already use Quint, `quint verify`
 has downloaded a copy into `~/.quint`.
 
-## Step 1: describe the system as state and steps (use AI)
+## Step 1: write the spec as plain text (you)
 
-<Short>Variables are the state; each action says when it can happen and what the variables become.</Short>
+<Short>A markdown file next to the code: variables, actions with a guard and an effect, and the rules. You write it; the agent translates it.</Short>
+
+Before any TLA+, write down what the code does in a plain text file in the repo. There is no new syntax to learn:
+variables and the values they can take, actions with a guard (when the step can happen) and an effect (what
+changes), and the rules that must hold. An agent can draft it from the TS code, but you read every line and correct
+it. This file is the part you own, and the one reviewers read.
+
+```md title="spec/single-flight.md"
+# Single-flight - spec
+
+Callers that ask for the same key while fn() runs share one call.
+The checkable version is SingleFlight.tla, next to this file.
+
+## Constants
+
+- callers = a, b (two are enough to share a call)
+- one key (keys share nothing, so one is enough)
+
+## Variables
+
+- entry: none | running | failed = none (the map entry for the key)
+- callers: { a: idle | waiting | done | failed = idle, b: same as a }
+
+## Actions
+
+- call c (per caller)
+  - Guard: c is idle
+  - Effect:
+    - entry none: fn() starts, entry = running, c is waiting
+    - entry running: c is waiting on the same call
+    - entry failed: c gets the old error at once, c is failed
+
+- fn resolves
+  - Guard: entry is running
+  - Effect: entry = none, every waiting caller is done
+
+- fn rejects
+  - Guard: entry is running
+  - Effect: entry = failed (the rejected promise stays in the map), every waiting caller is failed
+
+- retry c (per caller)
+  - Guard: c is failed
+  - Effect: c is idle
+
+## Properties
+
+### Invariants
+
+- no failed call is left in the map: entry is never failed
+
+### Temporal properties
+
+- every caller gets a value in the end, granted: callers call and retry, and fn may
+  reject, but not every time
+
+## Considerations
+
+- The value fn returns is not modeled, only whether it resolves or rejects.
+- Retry stands for the same caller, or the next request for the key, asking again.
+```
+
+How it maps to the code:
+
+- `entry` is the `inflight` map for one key: no entry, a promise that is running, or a promise that has rejected.
+- Each action is one step of the code between two `await`s. `call c` is one call to `flight(key, fn)`; `fn resolves`
+  and `fn rejects` are the two ways the shared promise can settle.
+- The rules come before anything is checked. "Entry is never failed" is a "must never happen". "Every caller gets a
+  value in the end" is a "must always happen in the end", with what it takes for granted.
+
+Writing it is where most of the thinking happens. The `fn rejects` line has to say what happens to the entry, and
+writing "stays in the map" is most of the way to seeing the bug.
+
+## Step 2: turn the text into TLA+ (use AI)
+
+<Short>The agent writes one TLA+ variable per variable and one action per action; you check it against the text.</Short>
+
+Give the text file to a coding agent: "Write `spec/SingleFlight.tla` and `spec/SingleFlight.cfg` from
+`spec/single-flight.md`. One variable per variable, one action per action, guards as conditions, the invariant and the
+temporal property as operators, fairness as the text grants it." You do not need to write TLA+, but you need to read
+it well enough to check that it says what the text says.
 
 A TLA+ spec has variables (the state) and actions (the steps that change it). An action is a list of conditions joined
 by `/\` (and). A line without `'` is a condition: if it is false, the action cannot happen now. `x'` means "the value
@@ -222,7 +303,7 @@ How to read it:
   and retry, and `fn()` may reject, but not every time. `SF` (strong fairness) is what says "not every time".
 - `EveryoneGetsIt` is a liveness property: `<>` means "at some point". It says every caller gets a value in the end.
 
-## Step 2: let TLC find the bad order
+## Step 3: let TLC find the bad order
 
 <Short>TLC finds a run where no caller ever gets a value again, in under a second.</Short>
 
@@ -272,14 +353,19 @@ Read it as a timeline:
 No test with the word "race" in its name would look for this, and an invariant cannot say it either: every single
 state here looks fine. Only the whole run is wrong. That is what liveness properties are for.
 
-## Step 3: fix it
+## Step 4: fix it
 
-<Short>Remove the entry when the call ends either way. The property holds.</Short>
+<Short>Change one line of the text, let the agent update the spec, and check it. The property holds.</Short>
 
-The entry must go when the call settles, whether it resolves or rejects. In the TS code that is `.finally()`. In the
-spec, `Reject` now sets the entry back to `"none"`, like `Resolve`:
+The entry must go when the call settles, whether it resolves or rejects. Change the text first:
+
+<CodeFix before={textBefore} after={textAfter} lang="md" title="spec/single-flight.md" />
+
+The agent updates the spec to match. `Reject` now sets the entry back to `"none"`, like `Resolve`:
 
 <CodeFix before={modelBefore} after={modelAfter} lang="text" title="spec/SingleFlight.tla" />
+
+In the TS code, that is `.finally()`:
 
 <CodeFix before={tsBefore} after={tsAfter} lang="ts" title="src/single-flight.ts" />
 
@@ -293,7 +379,7 @@ Model checking completed. No error has been found.
 
 Every caller gets a value in the end, in every run.
 
-## Step 4: the same spec in Apalache
+## Step 5: the same spec in Apalache
 
 <Short>Add a type comment to each variable; Apalache checks the "never" rule with Z3.</Short>
 
@@ -309,7 +395,7 @@ VARIABLES
 ```
 
 Apalache checks "must never happen" rules; it has no fairness, so it cannot check `EveryoneGetsIt`. The same bug as a
-"never" rule is the last line of the spec: `NoFailedEntry`, no failed call is left in the map. On the Step 1 spec:
+"never" rule is the last line of the spec: `NoFailedEntry`, no failed call is left in the map. On the Step 2 spec:
 
 ```text
 $ apalache-mc check --no-deadlock --inv=NoFailedEntry --length=10 spec/SingleFlight.tla
@@ -344,7 +430,7 @@ Which checker to use:
 
 Start with TLC. Reach for Apalache when a variable holds amounts or large numbers and TLC's state count blows up.
 
-## Step 5: replay every behavior against the real TS code (use AI)
+## Step 6: replay every behavior against the real TS code (use AI)
 
 <Short>TLC writes its whole state graph; vitest walks every path in it against the real function.</Short>
 
@@ -503,9 +589,9 @@ AssertionError: expected { step: 'Call(b)', …(3) } to deeply equal { Object (s
 ```
 
 After `a`'s call rejected, the spec says `b`'s call starts a new `fn()`. The original code gives `b` the old error
-instead. With the fix from Step 3, all 88 behaviors pass.
+instead. With the fix from Step 4, all 88 behaviors pass.
 
-One thing the replay cannot do: the original function against the Step 1 spec passes all 38 behaviors. The code does
+One thing the replay cannot do: the original function against the Step 2 spec passes all 38 behaviors. The code does
 what that spec says, step by step. The stuck key breaks no step and no state, only the run as a whole. TLC's
 `EveryoneGetsIt` check on the spec is what catches it.
 
@@ -519,7 +605,8 @@ One repo. The spec sits in its own folder. The graph is written from it on every
 ./
 ├── .github/workflows/ci.yml
 ├── spec/
-│   ├── SingleFlight.tla            the spec: state, steps and EveryoneGetsIt
+│   ├── single-flight.md            the spec in plain text: you write and review this one
+│   ├── SingleFlight.tla            the same spec in TLA+, generated from the text
 │   ├── SingleFlight.cfg            which spec and properties TLC checks
 │   └── out/                        graph and TLC's working files, git-ignored
 ├── src/
@@ -600,17 +687,18 @@ What fails when:
 
 Changing the flow (for example, a caller can cancel while it waits):
 
-1. Change the spec first: a new action, the variables it touches, and a rule if there is a new "must never happen" or
-   "must always happen".
-2. Run `npm run tla:check` until TLC passes.
-3. Change the function. Map the new action in `single-flight.tla.test.ts`.
-4. Run `npm test` until the replay passes. Commit the spec, the function and the replay test together.
+1. Change the text spec first: a new action, the variables it touches, and a rule if there is a new "must never
+   happen" or "must always happen".
+2. Ask the agent to update `SingleFlight.tla` from it, and read the diff against the text.
+3. Run `npm run tla:check` until TLC passes.
+4. Change the function. Map the new action in `single-flight.tla.test.ts`.
+5. Run `npm test` until the replay passes. Commit the text, the spec, the function and the replay test together.
 
 When the graph grows: walking every path works while the spec is small. Past a few thousand paths, replay a sample.
 TLC's `-simulate` mode writes random runs, and Apalache and Quint write traces as ITF JSON (see the
 [Quint page](/tools/quint) for a replay built on those).
 
-Reviewing a pull request: read the spec diff first. A new `await` in the code with no new step in the spec means the
+Reviewing a pull request: read the text spec diff first, then check the TLA+ diff says the same. A new `await` in the code with no new step in the spec means the
 spec no longer splits the code where it can interleave. That is the one mistake the replay cannot catch, because the
 replay follows the spec's steps.
 
@@ -635,8 +723,8 @@ You do not get:
   the bug.
 - Anything the spec leaves out. Here: more than one key, and more than one process. Neither is in the spec, so TLC
   says nothing about them.
-- A familiar syntax. `/\`, `'`, `EXCEPT` and `<>` take a day to get used to. A coding agent writes them well from a
-  TS function, and [Quint](/tools/quint) exists for teams who want the same checkers with a friendlier language.
+- A familiar syntax. `/\`, `'`, `EXCEPT` and `<>` take a day to get used to. You write the text spec, a coding
+  agent writes the TLA+ from it, and [Quint](/tools/quint) exists for teams who want the same checkers with a friendlier language.
 
 </Full>
 
@@ -645,10 +733,12 @@ You do not get:
 ## How to start in your own project
 
 1. Pick one flow where order matters: shared calls, a signal and a timer, a retry loop, a lock, a saga.
-2. Write the rules as "this must never happen" and "this must always happen in the end".
-3. List the variables, including the ones outside your code: calls in flight, what each caller has seen.
-4. Make one action per step between two `await`s in the real code, and one action per way a call can end.
-5. Say which steps are fair (callers call, calls return) and which are not (a call may fail).
+2. Write a text spec next to the code. List the variables, including the ones outside your code: calls in flight,
+   what each caller has seen.
+3. Make one action per step between two `await`s in the real code, and one action per way a call can end.
+4. Write the rules as "this must never happen" and "this must always happen in the end", and say which steps are
+   fair (callers call, calls return) and which are not (a call may fail).
+5. Let an agent turn the text into TLA+, and check it against the text.
 6. Run TLC with 2 or 3 actors, then dump the graph and replay it against the real code with controlled fakes.
 
 </Full>

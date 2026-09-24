@@ -1,0 +1,37 @@
+# Search box - spec
+
+The user types "rea", then "react". Each query sends a request, and the replies come
+back in any order. The checkable version is search.qnt, next to this file.
+
+## Constants
+
+- queries = "rea", "react" (typed in this order)
+
+## Variables
+
+- typed: 0..2 = 0 (how many queries the user has typed)
+- query: "" | "rea" | "react" = "" (what the search box shows)
+- inFlight: set of queries = {} (requests sent, reply not back yet)
+- shownFor: "" | "rea" | "react" = "" (which query the list shows results for)
+
+## Actions
+
+- type next
+  - Guard: typed < 2
+  - Effect: query = the next query, typed + 1, the query joins inFlight
+
+- reply q (per query in flight)
+  - Guard: q is in inFlight
+  - Effect: q leaves inFlight, shownFor = q
+
+## Properties
+
+### Invariants
+
+- once nothing is loading, the list shows results for what is in the box:
+  inFlight is empty implies shownFor === query
+
+## Considerations
+
+- The results themselves are not modeled, only which query they are for.
+- Two queries are enough: the bug needs one reply to overtake another.

@@ -17,6 +17,8 @@ import quintModelBefore from '../../../fixes/quint-model/before.txt?raw';
 import quintModelAfter from '../../../fixes/quint-model/after.txt?raw';
 import quintTsBefore from '../../../fixes/quint-ts/before.txt?raw';
 import quintTsAfter from '../../../fixes/quint-ts/after.txt?raw';
+import quintTextBefore from '../../../fixes/quint-text/before.txt?raw';
+import quintTextAfter from '../../../fixes/quint-text/after.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
@@ -34,7 +36,7 @@ Lean and Dafny prove that one function is right for every input. Quint answers a
 several things run at the same time, in every possible order? This page shows how to use it next to a normal
 TypeScript project, with one small example: a search box. No math background needed.
 
-<Short>Model the search box in Quint, let it find the order that shows the wrong results, then replay its traces against the real TS code.</Short>
+<Short>Write the model as plain text, let an agent turn it into Quint, let Quint find the order that shows the wrong results, then replay its traces against the real TS code.</Short>
 
 <Full>
 
@@ -51,7 +53,7 @@ ways:
   counter, an abort, a debounce) in minutes, and check it, before anyone writes or changes production code.
 - A thinking tool. To write the model you have to name every state, every step and every "must never happen". Many
   design bugs show up while writing it, before the checker even runs. The model is also a precise design doc that
-  cannot go stale without CI noticing, once the replay in Step 4 is in place.
+  cannot go stale without CI noticing, once the replay in Step 5 is in place.
 
 The cost is a second artifact to keep in step with the code. The rest of this page shows how to do that with a replay
 test in vitest.
@@ -168,9 +170,73 @@ reuse of existing TLA+ modules, write it in TLA+ directly: see [TLA+ for TypeScr
 
 </Full>
 
-## Step 1: describe the search as state and steps (use AI)
+## Step 1: write the model as plain text (you)
 
-<Short>Four variables, two steps, and one rule: once nothing is loading, the list matches the box.</Short>
+<Short>A markdown file next to the code: variables, actions with a guard and an effect, and the rule. You write it; the agent translates it.</Short>
+
+Before any Quint, write down what the code does in a plain text file in the repo. There is no new syntax to learn:
+variables and the values they can take, actions with a guard (when the step can happen) and an effect (what
+changes), and the rule that must hold. An agent can draft it from the TS code, but you read every line and correct
+it. This file is the part you own, and the one reviewers read.
+
+```md title="quint/search.md"
+# Search box - spec
+
+The user types "rea", then "react". Each query sends a request, and the replies come
+back in any order. The checkable version is search.qnt, next to this file.
+
+## Constants
+
+- queries = "rea", "react" (typed in this order)
+
+## Variables
+
+- typed: 0..2 = 0 (how many queries the user has typed)
+- query: "" | "rea" | "react" = "" (what the search box shows)
+- inFlight: set of queries = {} (requests sent, reply not back yet)
+- shownFor: "" | "rea" | "react" = "" (which query the list shows results for)
+
+## Actions
+
+- type next
+  - Guard: typed < 2
+  - Effect: query = the next query, typed + 1, the query joins inFlight
+
+- reply q (per query in flight)
+  - Guard: q is in inFlight
+  - Effect: q leaves inFlight, shownFor = q
+
+## Properties
+
+### Invariants
+
+- once nothing is loading, the list shows results for what is in the box:
+  inFlight is empty implies shownFor === query
+
+## Considerations
+
+- The results themselves are not modeled, only which query they are for.
+- Two queries are enough: the bug needs one reply to overtake another.
+```
+
+How it maps to the code:
+
+- `query` is `state.query`, and `shownFor` is which query `state.results` came from. `inFlight` is outside the code:
+  the requests the server has not answered yet.
+- Each action is one step of the code around its `await`. `type next` is `onInput` up to `fetchResults`; `reply q` is
+  the rest of it, for whichever request answers.
+- The rule comes before anything is checked: once nothing is loading, the list matches the box.
+
+Writing it is where most of the thinking happens. The `reply q` line has to say what the list shows, and "shownFor =
+q, for any q" is most of the way to seeing the bug.
+
+## Step 2: turn the text into Quint (use AI)
+
+<Short>Four variables, two steps, and one rule. The agent writes them; you check them against the text.</Short>
+
+Give the text file to a coding agent: "Write `quint/search.qnt` from `quint/search.md`. One `var` per variable, one
+action per action, guards as conditions, the invariant as a `val`." You do not need to write Quint, but you need to
+read it well enough to check that it says what the text says.
 
 A Quint model has variables (the state) and actions (the steps that change it). Each action has a condition for when
 it can happen, and says what the variables become. `x'` means "the value of `x` after this step".
@@ -229,7 +295,7 @@ How to read it:
   "any of them". The checker tries each choice.
 - `listMatchesBox` is the rule, checked in every state.
 
-## Step 2: let Quint find the bad order
+## Step 3: let Quint find the bad order
 
 <Short>`quint run` finds the late reply in milliseconds; `quint verify` confirms it over all 8 states.</Short>
 
@@ -249,11 +315,15 @@ The same trace as a timeline:
 Two queries give only 8 states. That is enough to hold this bug. Most ordering bugs need only two or three events to
 show up.
 
-## Step 3: fix the model
+## Step 4: fix the model
 
 <Short>Show a reply only if it answers what is in the box now. The rule holds in every state.</Short>
 
-A reply should only replace the list if it is for the latest request. In the model, that is one line:
+A reply should only replace the list if it is for the latest request. Change the text first:
+
+<CodeFix before={quintTextBefore} after={quintTextAfter} lang="md" title="quint/search.md" />
+
+The agent updates the model. It is one line:
 
 <CodeFix before={quintModelBefore} after={quintModelAfter} lang="text" title="quint/search.qnt" />
 
@@ -265,7 +335,7 @@ No state breaks the rule. The matching TS change keeps a request counter and dro
 
 Cancelling the old request with an `AbortController` works too; the model is the same.
 
-## Step 4: replay Quint's traces against the real TS code (use AI)
+## Step 5: replay Quint's traces against the real TS code (use AI)
 
 <Short>Quint writes its runs as JSON traces; vitest replays each one against the real search code.</Short>
 
@@ -357,7 +427,7 @@ What it does for each step of a trace:
 - After each step, the search box and the list must match the model's `query` and `shownFor`. Once nothing is in
   flight, the list must match the box.
 
-First, save the counterexample from Step 2 as a trace (`--out-itf quint/traces/bug.itf.json` with the seed Quint
+First, save the counterexample from Step 3 as a trace (`--out-itf quint/traces/bug.itf.json` with the seed Quint
 printed) and replay it against the original code:
 
 <a href="/assets/tools/quint/vitest-replay-fails.webp" class="lightbox-trigger"><img src="/assets/tools/quint/vitest-replay-fails.webp" alt="vitest output: search.test.ts passed. search.quint.test.ts: bug.itf.json: the search follows the model and the list matches the box, failed with expected rea to be react. 1 failed, 1 passed." /></a>
@@ -384,7 +454,8 @@ One repo. The model sits in its own folder. The traces are built from it on ever
 ./
 ├── .github/workflows/ci.yml
 ├── quint/
-│   ├── search.qnt               the model: state, steps, the listMatchesBox rule
+│   ├── search.md                the model in plain text: you write and review this one
+│   ├── search.qnt               the same model in Quint, generated from the text
 │   └── traces/                  generated before every test run, git-ignored
 ├── src/
 │   ├── search.ts                the real search code
@@ -490,11 +561,13 @@ What fails when:
 
 Changing the flow (for example, clearing the list when the box is emptied):
 
-1. Change the model first: a new action, the variables it touches, and a rule if there is a new "must never happen".
-2. Run `npm run quint:check` with the two queries, then add a third once it passes.
-3. Change the code. Map the new action to a step in `search.quint.test.ts` (which call to make, which reply to
+1. Change the text model first: a new action, the variables it touches, and a rule if there is a new "must never
+   happen".
+2. Ask the agent to update `search.qnt` from it, and read the diff against the text.
+3. Run `npm run quint:check` with the two queries, then add a third once it passes.
+4. Change the code. Map the new action to a step in `search.quint.test.ts` (which call to make, which reply to
    release).
-4. Run `npm test` until the replay passes. Commit the model, the code and the replay test together.
+5. Run `npm test` until the replay passes. Commit the text, the model, the code and the replay test together.
 
 Adding a rule: add a `val` to the model and add it to `--invariant` in both scripts. If the real code can break it
 without breaking the model, the replay test needs the same check (like the list-matches-box check there).
@@ -506,7 +579,7 @@ the next run checks every state again.
 Upgrading Quint: bump `@informalsystems/quint` in `package.json`. The lockfile changes, so CI gets a fresh cache and
 downloads the matching checker.
 
-Reviewing a pull request: read the model diff first. A new `await` in the code with no new step in the model means
+Reviewing a pull request: read the text model diff first, then check the Quint diff says the same. A new `await` in the code with no new step in the model means
 the model no longer splits the code where it can interleave. That is the one mistake the replay cannot catch, because
 the replay follows the model's steps.
 
@@ -540,9 +613,10 @@ You do not get:
 ## How to start in your own project
 
 1. Pick one flow where order matters: a search box, a webhook, a job queue, a retry loop, a lock.
-2. Write the rule as "this must never happen".
-3. List the variables, including the ones outside your code: requests in flight, retries, what each actor has seen.
-4. Make one action per step between two `await`s in the real code.
+2. Write a text model next to the code. List the variables, including the ones outside your code: requests in
+   flight, retries, what each actor has seen.
+3. Make one action per step between two `await`s in the real code, and write the rule as "this must never happen".
+4. Let an agent turn the text into Quint, and check it against the text.
 5. Run `quint run` first (fast), then `quint verify` (every state), with 2 or 3 actors.
 6. Export traces with `--mbt --out-itf` and a fixed `--seed`, and replay them against the real code with controlled fakes.
 

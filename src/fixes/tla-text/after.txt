@@ -1,0 +1,51 @@
+# Single-flight - spec
+
+Callers that ask for the same key while fn() runs share one call.
+The checkable version is SingleFlight.tla, next to this file.
+
+## Constants
+
+- callers = a, b (two are enough to share a call)
+- one key (keys share nothing, so one is enough)
+
+## Variables
+
+- entry: none | running | failed = none (the map entry for the key)
+- callers: { a: idle | waiting | done | failed = idle, b: same as a }
+
+## Actions
+
+- call c (per caller)
+  - Guard: c is idle
+  - Effect:
+    - entry none: fn() starts, entry = running, c is waiting
+    - entry running: c is waiting on the same call
+    - entry failed: c gets the old error at once, c is failed
+
+- fn resolves
+  - Guard: entry is running
+  - Effect: entry = none, every waiting caller is done
+
+- fn rejects
+  - Guard: entry is running
+  - Effect: entry = none (the rejected promise is removed), every waiting caller is failed
+
+- retry c (per caller)
+  - Guard: c is failed
+  - Effect: c is idle
+
+## Properties
+
+### Invariants
+
+- no failed call is left in the map: entry is never failed
+
+### Temporal properties
+
+- every caller gets a value in the end, granted: callers call and retry, and fn may
+  reject, but not every time
+
+## Considerations
+
+- The value fn returns is not modeled, only whether it resolves or rejects.
+- Retry stands for the same caller, or the next request for the key, asking again.
