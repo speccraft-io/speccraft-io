@@ -1,16 +1,15 @@
 ---
 title: Search as you type
-description: A slow reply for an old query arrives last and replaces the results for the new one. How Quint finds it.
+description: A slow reply for an old query arrives last and replaces the results for the new one.
 ---
 
-import CodeFix from '../../../components/CodeFix.astro';
+import { Code } from '@astrojs/starlight/components';
 import before from '../../../fixes/quint-ts/before.txt?raw';
-import after from '../../../fixes/quint-ts/after.txt?raw';
 
 A search-as-you-type box sends a request on every keystroke and shows whatever comes back. Type "rea", then "react",
 and two requests are waiting for a reply. If the one for "rea" is slower, it arrives last and replaces the results:
 the box says "react", the list shows results for "rea".
 
-<CodeFix before={before} after={after} title="src/search.ts" />
+<Code code={before} lang="ts" title="src/search.ts" />
 
-See how [Quint](/tools/quint) finds it.
+See how [Quint](/tools/quint) finds and fixes it.
