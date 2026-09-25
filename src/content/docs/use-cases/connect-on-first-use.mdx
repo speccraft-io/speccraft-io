@@ -1,0 +1,15 @@
+---
+title: Connect on first use
+description: Two requests at startup both see no database connection yet, and both connect. How TLA+ finds it.
+---
+
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/tla-fix-ts/before.txt?raw';
+import after from '../../../fixes/tla-fix-ts/after.txt?raw';
+
+Connect to the database on first use, then reuse the connection. Two requests at startup both see no connection yet,
+and both connect.
+
+<CodeFix before={before} after={after} title="src/lazy-connect.ts" />
+
+See how [TLA+](/tools/tla-plus) finds it.

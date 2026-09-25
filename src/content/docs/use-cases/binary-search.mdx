@@ -1,0 +1,15 @@
+---
+title: Binary search over sorted ids
+description: A binary search that passes its tests but misses the first id. How Dafny finds it.
+---
+
+import CodeFix from '../../../components/CodeFix.astro';
+import before from '../../../fixes/dafny-ts/before.txt?raw';
+import after from '../../../fixes/dafny-ts/after.txt?raw';
+
+Finding an id in a sorted list. Tests for a found id and a missing id both pass, but `indexOfId([10, 20, 30], 10)`
+returns `-1`: when the search narrows down to one last element, the loop stops before looking at it.
+
+<CodeFix before={before} after={after} title="src/ids.ts" />
+
+See how [Dafny](/tools/dafny) finds it.

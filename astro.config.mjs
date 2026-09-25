@@ -151,6 +151,14 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Use cases',
+					items: [
+						{ label: 'Connect on first use', link: '/use-cases/connect-on-first-use' },
+						{ label: 'Search as you type', link: '/use-cases/search-as-you-type' },
+						{ label: 'Binary search over sorted ids', link: '/use-cases/binary-search' },
+					],
+				},
+				{
 					label: 'Formal methods market',
 					collapsed: true,
 					items: [
