@@ -20,6 +20,7 @@ export default defineConfig({
 		'/tools/speccraft-vs-non-ts-tools': '/',
 		'/ts-tools': '/',
 		'/tools/non-ts-tools': '/',
+		'/case-study-config-document-workflow': '/case-studies/config-document-workflow',
 	},
 	markdown: {
 		// External links (anything with a protocol, e.g. https://) open in a new tab;
@@ -170,6 +171,14 @@ export default defineConfig({
 						{ label: 'Bill split', link: '/use-cases/bill-split' },
 						{ label: 'Binary search over sorted ids', link: '/use-cases/binary-search' },
 						{ label: 'Cart reducer with a coupon', link: '/use-cases/cart-coupon' },
+					],
+				},
+				{
+					label: 'Case studies',
+					collapsed: true,
+					items: [
+						{ label: 'Config document workflow', link: '/case-studies/config-document-workflow' },
+						{ label: 'A small SQS clone', link: '/case-studies/node-sqs' },
 					],
 				},
 				{
