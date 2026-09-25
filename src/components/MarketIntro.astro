@@ -1,0 +1,144 @@
+---
+// The intro card in the right sidebar of the market pages (`card: market`), with content per page.
+import SideCard from './SideCard.astro';
+
+const page = Astro.url.pathname.replace(/\/$/, '').split('/').pop() ?? '';
+const eyebrow: Record<string, string> = {
+	jobs: 'Formal methods jobs',
+	marketplaces: 'Freelance marketplaces',
+	practitioners: 'Formal methods practitioners',
+	industries: 'Industries',
+	tools: 'Formal methods tools',
+};
+// A heading above the entries, where a page has one.
+const heading: Record<string, string> = {
+	jobs: 'Formal methods job seeker portrait:',
+	practitioners: 'How practitioners make money:',
+	industries: 'Where formal methods pay off:',
+	tools: 'What the numbers say:',
+};
+// Each entry is a bold lead, the text after it, and optionally the core skills it needs.
+const stories: Record<string, [string, string, string?][]> = {
+	jobs: [
+		[
+			'The proof researcher.',
+			'A PhD, and real work in Lean, Rocq or Isabelle. Hired by AWS, Google DeepMind and AI labs like Harmonic, for $170K-$385K.',
+			'mathematical logic and proofs, type theory, the semantics of programming languages',
+		],
+		[
+			'The senior systems engineer.',
+			'A senior or principal engineer in Rust, C or C++ who also writes TLA+ or Lean. Formal methods is part of the job, at Oracle, Google Cloud or startups like Sigil Logic.',
+			'concurrency and distributed systems, memory safety, turning a design into state and invariants',
+		],
+		[
+			'The cleared researcher.',
+			'A US citizen with a security clearance, working on theorem proving and model checking at defense contractors like RTX/BBN or Riverside Research. Lower pay, $60K-$175K.',
+			'logic, SAT/SMT solving, programming language theory',
+		],
+	],
+	practitioners: [
+		[
+			'Consulting and workshops.',
+			'A few named experts sell TLA+ and Alloy consulting, workshops and retainers to large tech companies.',
+		],
+		[
+			'Products and services.',
+			'Firms sell verification and testing to crypto, finance, defense and large tech.',
+		],
+		[
+			'Open source.',
+			'Most tool builders earn reputation rather than income from their tools.',
+		],
+	],
+	industries: [
+		[
+			'Cloud and databases.',
+			'Models found bugs in storage and database systems that had slipped past all tests and code review, and cut months off schedules.',
+		],
+		[
+			'AI and math.',
+			'The large AI labs invest in Lean, so that AI can prove its answers and have a machine check them.',
+		],
+		[
+			'Blockchain and DeFi.',
+			'Verified smart contracts protect over $100B of locked value, across the largest lending and staking protocols.',
+		],
+	],
+	tools: [
+		[
+			'Most hired for.',
+			'Proof assistants. Lean and Rocq are named in more job postings than any other tool, well ahead of TLA+.',
+		],
+		[
+			'Most used.',
+			'Static analysis and property-based testing. Companies deploy them widely, but rarely hire for them by name.',
+		],
+		[
+			'Best payoff per hour.',
+			'Property-based testing and simulation. They prove nothing, but catch a lot of bugs for little effort.',
+		],
+	],
+	marketplaces: [
+		[
+			'Demand.',
+			'Almost none. The few posts are old student homework ($10-$250) or AI-training tasks. The one working niche nearby is smart contract audits on Fiverr and Upwork, at $57-$152 a gig or around $1,000 a job.',
+		],
+		[
+			'Supply.',
+			'A handful of profiles: one Lean 4 listing on Contra, a Spin and B method specialist on PeoplePerHour, and "Formal Methods" as a skill tag on Toptal. TLA+ has zero pages on Upwork.',
+		],
+		[
+			'Conclusion.',
+			'There is no freelance market for formal methods yet. Paid work goes through full-time jobs, AI-training platforms and consultants known by name.',
+		],
+	],
+};
+// A section shown above the heading, where a page has one.
+const before: Record<string, { heading: string; items: [string, string][] }> = {
+	practitioners: {
+		heading: 'What they are expert in:',
+		items: [
+			['Distributed systems.', 'Models of protocols, caches and databases in TLA+ or Alloy, and safety analyses of real databases.'],
+			['Proofs.', 'Lean, Rocq and Isabelle, for math, for AI that checks its own answers, and for rules like tax or legal ones.'],
+			['Smart contracts.', 'Formal verification and audits of DeFi and blockchain code.'],
+		],
+	},
+};
+const items = stories[page] ?? [['Placeholder.', 'Content to come.']];
+---
+
+<SideCard>
+	<p class="eyebrow">{eyebrow[page] ?? 'Formal methods market'}</p>
+	{
+		before[page] && (
+			<>
+				<h2>{before[page].heading}</h2>
+				{before[page].items.map(([lead, text]) => (
+					<p class="story">
+						<strong>{lead}</strong> {text}
+					</p>
+				))}
+			</>
+		)
+	}
+	{heading[page] && <h2 class={before[page] ? 'next' : undefined}>{heading[page]}</h2>}
+	{
+		items.map(([lead, text, skills]) => (
+			<p class="story">
+				<strong>{lead}</strong> {text}
+				{skills && <span class="skills">Core skills: {skills}.</span>}
+			</p>
+		))
+	}
+</SideCard>
+
+<style>
+	.next {
+		margin-top: 1.5rem !important;
+	}
+	.skills {
+		display: block;
+		margin-top: 0.25rem;
+		color: var(--sc-text);
+	}
+</style>

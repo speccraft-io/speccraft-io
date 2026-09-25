@@ -1,0 +1,65 @@
+---
+// A card in the right sidebar, for pages that set `card` in their frontmatter (see PageSidebar.astro).
+// The content comes from the slot: an optional `.eyebrow` line, then `.story` paragraphs with a bold lead.
+---
+
+<div class="side-card">
+	<slot />
+</div>
+
+<style>
+	.side-card {
+		/* The fixed right sidebar is wider than its visible column, so size the card to that column: Starlight makes it
+		   the sidebar width plus half the space left beside the content. */
+		box-sizing: border-box;
+		max-width: min(
+			18.5rem,
+			calc(
+				var(--sl-sidebar-width) + (100vw - 2 * var(--sl-sidebar-width) - var(--sl-content-width)) / 2 - 2 *
+					var(--sl-sidebar-pad-x) - 0.5rem
+			)
+		);
+		margin: 1rem var(--sl-sidebar-pad-x);
+		padding: 1.25rem;
+		border: 1px solid var(--sc-border);
+		border-radius: 1rem;
+		background: var(--sc-surface);
+		color: var(--sc-text);
+	}
+	.side-card :global(p) {
+		margin: 0;
+	}
+	.side-card :global(.eyebrow) {
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--sc-muted);
+	}
+	.side-card :global(h2) {
+		margin: 0.5rem 0 0;
+		font-size: var(--sl-text-h4);
+		font-weight: 700;
+		line-height: 1.25;
+		color: var(--sc-text);
+	}
+	.side-card :global(.story) {
+		margin-top: 0.75rem !important;
+		font-size: var(--sl-text-sm);
+		line-height: 1.5;
+		color: var(--sc-muted);
+	}
+	.side-card :global(.story strong) {
+		display: block;
+		font-size: var(--sl-text-base);
+		font-weight: 700;
+		color: var(--sc-text);
+	}
+
+	@media (max-width: 71.99rem) {
+		.side-card {
+			max-width: none;
+			margin: 0.75rem var(--sl-content-pad-x) 0;
+		}
+	}
+</style>

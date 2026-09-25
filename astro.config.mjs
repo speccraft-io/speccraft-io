@@ -12,7 +12,8 @@ import { quietDark, quietLight } from './src/code-theme/quiet.mjs';
 export default defineConfig({
 	site: 'https://speccraft.io',
 	redirects: {
-		'/state-of-formal-methods-market': '/market/',
+		'/state-of-formal-methods-market': '/market/tools',
+		'/market': '/market/tools',
 		'/vs/fake-timers': '/vs/other-ts-tools',
 		'/vs/effect': '/vs/other-ts-tools',
 		'/how-speccraft-compares': '/',
@@ -154,9 +155,11 @@ export default defineConfig({
 					label: 'Formal methods market',
 					collapsed: true,
 					items: [
-						{ label: 'Overview', link: '/market/' },
-						{ label: 'Job listings', link: '/market/jobs' },
-						{ label: 'Marketplaces', link: '/market/marketplaces' },
+						{ label: 'Job postings', link: '/market/jobs' },
+						{ label: 'Freelance marketplaces', link: '/market/marketplaces' },
+						{ label: 'Practitioners and firms', link: '/market/practitioners' },
+						{ label: 'Industries', link: '/market/industries' },
+						{ label: 'Tools', link: '/market/tools' },
 					],
 				},
 			],

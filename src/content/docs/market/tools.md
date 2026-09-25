@@ -1,22 +1,12 @@
 ---
-title: Formal methods market
-description: Is there a real, current market for formal methods outside research papers and hobby projects? Who's hiring, who's building companies on it, which tools people actually get hired to know, and what results get reported publicly.
+title: Formal methods tools
+description: The formal methods tools that exist, grouped by the problem they check, with job mentions, Google search trends and GitHub stars for each.
+tableOfContents: true
+card: market
 ---
 
-*Last checked: September 20, 2026.*
-
-Is there a real, current market for formal methods, outside research papers and hobby
-projects? Here's what an actual look turned up: who's hiring for it, which companies and
-solo practitioners have built businesses on it, which tools people are actually hired to
-know, and where the results get reported publicly. Every entry was checked at the source,
-not pulled from memory, and every job listing's open/closed status was reconfirmed directly
-against that date.
-
-Two parts have their own pages: [Job listings](/market/jobs) (full-time roles that ask for formal methods skills)
-and [Marketplaces](/market/marketplaces) (freelance, contract and expert platforms, and what each one has for
-formal methods work).
-
----
+What tools exist, what problem each one checks, and how much traction each has: how many job postings name it, its
+Google search trend and its GitHub stars.
 
 ## Landscape by problem type
 
@@ -63,7 +53,7 @@ The field looks huge because it grew from three separate communities — math, h
 
 ## Which tools people actually get hired for
 
-Demand is counted by how many job postings below name each tool directly. It skews hard toward proof assistants,
+Demand is counted by how many postings on [Job postings](/market/jobs) name each tool directly. It skews hard toward proof assistants,
 not model checkers — Lean and Coq/Rocq beat TLA+ by a wide margin, even though neither is a model checker.
 
 The Trend column is Google Trends search interest over the last 12 months (worldwide), included only where the
@@ -104,70 +94,3 @@ CryptoVerif, MathSAT) don't get one.
 | [F\*](https://www.fstar-lang.org) | 1 | Dependently-typed proof assistant, used in Project Everest (verified TLS); 1 posting (Riverside Research). | — | [3,109](https://github.com/FStarLang/FStar) |
 | [CryptoVerif](https://bblanche.gitlabpages.inria.fr/CryptoVerif/) | 1 | Automated cryptographic protocol verifier, game-hopping proofs; 1 posting (Riverside Research). | — | — |
 
-## Firms
-
-| Firm | What they do | Note |
-|---|---|---|
-| [Lean FRO](https://lean-lang.org/fro/about) | Nonprofit steward of Lean itself | Funded partly by "the single largest donation in the FRO's history," from AWS. |
-| [Axiom Math](https://axiommath.ai) | "Verified AI," Lean-based | $200-300M raised; 98.93% on a Lean verification benchmark. |
-| [Pramaana Labs](https://jobs.ashbyhq.com/pramaana-labs) | Formalizes human knowledge (tax/legal/clinical rules) into Lean | $27M from Khosla Ventures, founded 2025. |
-| Math, Inc. / [Cajal](https://www.ycombinator.com/companies/cajal-technologies) | AI applied to formal verification of math/science problems | Both real, funded, same Lean-AI cluster as Axiom. |
-| [Certora](https://www.certora.com) | Smart-contract formal verification | $100B+ in DeFi value locked protected (MakerDAO, Lido, Coinbase). |
-| [CertiK](https://www.certik.com) | Formal verification + security audits, Web3 | $544B market cap assessed, 117,000+ vulnerabilities found. |
-| [Hashlock](https://hashlock.com) | Smart-contract auditing, incl. formal verification | Smaller regional comparable to Certora/CertiK. |
-| [Runtime Verification Inc](https://runtimeverification.com) | General formal-methods consulting, built on the K framework | Closest firm to a general formal-methods-as-a-service model. |
-| [Antithesis](https://antithesis.com) | Deterministic simulation testing | Clients: Jane Street, etcd, Ethereum Foundation. |
-| [QuviQ](https://www.quviq.com) | Property-based testing as a commercial service | Running since the mid-2000s — the longest commercial precedent found. |
-| [Galois](https://galois.com) | Formal methods R&D for defense/government | DARPA, NASA, NIST, US DoD, AWS. |
-| [Axiomise](https://www.axiomise.com) | Hardware/RISC-V formal verification training | Solo-founder-grown-into-firm path. |
-| [Informal Systems](https://informal.systems) | Builds and stewards Quint (TLA+'s executable-spec successor) | Fintech/crypto product focus. |
-| [P language](https://github.com/p-org/P) (AWS) | Internal state-machine modeling language | Used across S3, DynamoDB, EC2; actively expanding in 2026. |
-
-## Solo practitioners
-
-| Practitioner | What they do | Note |
-|---|---|---|
-| Kyle Kingsbury ([Jepsen](https://jepsen.io)) | Paid safety analyses of distributed databases | 13+ years, built purely on reputation from published findings. |
-| [Hillel Wayne](https://www.hillelwayne.com/consulting/) | TLA+/Alloy consulting, workshops, retainers | Dominant named brand; clients incl. Netflix, NASA, Meta. |
-| [Nicolas Dubien](https://github.com/dubzzz) ([fast-check](https://fast-check.dev/)) | Property-testing library, TypeScript/JavaScript | 139M downloads/month — proof OSS distribution works in this ecosystem. |
-| [Josh Field](https://au.linkedin.com/in/josh-field) ([stateproof](https://github.com/HexaField/stateproof)) | TypeScript DSL compiling to TLA+, runs TLC | The closest TS-to-TLA+ tool found. |
-| [Jonathan Nadal](https://github.com/jonnadal) ([Stateright](https://github.com/stateright/stateright)) | Embedded model checker as a Rust library | Model checker as a library, the Rust counterpart of the TS ones. |
-| [Jack Vanlightly](https://jack-vanlightly.com) | Public technical writing on distributed systems + formal verification | Builds credibility via writing rather than a direct consulting offer. |
-| [JP Kadarkarai](https://sessionize.com/jayaprabhakar-kadarkarai/) ([FizzBee](https://fizzbee.io)) | Open-source, more approachable alternative to TLA+ | Tool/OSS project, not an active paid practice. |
-
-## What formal methods has actually delivered
-
-| Case | Outcome |
-|---|---|
-| AWS (via [Hillel Wayne](https://www.hillelwayne.com/consulting/)) | Found bugs in DynamoDB and S3 that had slipped past all tests, QA, and code review; cut an estimated 2 months off a 4-month schedule. |
-| eSpark Learning | Two days of modeling saved an estimated $300K/year combined (revenue + maintenance). |
-| Rackspace | Found a bug severe enough to require redoing a year of work — avoidable if modeled from the start. |
-| Cockroach Labs | Caught a bug that would otherwise have taken 10+ hours to find by hand. |
-| Harmonic — Aristotle | Gold Medal-level performance at the 2025 International Math Olympiad, using Lean4 + reinforcement learning. |
-| Anthropic — Fermat's Last Theorem | [Claude produced](https://www.anthropic.com/research/formalizing-fermats-last-theorem) the largest Lean proof ever built — 13M lines, 30,300 machine-checked theorems, over 11 largely-autonomous days (Sept 2026). |
-| [Certora](https://www.certora.com) | $100B+ in DeFi value locked protected across MakerDAO, Lido, Aave, Coinbase. |
-| [Antithesis](https://antithesis.com) | Jane Street's message bus went "from tested to battle-tested"; Turso reports moving "ten times faster"; used to verify Ethereum's The Merge. |
-| Every major AI lab, per [Lean FRO's timeline](https://lean-lang.org/fro/about) | OpenAI, Google DeepMind, Microsoft, AWS, and ByteDance are all now directly invested in Lean for verification work. |
-
-## Communities
-
-| Community | Status |
-|---|---|
-| [Lean Zulip](https://leanprover.zulipchat.com) | Most active community found — hundreds of participants, 12,800+ topics in the new-members stream alone. |
-| [TLA+ Google Group](https://groups.google.com/g/tlaplus) | 1,679 threads, genuinely active (most recent thread 2 days before this was checked). |
-| [Rocq (Coq) Zulip](https://rocq-prover.zulipchat.com) | Official current channel, replaced the Coq-Club mailing list after its Oct 2025 shutdown. |
-| [Isabelle-users mailing list](https://lists.cam.ac.uk/sympa/arc/cl-isabelle-users) | Old mailing-list format, mirrored to Zulip, active with same-day posts. |
-| [r/tlaplus](https://www.reddit.com/r/tlaplus/) | Real per TLA+'s own community page; unverifiable firsthand since Reddit blocks automated checks. |
-| [TLA+ Community Event](https://conf.tlapl.us/) | Real, recurring annual event co-located with ETAPS (2024-2026 confirmed). |
-| [Rocq Discourse](https://discourse.rocq-prover.org/) | Active secondary forum, 551 topics in its main category. |
-| [Jepsen mailing lists](https://groups.google.com/a/jepsen.io/g/talk) | Real but thin — only 33 threads since 2019. |
-| [dist-sys Slack](https://slofile.com/slack/dist-sys) | 5,201 members, but general distributed-systems chat, not formal-methods-specific. |
-| r/formalmethods | Could not confirm this subreddit exists as a real, active community. |
-| [DeepSpec](https://deepspec.org) | Dormant — its workshop series ended in 2019. |
-| comp.specification.z / Z FORUM | Real once, dead now. |
-| Antithesis / DST Discord | No dedicated community found; discussion happens on vendor blogs instead. |
-
----
-
-*This page distills a market survey read at source, alongside [Durable workflow correctness](/durable-workflow-correctness-tooling-research). Confidence is high on the sourced claims; job-posting
-snapshots and community activity levels will date — check the linked sources directly for current status.*

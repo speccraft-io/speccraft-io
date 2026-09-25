@@ -235,3 +235,8 @@ h1,
 .content-panel:has(#_top.sr-only) + .content-panel {
 	border-top: 0;
 }
+
+/* Market pages: space between platform entries, each of which starts with the platform's name in bold. */
+.sl-markdown-content .platforms > p:has(> strong:first-child):not(:first-child) {
+	margin-top: 2rem;
+}
