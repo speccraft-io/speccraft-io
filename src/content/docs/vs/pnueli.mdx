@@ -267,11 +267,16 @@ Everything is committed; nothing is generated. pnueli is a library with no CLI. 
 expect(checkExhaustive(lockSpec(3, 'fencing', lock, true)).ok).toBe(true);
 ```
 
+<details>
+<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (3 lines)</summary>
+
 ```yaml
 # .github/workflows/ci.yml (steps)
 - run: npm ci
 - run: npm test
 ```
+
+</details>
 
 What fails when:
 

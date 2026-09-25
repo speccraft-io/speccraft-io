@@ -161,11 +161,16 @@ With the fix, the machine has 5 reachable states, none of them breaks the rule, 
 
 Everything is committed. Nothing is generated, and CI needs only Node:
 
+<details>
+<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (3 lines)</summary>
+
 ```yaml
 # .github/workflows/ci.yml (steps)
 - run: npm ci
 - run: npx vitest run
 ```
+
+</details>
 
 What fails when:
 

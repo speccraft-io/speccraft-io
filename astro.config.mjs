@@ -147,7 +147,6 @@ export default defineConfig({
 						{ label: 'stifinder', link: '/vs/stifinder' },
 						{ label: 'pnueli', link: '/vs/pnueli' },
 						{ label: 'stateproof', link: '/vs/stateproof' },
-						{ label: 'SpecCraft TS', link: '/vs/speccraft-ts' },
 						{ label: 'Some more TS Tools', link: '/vs/other-ts-tools' },
 					],
 				},

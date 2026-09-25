@@ -175,6 +175,9 @@ people, the shares add up to the total and nobody pays a negative amount. A test
 All three files in `src/` are committed. `lsc regen` needs the old `.dfy.gen` to merge a change into `.dfy`. CI needs
 Dafny; this example does not use Lean:
 
+<details>
+<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (8 lines)</summary>
+
 ```yaml
 # .github/workflows/ci.yml (steps)
 - run: npm ci
@@ -185,6 +188,8 @@ Dafny; this example does not use Lean:
 - run: npx lsc check --backend=dafny
 - run: git diff --exit-code -- '*.dfy.gen'
 ```
+
+</details>
 
 What fails when:
 

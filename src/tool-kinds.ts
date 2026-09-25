@@ -5,7 +5,6 @@ export const toolKinds: { kind: string; tools: Tool[] }[] = [
 	{
 		kind: 'Model checker as a library, run in-process',
 		tools: [
-			{ label: 'SpecCraft TS', link: '/vs/speccraft-ts' },
 			{ label: 'pnueli', link: '/vs/pnueli' },
 			{ label: 'stifinder', link: '/vs/stifinder' },
 			{ label: 'Polygraph', link: '/vs/polygraph' },

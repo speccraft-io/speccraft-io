@@ -217,6 +217,9 @@ went into both files.
 `build` writes the adapter only when the machine has `metadata.runtimeAdapter` (the Postgres table it runs on). The
 same machine always gives the same file, so CI can check that the committed adapter is up to date:
 
+<details>
+<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (8 lines)</summary>
+
 ```yaml
 # .github/workflows/ci.yml (steps)
 - uses: actions/setup-java@v6
@@ -227,6 +230,8 @@ same machine always gives the same file, so CI can check that the committed adap
 - run: TLA2TOOLS_JAR=$PWD/tla2tools.jar npx tla-precheck build src/tickets.machine.ts
 - run: git diff --exit-code src/machine-adapters
 ```
+
+</details>
 
 What fails when:
 

@@ -144,11 +144,16 @@ In the test, `claimOrder` is wrapped with `s.scheduleFunction` like the others, 
 Commit the code and the test together. CI needs no API key and no extra tool, only the test runner. `fc.assert`
 throws when the property fails, so the test run exits non-zero:
 
+<details>
+<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (3 lines)</summary>
+
 ```yaml
 # .github/workflows/ci.yml (steps)
 - run: npm ci
 - run: npm test    # vitest run
 ```
+
+</details>
 
 What fails when:
 

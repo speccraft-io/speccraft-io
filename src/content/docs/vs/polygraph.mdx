@@ -286,6 +286,9 @@ code, because no recorded list of actions removed an item at the minimum. Only t
 `traces/` and `out/` are not committed: CI makes them from the current code. Replay and the model check need no API
 key, so CI runs them on every push:
 
+<details>
+<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (7 lines)</summary>
+
 ```yaml
 # .github/workflows/ci.yml (steps)
 - run: npm ci
@@ -295,6 +298,8 @@ key, so CI runs them on every push:
 - run: node -e "const s = require('./out/findings.json').summary; if (s.consistent !== s.windows) process.exit(1)"
 - run: node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec polygraph/specs/cart-sam.js --contract polygraph/contract.json --invariants polygraph/invariants.mjs
 ```
+
+</details>
 
 What fails when:
 

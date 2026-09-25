@@ -166,6 +166,9 @@ found in this run.
 GitHub's Ubuntu runners have Chrome, and Bombadil finds it on the `PATH`. Chrome needs `--no-sandbox` there.
 Bombadil's own action, `antithesishq/bombadil-action`, can install Chrome and run the test instead.
 
+<details>
+<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (5 lines)</summary>
+
 ```yaml
 # .github/workflows/ci.yml (steps), on ubuntu-latest
 - run: npm ci
@@ -173,6 +176,8 @@ Bombadil's own action, `antithesishq/bombadil-action`, can install Chrome and ru
 - run: curl --retry 30 --retry-all-errors --retry-delay 1 --silent --fail http://localhost:4500 > /dev/null
 - run: npx bombadil browser test http://localhost:4500 spec.ts --time-limit=30s --exit-on-violation --output-path out --no-sandbox --chrome-grant-permissions=geolocation
 ```
+
+</details>
 
 What fails when:
 

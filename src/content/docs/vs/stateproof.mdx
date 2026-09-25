@@ -187,6 +187,9 @@ default and a state with no way out fails the check (see Limitations).
 The TLA+ copy is written to a temp folder on each run, so nothing generated is committed. CI needs Java. stateproof
 downloads `tla2tools.jar` if it does not find one, and Node 24 runs the `.ts` files as they are:
 
+<details>
+<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (9 lines)</summary>
+
 ```yaml
 # .github/workflows/ci.yml (steps)
 - uses: actions/setup-node@v7
@@ -198,6 +201,8 @@ downloads `tla2tools.jar` if it does not find one, and Node 24 runs the `.ts` fi
 # process.exit(result.ok && result.statesExplored > 0 ? 0 : 1)
 - run: node stateproof/verify.ts
 ```
+
+</details>
 
 What fails when:
 

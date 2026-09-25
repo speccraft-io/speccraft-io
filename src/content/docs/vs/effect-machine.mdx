@@ -168,11 +168,16 @@ The same exploration, with every reply still in flight, passes:
 Both files are committed; nothing is generated. CI needs no API key, browser or other tool. In a project, the test
 expects the exploration to pass and checks that `completeness._tag` is `Complete`:
 
+<details>
+<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (3 lines)</summary>
+
 ```yaml
 # .github/workflows/ci.yml (steps)
 - run: npm ci
 - run: npx vitest run
 ```
+
+</details>
 
 What fails when:
 
