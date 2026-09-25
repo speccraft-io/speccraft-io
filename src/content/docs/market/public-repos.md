@@ -5,21 +5,8 @@ tableOfContents: true
 card: market
 ---
 
-Do real JavaScript and TypeScript projects use formal methods, or only demos and courses? We searched public GitHub
-repos for signs of a formal tool: TLA+ and Quint specs, Alloy models, Dafny compiled to JavaScript, the Z3 solver,
-XState's graph tools, and fast-check's model-based and race-condition tests.
-
-## How we searched
-
-- GitHub code search for files and dependencies: `*.tla`, `*.qnt`, `*.als` and `*.dfy` files; `tla2tools` in CI
-  workflows; `@informalsystems/quint`, `z3-solver`, `@xstate/graph` and `@xstate/test` in `package.json`; and
-  `fc.commands`, `fc.modelRun` and `fc.scheduler` in TypeScript code.
-- Kept only repos whose main language is JavaScript or TypeScript, and dropped forks.
-- Opened the top repos to check what they actually do with the tool. A dependency in `package.json` alone often
-  means nothing.
-
-About 140 JS/TS repos use one of TLA+, Quint, Alloy, Dafny, Z3 or XState's graph tools, and about 40 use fast-check's
-model-based or race-condition tests. Most have a handful of stars. Star counts are from September 2026.
+Do real JavaScript and TypeScript projects use formal methods? A few big ones do, mostly as model-based tests. Specs
+and proofs show up only in small, new repos.
 
 ## Model-based tests with fast-check
 
@@ -74,6 +61,26 @@ Many repos list `@xstate/test` or `@xstate/graph` in `package.json` and never im
 - [estimates](https://github.com/teorth/estimates) (342 ★), by Terence Tao: runs Z3 in the browser to check
   inequalities in analysis.
 - Most other `z3-solver` users are Advent of Code solutions and puzzle solvers.
+
+## Big projects with none
+
+These have no specs, and no model-based or race-condition tests, even though their hardest code is exactly what those
+tools check.
+
+- [n8n](https://github.com/n8n-io/n8n) (206k ★), a workflow engine: runs, retries and waits across many steps. Only a
+  few fast-check property tests of small helpers.
+- [Next.js](https://github.com/vercel/next.js) (142k ★): caching and rendering across many requests at once.
+- [Excalidraw](https://github.com/excalidraw/excalidraw) (133k ★) and [tldraw](https://github.com/tldraw/tldraw)
+  (51k ★): several people editing the same drawing.
+- [Immich](https://github.com/immich-app/immich) (115k ★): background jobs and photo sync from many phones.
+- [Socket.IO](https://github.com/socketio/socket.io) (63k ★): reconnects and the order of messages.
+- [TanStack Query](https://github.com/TanStack/query) (50k ★) and
+  [Apollo Client](https://github.com/apollographql/apollo-client) (20k ★): caches, refetches and late replies.
+- [Prisma](https://github.com/prisma/prisma) (48k ★) and [TypeORM](https://github.com/typeorm/typeorm) (37k ★):
+  transactions and migrations.
+- [Yjs](https://github.com/yjs/yjs) (23k ★), a CRDT library: every copy must end up the same, whatever order the
+  changes arrive in.
+- [BullMQ](https://github.com/taskforcesh/bullmq) (9k ★), a job queue: locks, retries and stalled jobs.
 
 ## What stands out
 
