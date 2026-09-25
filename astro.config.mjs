@@ -150,6 +150,15 @@ export default defineConfig({
 						{ label: 'Some more TS Tools', link: '/vs/other-ts-tools' },
 					],
 				},
+				{
+					label: 'Formal methods market',
+					collapsed: true,
+					items: [
+						{ label: 'Overview', link: '/market/' },
+						{ label: 'Job listings', link: '/market/jobs' },
+						{ label: 'Marketplaces', link: '/market/marketplaces' },
+					],
+				},
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },
