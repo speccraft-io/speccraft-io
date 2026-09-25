@@ -62,25 +62,40 @@ Many repos list `@xstate/test` or `@xstate/graph` in `package.json` and never im
   inequalities in analysis.
 - Most other `z3-solver` users are Advent of Code solutions and puzzle solvers.
 
+## Big projects with their own checks
+
+No formal tool, but tests that do part of the same job: random runs checked against a rule.
+
+- [n8n](https://github.com/n8n-io/n8n) (206k ★), a workflow engine: its new scheduler package has fast-check property
+  tests of core rules, for example "every claimed task runs at most once", plus retry backoff, cleanup of stuck
+  tasks and the next run time.
+- [tldraw](https://github.com/tldraw/tldraw) (51k ★), a multiplayer whiteboard: fuzz tests where several simulated
+  editors make random changes over sync and must end up with the same document.
+- [Yjs](https://github.com/yjs/yjs) (23k ★), a CRDT library: its own random simulation of edits, message delivery,
+  disconnects and reconnects, then a check that every copy matches.
+- [Rocket.Chat](https://github.com/RocketChat/Rocket.Chat) (46k ★): a fast-check fuzz test of its message parser only.
+
 ## Big projects with none
 
-These have no specs, and no model-based or race-condition tests, even though their hardest code is exactly what those
-tools check.
+No specs, and no model-based, property, fuzz or race-condition tests of their core, even though their hardest code is
+exactly what those tools check.
 
-- [n8n](https://github.com/n8n-io/n8n) (206k ★), a workflow engine: runs, retries and waits across many steps. Only a
-  few fast-check property tests of small helpers.
 - [Next.js](https://github.com/vercel/next.js) (142k ★): caching and rendering across many requests at once.
-- [Excalidraw](https://github.com/excalidraw/excalidraw) (133k ★) and [tldraw](https://github.com/tldraw/tldraw)
-  (51k ★): several people editing the same drawing.
+- [Excalidraw](https://github.com/excalidraw/excalidraw) (133k ★): several people editing the same drawing.
 - [Immich](https://github.com/immich-app/immich) (115k ★): background jobs and photo sync from many phones.
+- [NocoDB](https://github.com/nocodb/nocodb) (65k ★) and [Outline](https://github.com/outline/outline) (41k ★):
+  shared tables and documents edited by many users.
 - [Socket.IO](https://github.com/socketio/socket.io) (63k ★): reconnects and the order of messages.
 - [TanStack Query](https://github.com/TanStack/query) (50k ★) and
   [Apollo Client](https://github.com/apollographql/apollo-client) (20k ★): caches, refetches and late replies.
-- [Prisma](https://github.com/prisma/prisma) (48k ★) and [TypeORM](https://github.com/typeorm/typeorm) (37k ★):
-  transactions and migrations.
-- [Yjs](https://github.com/yjs/yjs) (23k ★), a CRDT library: every copy must end up the same, whatever order the
-  changes arrive in.
-- [BullMQ](https://github.com/taskforcesh/bullmq) (9k ★), a job queue: locks, retries and stalled jobs.
+- [Prisma](https://github.com/prisma/prisma) (48k ★), [TypeORM](https://github.com/typeorm/typeorm) (37k ★) and
+  [Drizzle](https://github.com/drizzle-team/drizzle-orm) (36k ★): transactions and migrations.
+- [BullMQ](https://github.com/taskforcesh/bullmq) (9k ★), a job queue: locks, retries and stalled jobs. It has one
+  plain stress test.
+- Durable execution SDKs, whose whole job is surviving crashes and retries:
+  [DBOS for TypeScript](https://github.com/dbos-inc/dbos-transact-ts) (1.4k ★) and the
+  [Temporal TypeScript SDK](https://github.com/temporalio/sdk-typescript) (924 ★). Temporal checks that workflow code
+  replays the same way, but not the SDK's own logic.
 
 ## What stands out
 
