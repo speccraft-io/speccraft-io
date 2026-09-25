@@ -53,7 +53,6 @@ from a TypeScript project.
 
 | Tool | What it does | Status | Relation |
 |---|---|---|---|
-| [libpetri](https://github.com/debe/libpetri) | Coloured time Petri nets in TypeScript, Java and Rust, with checks for deadlock freedom, mutual exclusion and bounds | Active, 25 stars, 818/mo | A real concurrency verifier, with the model written as a net instead of plain TypeScript |
 | [ts-fuzzing](https://github.com/mizchi/ts-fuzzing) | Generators from TS types or zod and valibot schemas, guided fuzzing, and random stateful command sequences | 2 stars, 13/mo | Random stateful testing like fast-check; no exhaustive search |
 | [chaosbringer](https://github.com/mizchi/chaosbringer) | A Playwright crawler that injects network, lifecycle and runtime faults and checks invariants | 45 stars, 2.6k/mo | Fault injection into a real app, not state exploration |
 | [dspec](https://github.com/mizchi/dspec) | A prototype where a typed formal model is the main spec, with conformance evidence from the code | 35 stars, not on npm | Spec-first: the model is the source of truth and the code is checked against it; an early prototype |

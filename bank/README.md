@@ -20,7 +20,7 @@ and which one to use.
 ## Tool groups
 
 - **Model checkers** walk every order of steps: TLA+, Quint, pnueli, SpecCraft TS, stifinder, stateproof,
-  tla-precheck.
+  tla-precheck, libpetri.
 - **Samplers** try many random inputs and orders: fast-check, Hegel, Bombadil.
 - **Provers** prove a function right for every input: Lean, Dafny, LemmaScript.
 - **Statechart explorers**: effect-machine.
@@ -38,7 +38,7 @@ and which one to use.
 | 4 | Token refresh in two tabs | Both tabs refresh at once; with rotating refresh tokens the second one is rejected and the user is logged out | The user stays logged in | TLA+, Quint, fast-check | |
 | 5 | Autosave | An edit made while a save is in flight is never saved | The saved text is the last edit, in the end | TLA+, Quint, fast-check | |
 | 6 | Subscribe after setup | Events sent while `await setup()` runs are lost | Every event sent is received | TLA+, Quint, pnueli | |
-| 7 | `Promise.all` fan-out | One branch fails; the others keep their connections open | Everything acquired is released | TLA+, Quint, stifinder | |
+| 7 | `Promise.all` fan-out | A failed query never gives its connection back, and the pool runs dry | Everything acquired is released | libpetri, TLA+, Quint, stifinder | libpetri |
 | 8 | Timeout around a call | The timeout fires, but the work keeps going and writes its result later | No side effect after the timeout | TLA+, Quint, fast-check | |
 | 9 | Cancel button | Stop is pressed, but the upload loop never checks the signal | After cancel, no more chunks are sent | Quint, fast-check, TLA+ | |
 | 10 | Optimistic like button | Two quick clicks; the replies arrive out of order and the count is off | The UI matches the server once replies stop | Quint, fast-check, Bombadil | |

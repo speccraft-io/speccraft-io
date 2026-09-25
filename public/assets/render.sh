@@ -12,6 +12,10 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 "$CHROME" --headless --disable-gpu --hide-scrollbars --virtual-time-budget=5000 --force-device-scale-factor=2 \
   --screenshot=speccraft-linkedin-banner.png --window-size=1128,191 "file://$PWD/banner.html"
 
+# The same banner with no background, for the home page footer (the page shows through).
+"$CHROME" --headless --disable-gpu --hide-scrollbars --virtual-time-budget=5000 --force-device-scale-factor=2 \
+  --default-background-color=00000000 --screenshot=site-banner.png --window-size=1128,191 "file://$PWD/banner.html?transparent"
+
 "$CHROME" --headless --disable-gpu --hide-scrollbars --virtual-time-budget=5000 --force-device-scale-factor=2 \
   --screenshot=model-vs-real-code.png --window-size=1200,460 "file://$PWD/model-vs-real-code.html"
 

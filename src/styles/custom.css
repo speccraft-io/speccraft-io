@@ -191,6 +191,9 @@ h1,
 	height: auto;
 	border-radius: 0.5rem;
 	margin-top: 1.5rem;
+	/* The image is transparent; this is the dark page background, so the banner
+	   blends into the page in dark mode and stays a dark card in light mode. */
+	background: #0e0c14;
 }
 
 /* The one-line invitation above the home page examples. */

@@ -16,7 +16,8 @@
     </radialGradient>
   </defs>
 
-  <rect width="1128" height="191" fill="url(#glow)"/>
+  <!-- ?transparent drops the background, for the site footer copy -->
+  <rect id="bg" width="1128" height="191" fill="url(#glow)"/>
 
   <!-- faint interleaving graph, full width behind the slogan -->
   <g stroke="#2a2633" stroke-width="2" fill="none">
@@ -88,5 +89,6 @@
   <text x="564" y="98" text-anchor="middle" font-family="'IBM Plex Sans', -apple-system, 'Helvetica Neue', Arial, sans-serif" font-size="34" font-weight="600" fill="#eceaf2">Thinking and correctness tools.</text>
   <rect x="504" y="116" width="120" height="4" rx="2" fill="#44cf7e"/>
 </svg>
+<script>if (location.search.includes("transparent")) document.getElementById("bg").remove();</script>
 </body>
 </html>

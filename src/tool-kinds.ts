@@ -8,6 +8,7 @@ export const toolKinds: { kind: string; tools: Tool[] }[] = [
 			{ label: 'pnueli', link: '/vs/pnueli' },
 			{ label: 'stifinder', link: '/vs/stifinder' },
 			{ label: 'Polygraph', link: '/vs/polygraph' },
+			{ label: 'libpetri', link: '/vs/libpetri' },
 		],
 	},
 	{
