@@ -152,6 +152,7 @@ export default defineConfig({
 				},
 				{
 					label: 'Use cases',
+					collapsed: true,
 					items: [
 						{ label: 'Connect on first use', link: '/use-cases/connect-on-first-use' },
 						{ label: 'Search as you type', link: '/use-cases/search-as-you-type' },
@@ -159,7 +160,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Formal methods market',
+					label: 'Formal methods adoption',
 					collapsed: true,
 					items: [
 						{ label: 'Job postings', link: '/market/jobs' },
