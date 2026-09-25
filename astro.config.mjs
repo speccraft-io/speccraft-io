@@ -125,7 +125,7 @@ export default defineConfig({
 			sidebar: [
 				{ label: 'Home', link: '/' },
 				{
-					label: 'Formal non-TypeScript tools',
+					label: 'Non-TypeScript tools',
 					items: [
 						{ label: 'TLA+', link: '/tools/tla-plus' },
 						{ label: 'Quint', link: '/tools/quint' },
@@ -134,7 +134,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Formal TypeScript tools',
+					label: 'TypeScript tools',
 					items: [
 						{ label: 'fast-check', link: '/vs/fast-check' },
 						{ label: 'Bombadil', link: '/vs/bombadil' },
@@ -160,7 +160,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Formal methods adoption',
+					label: 'Adoption',
 					collapsed: true,
 					items: [
 						{ label: 'Job postings', link: '/market/jobs' },
