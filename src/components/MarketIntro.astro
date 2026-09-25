@@ -9,6 +9,7 @@ const eyebrow: Record<string, string> = {
 	practitioners: 'Formal methods practitioners',
 	industries: 'Industries',
 	tools: 'Formal methods tools',
+	'public-repos': 'Formal methods in public repos',
 };
 // A heading above the entries, where a page has one.
 const heading: Record<string, string> = {
@@ -16,6 +17,7 @@ const heading: Record<string, string> = {
 	practitioners: 'How practitioners make money:',
 	industries: 'Where formal methods pay off:',
 	tools: 'What the numbers say:',
+	'public-repos': 'Conclusion:',
 };
 // Each entry is a bold lead, the text after it, and optionally the core skills it needs.
 const stories: Record<string, [string, string, string?][]> = {
@@ -76,6 +78,20 @@ const stories: Record<string, [string, string, string?][]> = {
 		[
 			'Best payoff per hour.',
 			'Property-based testing and simulation. They prove nothing, but catch a lot of bugs for little effort.',
+		],
+	],
+	'public-repos': [
+		[
+			'Real use is testing.',
+			'The largest JS/TS projects that use formal methods run model-based tests: random command sequences checked against a simple model.',
+		],
+		[
+			'Specs are rare and new.',
+			'TLA+, Quint and Dafny show up in a few dozen small repos, almost all from 2026 and many built with or for AI agents.',
+		],
+		[
+			'The gap is the link to code.',
+			'Specs sit in their own folder and run in CI. Very few projects check that the TypeScript still matches the spec.',
 		],
 	],
 	marketplaces: [

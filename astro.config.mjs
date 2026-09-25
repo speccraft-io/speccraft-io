@@ -167,6 +167,7 @@ export default defineConfig({
 						{ label: 'Practitioners and firms', link: '/market/practitioners' },
 						{ label: 'Industries', link: '/market/industries' },
 						{ label: 'Tools', link: '/market/tools' },
+						{ label: 'Public repos', link: '/market/public-repos' },
 					],
 				},
 			],
