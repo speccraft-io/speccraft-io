@@ -1,0 +1,15 @@
+---
+title: Canceled plan renewed
+description: The renewal job also renews plans that are canceling, so a canceled plan is charged and active again.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/stateproof/before.ts.txt?raw';
+
+A customer can cancel a plan at any time. The plan runs to the end of the paid period, and until then the customer
+can resume it. At the end of each period a renewal job charges every live plan. "Live" was taken to include plans
+that are canceling, so a plan canceled during the period is charged again and made active at the next renewal.
+
+<Code code={before} lang="ts" title="src/subscription.ts" />
+
+See how [stateproof](/vs/stateproof) finds and fixes it.

@@ -1,0 +1,15 @@
+---
+title: Terms unticked on the review page
+description: The review page shows the terms checkbox again, and Submit does not check it.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/xstate/before.ts.txt?raw';
+
+A signup has a terms step and a review step. You cannot leave the terms step without ticking the box. The review page
+shows the checkbox again, so users can change their mind, but Submit does not check it: tick the box, go to review,
+untick it there, and submit. A test that the terms step blocks without the box ticked passes.
+
+<Code code={before} lang="ts" title="src/signup.ts" />
+
+See how [XState](/vs/xstate) finds and fixes it.

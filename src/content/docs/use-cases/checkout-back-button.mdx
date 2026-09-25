@@ -1,0 +1,15 @@
+---
+title: Checkout with Back
+description: Back during a pending payment lets the reply for the old cart mark the new cart paid.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/effect-machine/before.ts.txt?raw';
+
+A checkout sends a charge for the cart total and waits for the reply. While it waits, the user can press Back, add
+an item and check out again. The reply for the first cart can still arrive, and it marks the new, bigger cart paid
+for the old amount.
+
+<Code code={before} lang="ts" title="src/checkout.ts" />
+
+See how [effect-machine](/vs/effect-machine) finds and fixes it.

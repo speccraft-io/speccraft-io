@@ -1,0 +1,15 @@
+---
+title: Webhook handled twice
+description: Two deliveries of the same webhook both read unpaid and both charge the card.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/fast-check/before.ts.txt?raw';
+
+A service receives an `order.confirmed` webhook and charges the card. The sender retries when it does not hear back
+in time, so the same order can arrive twice. Two workers take the two deliveries at the same time, both read
+`unpaid`, and both charge the card. A test that runs the retry after the first delivery passes.
+
+<Code code={before} lang="ts" title="src/webhook.ts" />
+
+See how [fast-check](/vs/fast-check) finds and fixes it.

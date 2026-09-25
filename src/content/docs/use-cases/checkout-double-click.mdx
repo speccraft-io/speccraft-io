@@ -1,0 +1,15 @@
+---
+title: Checkout button clicked twice
+description: The Place order button stays clickable while the request is pending, so a double click places two orders.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/bombadil/before.ts.txt?raw';
+
+A checkout page posts the order when "Place order" is clicked, then shows a confirmation and hides the button. The
+button stays clickable while the request is pending. A second click in that time sends a second `POST`, and the
+page shows two orders. Clicking once and waiting, the way a manual test does, never shows it.
+
+<Code code={before} lang="js" title="checkout.js" />
+
+See how [Bombadil](/vs/bombadil) finds and fixes it.

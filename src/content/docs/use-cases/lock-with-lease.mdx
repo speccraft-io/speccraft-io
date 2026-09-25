@@ -1,0 +1,16 @@
+---
+title: Lock with a lease
+description: A lease runs out while a node is paused, and its late write lands on top of newer data.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/pnueli/before.ts.txt?raw';
+
+Several nodes share a lock with a lease. A node takes the lock, then writes to shared storage. If the node pauses (a
+long GC pause, a slow disk) between the two, the lease runs out and another node takes the lock and writes. The first
+node wakes up and writes too, and the storage now holds older data on top of newer data. The storage takes every
+write from a node that thinks it holds the lock:
+
+<Code code={before} lang="ts" title="src/lock.ts" />
+
+See how [pnueli](/vs/pnueli) finds and fixes it.

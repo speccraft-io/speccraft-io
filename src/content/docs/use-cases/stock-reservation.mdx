@@ -1,0 +1,16 @@
+---
+title: Stock reservation
+description: Two reservations started together both pass the stock check and take the last item.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/hegel/before.ts.txt?raw';
+
+A shop holds stock for a customer while they check out. `reserve` checks that there is enough stock, saves the
+reservation, then takes the units out of stock. The check runs before the `await` and the units are taken after it,
+so two reservations that start together both pass the check against the same stock. The check also lets a quantity
+of 0, a negative one or a fraction through.
+
+<Code code={before} lang="ts" title="src/inventory.ts" />
+
+See how [Hegel](/vs/hegel) finds and fixes it.

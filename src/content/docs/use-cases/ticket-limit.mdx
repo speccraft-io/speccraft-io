@@ -1,0 +1,15 @@
+---
+title: Ticket shop limit
+description: The per-customer limit counts only held seats, so a customer can buy one seat and hold another.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/tla-precheck/before.ts.txt?raw';
+
+A ticket shop lets a customer hold a seat, then buy it or let it go, and a sold seat can be refunded. Each customer
+may have one seat. The hold is allowed when the seat is free and the customer holds no other seat. The count looks
+only at held seats, so once a customer buys their seat, nothing stops them from holding a second one.
+
+<Code code={before} lang="ts" title="src/tickets.machine.ts" />
+
+See how [tla-precheck](/vs/tla-precheck) finds and fixes it.

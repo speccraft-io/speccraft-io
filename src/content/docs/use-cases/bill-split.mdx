@@ -1,0 +1,16 @@
+---
+title: Bill split
+description: Rounding every share up can leave the last person with a negative share.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/lemmascript/before.ts.txt?raw';
+
+A bill in cents is split between people. Everyone pays the same share, rounded up so nobody underpays, and the last
+person pays what is left. For 1,000 cents between 3 people it gives 334, 334 and 332. But with small shares and many
+people, rounding up takes more than the whole bill before the last person is reached, and the last share is
+negative.
+
+<Code code={before} lang="ts" title="src/splitBill.ts" />
+
+See how [LemmaScript](/vs/lemmascript) finds and fixes it.

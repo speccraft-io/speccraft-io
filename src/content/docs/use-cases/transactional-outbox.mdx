@@ -1,0 +1,15 @@
+---
+title: Transactional outbox
+description: A broker retry delivers an outbox event twice, and the consumer applies the order twice.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/stifinder/before.ts.txt?raw';
+
+The order service writes the order and an outbox row in one transaction. A relay reads the row, publishes the event
+to a broker, and marks the row sent. The broker can time out after it has already delivered the message, so the
+relay retries and the event arrives twice. The consumer applies every delivery it gets:
+
+<Code code={before} lang="ts" title="src/outbox.ts" />
+
+See how [stifinder](/vs/stifinder) finds and fixes it.

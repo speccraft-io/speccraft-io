@@ -1,0 +1,15 @@
+---
+title: Percentage discount with a cap
+description: A percent over 100 makes the price negative, and both unit tests still pass.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/lean-ts/before.txt?raw';
+
+A discount function takes a percent and a cap. Tests for 20% off and for the cap both pass. But a `percent` over 100
+(two coupons used together) makes the price negative: `applyDiscount(5000, 150, 10000)` is `-2500`. A negative
+`percent` makes the price go up.
+
+<Code code={before} lang="ts" title="src/pricing.ts" />
+
+See how [Lean](/tools/lean) finds and fixes it.

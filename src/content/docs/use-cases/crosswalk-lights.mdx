@@ -1,0 +1,20 @@
+---
+title: Crosswalk lights
+description: A walk button is added to a car light, and walkers can get the walk signal while cars have green.
+---
+
+A pedestrian button is added to a car light that already cycles on its own timer. The walk signal should only be on
+while the car light is red, but granting the walk never checks the car light. Press the button while cars have green,
+and both go at once.
+
+```ts
+// spec.ts (shortened)
+{
+  name: 'grant walk',
+  // The bug: never checks that the car light is red.
+  guard: (s) => s.requested && s.walkSignal === 'dontwalk',
+  effect: (s) => ({ ...s, walkSignal: 'walk', requested: false }),
+},
+```
+
+See how [SpecCraft TS](/vs/speccraft-ts) finds and fixes it.

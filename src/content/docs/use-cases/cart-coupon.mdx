@@ -1,0 +1,15 @@
+---
+title: Cart reducer with a coupon
+description: The coupon minimum is checked only when the coupon is applied, so it stays after an item is removed.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import before from '../../../fixes/polygraph/before.ts.txt?raw';
+
+A cart reducer takes the cart and an action and returns the new cart. Every item costs 10.00, and the `SAVE5`
+coupon needs a total of at least 20.00. The minimum is checked only when the coupon is applied: add two items, apply
+the coupon, remove one item, and the coupon stays on a 10.00 cart.
+
+<Code code={before} lang="ts" title="src/cart.ts" />
+
+See how [Polygraph](/vs/polygraph) finds and fixes it.
