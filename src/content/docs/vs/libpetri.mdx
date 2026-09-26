@@ -152,6 +152,14 @@ a person are all paths the check explores, as things that may or may not happen,
 them. Neither knows how long anything takes, unless you add a clock to the TLA+ model. One thing a TLA+ model can
 cover and libpetri's check cannot is a crash and restart in the middle of a run.
 
+We checked this verdict on the two case studies on this site. In the
+[document workflow](/case-studies/config-document-workflow), the locks, the one-shot budget and the file batch are
+token flow, and libpetri could check them, but the workflow runs on Temporal, and the bugs seen in production are a
+stale result that overwrites a newer one, a workflow that never drains, and an idle exit that never comes. In the
+[SQS clone](/case-studies/node-sqs), eight of the eleven invariants compare a receive count with a limit, and the
+design error found so far was a value bug. Both need a value in the property or a rule about what must eventually
+happen, and both are checked with TLA+ and Quint.
+
 ## Links
 
 - libpetri on GitHub: https://github.com/debe/libpetri
