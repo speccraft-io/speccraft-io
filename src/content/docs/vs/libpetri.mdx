@@ -15,6 +15,7 @@ specifics:
   - 'Does not need a conformance test'
   - 'TLA+ has more capabilities for the same job'
 ---
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 [libpetri](https://github.com/debe/libpetri) replaces the async code that manages locks, pool slots and permits and
 waits for earlier results: `async-mutex`, `p-limit`, `Promise.all` and the code around them. You write the same steps,
@@ -31,7 +32,10 @@ the model and the code are one thing, in one place. What the check proves is wha
 [TLA+](/tools/tla-plus), [Quint](/tools/quint), [pnueli](/vs/pnueli) and [stifinder](/vs/stifinder) check the same
 kind of program, but on a model that you write and keep matching the code yourself.
 
-## Case study: two transfers that lock each other
+## Case studies
+
+<Tabs>
+<TabItem label="Two transfers that lock each other">
 
 Two accounts, one lock per account, and a transfer that locks the sender first, then the receiver:
 
@@ -108,6 +112,9 @@ const result = await SmtVerifier.forNet(net)
 For this net the check returns "proven". Written as two steps like the plain code, it returns the two steps to the
 hang. Both nets and the test are in
 [formal-methods-samples/libpetri-transfer](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/libpetri-transfer).
+
+</TabItem>
+</Tabs>
 
 ## Conclusion
 
