@@ -15,7 +15,7 @@ Small, self-contained case studies used on [speccraft.io](https://speccraft.io).
 - [bombadil-checkout](bombadil-checkout): A checkout page where a second click before the first reply places a second order. Checked with Bombadil.
 - [effect-machine-checkout](effect-machine-checkout): A checkout statechart where a late payment reply marks a changed cart paid. Checked with effect-machine.
 - [xstate-signup](xstate-signup): A signup where the terms can be unticked on the review page and still submitted. Checked with xstate/graph.
-- [libpetri-fan-out](libpetri-fan-out): A report that runs two queries at once, where a failed query never gives its connection back to the pool. Checked with libpetri.
+- [libpetri-transfer](libpetri-transfer): Two opposite money transfers that each lock one account and wait for the other forever. Checked with libpetri.
 
 Each one runs on its own:
 

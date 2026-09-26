@@ -1,12 +1,16 @@
 {
-  "name": "libpetri-fan-out",
+  "name": "libpetri-transfer",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "async-mutex": "0.5.0"
+  },
   "devDependencies": {
+    "@types/node": "^24.19.0",
     "libpetri": "7.0.0",
     "typescript": "^5.9.3",
     "vitest": "^5.0.1"

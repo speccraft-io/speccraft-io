@@ -12,7 +12,7 @@
       "ES2023",
       "ESNext.Collection"
     ],
-    "types": [],
+    "types": ["node"],
     "skipLibCheck": true
   },
   "include": [

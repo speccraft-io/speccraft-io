@@ -14,6 +14,36 @@ durable execution and the formal methods market.
   useful, are with the other tools on the site.
 - The `/vs/` path is kept for existing URLs; it no longer means "versus SpecCraft".
 
+## Who reads the site and how to write for them
+
+**The reader is a Node.js developer who is looking around.** They do not have a specific task, and often do not know
+they have the problem. They are not here to learn a tool or a theory. They want to see what exists, how it compares
+with everything else, and whether it is worth their time.
+
+Every tool page answers, in this order:
+
+1. **What is it?** A picture in everyday Node words (async functions, steps, a pool), not the tool's theory terms.
+2. **How does it compare** with the other tools and with what Node developers already use?
+3. **Pros and cons.** Plain, honest, no promo.
+4. **What do we recommend,** and does it look like it has a future?
+5. **Is it worth your time** to go deeper, and where to look next?
+
+Rules:
+
+- **Catch attention, guide, paint a picture.** Do not scare the reader off. No glossary, theory, arc types, proof
+  output or API details up front: they have no chance to learn them on a first visit. Detail goes lower on the page,
+  for those who stay.
+- **Do not explain Node basics** (`try/finally`, `p-limit`) and do not judge a tool against a toy bug the reader can fix
+  in one line.
+- **Every "use it when" claim names the other tools for that job and says what this tool does that they do not.** If
+  there is no such reason, drop the claim. "Pools, rate limits, budgets" alone is not a reason: many tools handle those.
+- **Plain English,** on the site and in replies to Alex (he is not a native speaker):
+  - Do NOT use fancy words on purpose for no reason.
+  - Do NOT use archaic words.
+  - Do NOT use needlessly complicated English.
+  - Do NOT use heavy jargon.
+  - Do NOT coin new words, idioms or expressions.
+  - Keep formal-methods and tool terms (invariant, model checker, counterexample), explained where first used.
 ## Stack (decided — don't relitigate)
 
 - **Astro Starlight** (`@astrojs/starlight`), static output, build dir `dist/`.

@@ -163,7 +163,6 @@ export default defineConfig({
 						{ label: 'Checkout button clicked twice', link: '/use-cases/checkout-double-click' },
 						{ label: 'Canceled plan renewed', link: '/use-cases/subscription-renewal' },
 						{ label: 'Checkout with Back', link: '/use-cases/checkout-back-button' },
-						{ label: 'Connection leak in a fan-out', link: '/use-cases/fan-out-connection-leak' },
 						{ label: 'Transactional outbox', link: '/use-cases/transactional-outbox' },
 						{ label: 'Lock with a lease', link: '/use-cases/lock-with-lease' },
 						{ label: 'Crosswalk lights', link: '/use-cases/crosswalk-lights' },
