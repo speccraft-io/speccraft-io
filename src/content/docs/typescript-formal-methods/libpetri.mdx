@@ -55,7 +55,20 @@ export async function transfer(from: 'alice' | 'bob', to: 'alice' | 'bob') {
 ```
 
 Two transfers start at the same time, Alice to Bob and Bob to Alice. The first one holds Alice and waits for Bob. The
-second one holds Bob and waits for Alice. Both wait forever, and every next transfer waits behind them. Tests rarely
+second one holds Bob and waits for Alice. Both wait forever, and every next transfer waits behind them. A test that
+starts both at once shows it:
+
+```ts
+// transfer.test.ts
+it('two opposite transfers at once never finish', async () => {
+  const both = Promise.all([transfer('alice', 'bob'), transfer('bob', 'alice')]).then(() => 'finished');
+  const timeout = new Promise((resolve) => setTimeout(resolve, 100, 'still waiting'));
+  expect(await Promise.race([both, timeout])).toBe('still waiting');
+});
+```
+
+The test passes: after 100 ms the transfers are still waiting. Written the other way round, as the test one would
+write first, "two transfers at once both finish", it fails. Tests rarely
 catch this, the one-line fix (lock in a fixed order) works only while the code is this small, and with locks, pool
 slots and permits used together in ten places by five people it stops working.
 
