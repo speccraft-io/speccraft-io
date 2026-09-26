@@ -7,3 +7,5 @@ and as a libpetri net, which the check proves stuck and, once fixed, never stuck
 npm install
 npm test
 ```
+
+`npm run hang` runs the natural test, "two transfers at once both finish", which times out.

@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --exclude transfer.hang.test.ts",
+    "hang": "vitest run transfer.hang.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
