@@ -16,7 +16,8 @@ TypeScript (`async-mutex`, ~10 lines), why tests miss it, the libpetri net, the 
 
 ## Facts
 
-- A step takes all its inputs at once, so "take both locks" is one step and the lock-order bug cannot be written.
+- A step takes all its inputs at once, so "take both locks" is naturally one step, and such a net has no lock order to
+  get wrong. The bug can still be written as two steps (the sample's net.ts does), and then the check finds it.
 - The check runs on the net that runs in production; no separate model. Small nets need no z3.
 - Step bodies stay ordinary async functions; only the wiring moves into the net.
 - Good fit: steps waiting for shared things (locks, pools, worker slots, joins); the code that decides what runs next
@@ -25,8 +26,10 @@ TypeScript (`async-mutex`, ~10 lines), why tests miss it, the libpetri net, the 
 - pnueli: protocols, "eventually" rules, model next to the code. stifinder: crashes and retries, model next to the
   code. Polygraph: existing reducers, LLM writes the model, values, experimental.
 - Limits: ~4x more code than plain TS; the checker trusts each step's declared inputs and outputs; young, one author.
-- Future: production at Otto; Java, TypeScript, Rust, Python from one spec; Lean proofs; a coding-agent skill for
-  designing nets.
+- Already there, not future (checked against the repo on 2026-09-26): Java, TypeScript and Rust marked production and
+  Python beta, all from one language-agnostic spec; Lean proofs of the checker's untimed view (timed part is future
+  work); a Claude Code skill for designing nets. Otto: the site's practitioners page says it runs Otto's production
+  commerce assistant; the repo does not mention Otto.
 
 ## Alex's remarks
 

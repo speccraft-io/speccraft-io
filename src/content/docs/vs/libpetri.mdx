@@ -1,7 +1,198 @@
 ---
 title: libpetri
+description: libpetri runs a program as steps that each take everything they need at once, and checks every order the steps can run in. This page shows it on two money transfers that lock each other, and says when to pick it and when to pick another tool.
+tableOfContents: true
 adoption:
   github: debe/libpetri
   npm: 'libpetri'
   created: 2026-02-27
+useCases:
+  - 'Steps waiting for shared things: locks, pools, worker slots, joins'
+requires:
+  - 'z3 (big nets only)'
 ---
+
+[libpetri](https://github.com/debe/libpetri) is a library for the part of a Node program that decides what runs next:
+a job runner, an agent loop, a workflow engine. You write the work as steps. Each step says what it needs (a lock, a
+pool slot, an earlier result), takes all of it when it is there, runs an ordinary async function, and hands back what
+the next steps need. The library picks which step runs next.
+
+It is built against the hang: two steps each hold something and wait for the other, and the program stops with no
+error. A built-in check walks every order the steps can run in and says whether that can happen. It runs on the same
+steps that run in production, so there is no model to keep in sync.
+
+The wiring is a Petri net. You do not need the theory; the code below is all there is.
+
+## The problem, in plain TypeScript
+
+A bank moves money between accounts. Each account has a lock. A transfer locks the sender, then the receiver:
+
+```ts
+// transfer.ts
+import { Mutex } from 'async-mutex';
+
+export const locks = { alice: new Mutex(), bob: new Mutex() };
+
+export async function transfer(from: 'alice' | 'bob', to: 'alice' | 'bob') {
+  await locks[from].runExclusive(() =>
+    locks[to].runExclusive(() => {
+      // move the money
+    }),
+  );
+}
+```
+
+Two transfers start at once, Alice to Bob and Bob to Alice. The first holds Alice and waits for Bob. The second holds
+Bob and waits for Alice. Both wait forever, and every later transfer queues behind them.
+
+Tests miss it because nobody writes the one that catches it: two calls at the same moment, in opposite directions. One
+at a time, `transfer` always works. In production it is a worker that stops taking jobs and nobody knows why.
+
+The fix here is one line: lock the accounts in a fixed order. It is not one line in a runner with twenty steps and
+five kinds of shared things, where the order is spread over many files and the next change breaks it.
+
+## The same transfers as libpetri steps
+
+Full code: [formal-methods-samples/libpetri-transfer](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/libpetri-transfer). A `place` is a slot that holds values; an account's
+place holds one value while its lock is free. A `Transition` is a step; it runs when every place it takes from has a
+value.
+
+```ts
+// net.ts
+import { PetriNet, Transition, and, one, outPlace, place } from 'libpetri';
+
+export const alice = place<string>('alice');
+export const bob = place<string>('bob');
+export const done = place<string>('done');
+
+function transfer(from: typeof alice, to: typeof alice) {
+  const waiting = place<string>(`${from.name} to ${to.name}`);
+  const holding = place<string>(`${from.name} to ${to.name}, holding ${from.name}`);
+
+  const lockFrom = Transition.builder(`${from.name} to ${to.name}: lock ${from.name}`)
+    .inputs(one(waiting), one(from))
+    .outputs(outPlace(holding))
+    .action(async (ctx) => {
+      ctx.output(holding, ctx.input(waiting));
+    })
+    .build();
+
+  // The bug: it holds `from` while it waits for `to`.
+  const lockToAndMove = Transition.builder(`${from.name} to ${to.name}: lock ${to.name}, move`)
+    .inputs(one(holding), one(to))
+    .outputs(and(outPlace(from), outPlace(to), outPlace(done)))
+    .action(async (ctx) => {
+      // move the money, then free both locks
+      ctx.output(from, from.name);
+      ctx.output(to, ctx.input(to));
+      ctx.output(done, ctx.input(holding));
+    })
+    .build();
+
+  return { waiting, steps: [lockFrom, lockToAndMove] };
+}
+
+export const aliceToBob = transfer(alice, bob);
+export const bobToAlice = transfer(bob, alice);
+
+export const net = PetriNet.builder('transfers')
+  .transitions(...aliceToBob.steps, ...bobToAlice.steps)
+  .build();
+```
+
+Same bug, as two steps per transfer: lock the sender, then lock the receiver and move. The step bodies are ordinary
+async functions. Only the wiring moved into the net.
+
+The check is a few lines in a normal test. Start: one transfer waiting each way, both accounts free. Rule: the net
+never gets stuck.
+
+```ts
+// transfer.test.ts
+const result = await SmtVerifier.forNet(net)
+  .initialMarking((b) => b.tokens(aliceToBob.waiting, 1).tokens(bobToAlice.waiting, 1).tokens(alice, 1).tokens(bob, 1))
+  .property(deadlockFree())
+  .sinkPlaces(alice, bob, done)
+  .verify();
+```
+
+```text
+{ type: 'violated' } [ 'alice to bob: lock alice', 'bob to alice: lock bob' ]
+```
+
+Two steps and the net is stuck. The check tried every order of the four steps. It took a few milliseconds and needed
+no extra install; only big nets need z3.
+
+The fix is one step per transfer:
+
+```ts
+// net.fixed.ts
+  // The fix: one step takes both locks at once, or waits for both.
+  const lockBothAndMove = Transition.builder(`${from.name} to ${to.name}: lock both, move`)
+    .inputs(one(waiting), one(from), one(to))
+    .outputs(and(outPlace(from), outPlace(to), outPlace(done)))
+    .action(async (ctx) => {
+      // move the money, then free both locks
+      ctx.output(from, ctx.input(from));
+      ctx.output(to, ctx.input(to));
+      ctx.output(done, ctx.input(waiting));
+    })
+    .build();
+```
+
+```text
+{ type: 'proven', method: 'state-space enumeration (VER-017)' }
+```
+
+This is the part that is hard to see. A step takes all its inputs at once or waits for all of them, and gives nothing
+up while it waits. So "lock both accounts" is naturally one step, and such a net has no lock order to get wrong. Split
+it in two, as the first net does, and the check finds it.
+
+## Where it fits, and where it does not
+
+It replaces the async code inside one process that hands out locks, pool slots and permits and waits on earlier
+results: `async-mutex`, `p-limit`, `Promise.all` and the code around them. That code is shorter and everyone knows it.
+What it cannot do is prove it never gets stuck. libpetri can, in a test, on the wiring that runs. That is the only
+thing it adds.
+
+Our recommendation: keep the code you have. Pick libpetri for a new step runner with several kinds of shared things,
+steps that wait on several earlier steps, and other people adding steps later. There the check pays for the extra
+code. Anywhere smaller, it does not.
+
+Not for:
+
+- **Time.** The runtime has delays and deadlines; the check ignores them. Debounce, retry with backoff and rate limits
+  get nothing from it. Use [fake timers](/vs/other-ts-tools) for one order you pick, the [fast-check](/vs/fast-check)
+  scheduler for many orders, and [stifinder](/vs/stifinder) for retries and crashes.
+- **Values and math.** A negative balance is not a question about the net. Use [fast-check](/vs/fast-check) or
+  [Hegel](/vs/hegel).
+- **Code you already have.** Moving it into a net costs more than it gives.
+- **A straight chain of awaits.** Nothing can run in the wrong order, so there is nothing to check.
+
+## Which tool instead
+
+- [pnueli](/vs/pnueli): protocols between several parties, or "eventually" rules (every node gets its turn). A model
+  next to the code.
+- [stifinder](/vs/stifinder): crashes and retries, what happens if the process dies between two steps. A model next
+  to the code.
+- [Polygraph](/vs/polygraph): existing reducers and values; an LLM writes the model. Experimental.
+- libpetri: the code that runs is what gets checked, and the fear is steps waiting for each other.
+
+## Costs, and what is easy to miss
+
+- **More code.** About four times plain TypeScript.
+- **The checker trusts the declarations.** It sees only the `inputs` and `outputs` lines. What a step body touches
+  without declaring, the check does not see.
+- **One author.** Almost every commit is Dennis Berger's. It runs Otto's production commerce assistant, so it has met
+  real load. If he stops, it stops.
+
+Easy to miss from the npm page: the TypeScript library is one of four. Java, TypeScript and Rust are marked
+production and Python beta, all from one spec, so one net design runs in a Java service and a Node service the same
+way. The repo also has Lean proofs that the checker's untimed view covers everything the runtime can do (the timed
+part is future work), and a Claude Code skill for designing nets. No other tool on this site runs one design in four
+languages.
+
+## Links
+
+- libpetri on GitHub: https://github.com/debe/libpetri
+- libpetri on npm: https://www.npmjs.com/package/libpetri
+- The sample: [formal-methods-samples/libpetri-transfer](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/libpetri-transfer)
