@@ -122,6 +122,9 @@ How libpetri compares with the larger, well-known tools for the same job: it is 
 better choice, for several reasons.
 
 1. A separate model is not only a cost: it helps you think, and writing it is where you find the design mistakes.
+   In the model you are free to use any data types you want, records, sets, sequences, and to leave out what does
+   not matter. And the code stays free too: you write it with the tools your team already knows, not with the
+   constructs the checker needs.
 2. TLA+ and Quint are far more widespread, more useful as modeling tools, and far more production ready.
 3. TLA+ covers far more: any system as state and next state, protocols, agreement between nodes, and rules about
    what must eventually happen. libpetri checks only programs that fit its shape, steps that take things from
