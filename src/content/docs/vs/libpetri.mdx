@@ -1,6 +1,6 @@
 ---
 title: libpetri
-description: libpetri is a coloured time Petri net runtime for TypeScript, Java and Rust. The net is the program that runs, and the same net is checked for deadlocks, bounds and leaks before it runs. This page walks through using it on a report that leaks a pool connection, and sets out its strengths and limits.
+description: libpetri lets you write async code as a graph of steps, runs it, and checks the same graph for leaks and waits that never end. This page walks through using it on a report that leaks a pool connection, and sets out its strengths and limits.
 tableOfContents: true
 adoption:
   github: debe/libpetri
@@ -20,12 +20,14 @@ import after from '../../../fixes/libpetri/after.ts.txt?raw';
 import Short from '../../../components/Short.astro';
 import Full from '../../../components/Full.astro';
 
-[libpetri](https://github.com/debe/libpetri) runs [Petri nets](/concepts/petri-nets) as programs. Places hold typed
-tokens, transitions run async actions, and arcs say what each transition takes and gives. The runtime executes the
-net, and the same net goes to a checker: deadlock freedom, mutual exclusion, place bounds, and token counts at rest.
-There is no separate model to keep in sync with the code.
+[libpetri](https://github.com/debe/libpetri) is a library for writing async code as a graph of steps. You say what
+each step needs before it can run, and what it hands on when it is done. libpetri runs the graph as your real code.
+It can also check the same graph before it runs, for example that a connection taken from a pool always comes back,
+or that nothing waits forever.
 
-<Short>The net is both the program and the model. Here: a report whose failed query never gives its connection back.</Short>
+You do not keep a separate model next to the code: the graph is the code.
+
+<Short>You write the flow as a graph of steps; libpetri runs it and checks it. Here: a report whose failed query never gives its connection back.</Short>
 
 ## Using libpetri
 
@@ -42,7 +44,7 @@ The bug is the one a missing `finally` causes: the connection goes back only whe
 throws, its connection is gone. A report needs two connections, so after one failure the next report never starts,
 and nothing reports an error.
 
-The rule: once nothing can run, both connections are back in the pool.
+The rule: when there is nothing left to do, both connections are back in the pool.
 
 ### Install and set up
 
@@ -51,23 +53,25 @@ npm install libpetri
 brew install z3   # or any z3 4.8.0+ on PATH
 ```
 
-The runtime has no dependencies. The checker runs the `z3` executable as a separate process. Small nets like this one
-are decided without it (see [Running it](#running-it)).
+The checker uses the `z3` solver for big graphs. This graph is small, so it is checked without z3 (see
+[Running it](#running-it)).
 
-### Writing the net
+### Writing the flow
 
-<Short>Places are typed; a transition says its inputs and outputs, then runs an async action.</Short>
+<Short>A slot holds values. A step says which slots it reads from and writes to, then runs an async function.</Short>
 
 ```ts
 // report.ts (shortened)
+// A "place" is a slot that holds values: pending requests, free connections, results.
 export const requests = place<string>('requests');
-export const pool = place<Conn>('pool');
-export const ordersJob = place<Conn>('ordersJob');
+export const pool = place<Conn>('pool');           // the free connections
+export const ordersJob = place<Conn>('ordersJob'); // a connection in use by the orders query
 export const ordersRows = place<string[]>('ordersRows');
 export const failed = place<Error>('failed');
 // ... invoicesJob, invoicesRows, reports, errors
 
-// Take two connections and start both queries.
+// A "transition" is a step. It runs when every slot it reads from has a value.
+// This one takes a request and two free connections, and starts both queries.
 const start = Transition.builder('start')
   .inputs(one(requests), exactly(2, pool))
   .outputs(and(outPlace(ordersJob), outPlace(invoicesJob)))
@@ -79,24 +83,25 @@ const start = Transition.builder('start')
   .build();
 ```
 
-Each query is a transition. `xor` means the action writes to exactly one of the branches:
+Each query is a step too. `xor` means the step writes to one of two places: the rows on success, the error on
+failure.
 
 <Code code={before} lang="ts" title="report.ts" />
 
-`finish` joins the two row sets into a report, and `fail` turns a failed query into an error. After `start` fires,
-both queries are enabled and their promises run at the same time.
+`finish` puts the two results into a report, and `fail` turns a failed query into an error. After `start`, both
+queries can run, and their promises run at the same time.
 
 ### Running it
 
-<Short>One call, 3 ms: a 4-step trace ends with one connection in the pool and one report that can never start.</Short>
+<Short>One call, 3 ms: four steps end with one connection in the pool and a report that can never start.</Short>
 
-The check is a call in a test. `quiescentCount([pool], 2, 2)` says: in every state where nothing can fire, the pool
-holds exactly two tokens.
+The check is a call in a test. `quiescentCount([pool], 2, 2)` is the rule: whenever there is nothing left to run,
+the pool holds exactly two connections.
 
 ```ts
 // report.libpetri.test.ts (shortened)
 const result = await SmtVerifier.forNet(reportNet(db))
-  .initialMarking((m) => m.tokens(requests, 2).tokens(pool, 2))
+  .initialMarking((m) => m.tokens(requests, 2).tokens(pool, 2)) // start: 2 requests, 2 free connections
   .property(quiescentCount([pool], 2, 2))
   .verify();
 
@@ -104,7 +109,7 @@ result.verdict;                   // { type: 'violated' }
 result.counterexampleTransitions; // [ 'start', 'queryInvoices', 'queryOrders', 'fail' ]
 ```
 
-The trace, one marking per step:
+The steps that break the rule, with how many values each slot holds after each step:
 
 ```text
 {pool:2, requests:2}
@@ -114,11 +119,11 @@ The trace, one marking per step:
 {errors:1, invoicesRows:1, pool:1, requests:1}
 ```
 
-The last state is stuck: the second request needs two connections and the pool has one. The net has 48 reachable
-states, so libpetri decided it by walking all of them, with no solver: "sound AND complete: a `violated` is a real
-firing sequence". With enumeration turned off (`.enumerationMaxClasses(0)`), Z3 finds the same trace in 35 ms.
+The last line is stuck: the second request needs two connections and the pool has one. The graph has only 48 possible
+states, so libpetri tried all of them, without z3. With that turned off (`.enumerationMaxClasses(0)`), z3 finds the
+same steps in 35 ms.
 
-The test also runs the real net, with a database whose invoices query throws. It ends the same way the trace does:
+The test also runs the real code, with a database whose invoices query throws. It ends the same way:
 
 ```ts
 const result = await new BitmapNetExecutor(reportNet(failingDb), initialTokens).run();
@@ -128,13 +133,13 @@ result.tokenCount(requests); // 1, never started
 
 ### Fixing the bug
 
-<Short>Give the connection back on both branches. Proven in 4 ms, and the report names the invariant "every connection is in the pool or in a job".</Short>
+<Short>Give the connection back on failure too. Proven in 4 ms, and the report says why: every connection is in the pool or in use by a query.</Short>
 
 The failure branch gives the connection back too:
 
 <CodeFix before={before} after={after} title="report.ts" />
 
-The same check now returns `proven`. On the Z3 route, the report shows why:
+The same check now returns `proven`. With z3, the report also shows why:
 
 ```text
 Phase 3: Computing P-invariants...
@@ -146,21 +151,22 @@ Phase 3: Computing P-invariants...
 PROVEN (state equation): Quiescent count: exactly 2 across {pool}
 ```
 
-`invoicesJob + ordersJob + pool = 2` is the rule in one line: every connection is either in the pool or held by a
-running query. In the buggy net the same line had `failed` and `errors` in it, so a connection could end up there.
+The line `invoicesJob + ordersJob + pool = 2` is a sum that never changes: every connection is either in the pool or
+in use by a query. In the buggy version the same sum also had `failed` and `errors` in it, so a connection could end up
+there and never come back.
 
 ## Project layout and CI
 
-<Short>The net is the code. Commit it and the test; CI runs Vitest. Install z3 in CI once nets grow past enumeration.</Short>
+<Short>The graph is the code. Commit it and the test; CI runs Vitest. Install z3 in CI once graphs get big.</Short>
 
 ```text
 ./
 ├── .github/workflows/ci.yml
-├── report.ts                 the net: places, transitions, actions
-└── report.libpetri.test.ts   runs the net and checks it
+├── report.ts                 the flow: slots, steps and their functions
+└── report.libpetri.test.ts   runs the flow and checks it
 ```
 
-Nothing is generated. The test checks the net that runs in production, so there is no model to drift from the code.
+Nothing is generated. The test checks the same code that runs in production.
 
 <details>
 <summary>The CI workflow: <code>.github/workflows/ci.yml</code> (7 lines)</summary>
@@ -179,55 +185,63 @@ Nothing is generated. The test checks the net that runs in production, so there 
 
 What fails when:
 
-- **A connection can be lost, or a request can wait forever:** the verification test, with the firing sequence.
-- **z3 is missing on a net too big to enumerate:** the verdict is `unknown`, with a reason naming the command. Check
-  for `proven`, not for "not violated".
-- **An action throws instead of writing an output:** the run test. The checker does not look inside actions.
+- **A connection can be lost, or a request can wait forever:** the check, with the steps that lead there.
+- **z3 is missing and the graph is too big to try every state:** the verdict is `unknown`, with the reason. Test for
+  `proven`, not for "not violated".
+- **A step's function throws instead of writing a result:** the run test. The checker does not read the code inside
+  the functions.
 
 ## Making changes
 
-<Short>Change the net, run the test, commit.</Short>
+<Short>Change the flow, run the test, commit.</Short>
 
-1. Change the net: a new place, arc or transition.
-2. If an action changes, check it still writes to the outputs its arcs declare. The checker trusts the arcs.
-3. Add a property for any new rule: a bound, a mutual exclusion, a count at rest.
+1. Change the flow: a new slot or step, or what a step reads and writes.
+2. If a step's function changes, check it still writes to the places the step says it writes to. The checker trusts
+   what the step says.
+3. Add a rule for anything new: a limit on a slot, two slots that must never both hold a value, a count when nothing
+   is left to run.
 4. Run `npm test`.
 
 <Full>
 
 ## Strengths
 
-- **The net is the program.** The checked net is the one that runs, so a proof is about the real control flow, not a
-  copy of it.
-- **Resources are visible.** A pool, a budget or a permit is a place with tokens. Leaks and waits that never end
-  become properties you can check.
-- **Proofs come with a reason.** A proven result can name the invariant, like "every connection is in the pool or in
-  a job".
-- **Small nets need no solver.** Under the enumeration limit the checker walks every state and gives real traces.
+- **The checked code is the running code.** There is no copy to keep in sync.
+- **Pools and limits are visible.** A pool, a budget or a permit is a slot with a number of values. A leak or a wait
+  that never ends breaks a rule you can check.
+- **A proof says why.** A proven result can show the sum that never changes, like "every connection is in the pool or
+  in use".
+- **Small graphs need no solver.** The checker tries every state and shows the real steps.
 - **Used in production.** It runs the author's production commerce assistant at Otto.
-- **Well checked itself.** The same spec is implemented in Java, TypeScript and Rust, each with conformance tests. Lean
-  proofs cover how the checker's abstraction relates to the runtime.
+- **Checked itself.** The same spec is built in Java, TypeScript and Rust, each with its own tests. Proofs in Lean
+  show the checker does not miss what the runtime can do.
 
 ## Limitations
 
-- **You write the program as a net.** Existing `async` code has to be rewritten as places and transitions. That is a
-  bigger change than adding a spec next to the code.
-- **Actions are trusted.** The checker reads arcs, not the code inside actions. An action that skips an output it
-  declares is caught only by running it.
-- **Values are not checked.** The checker counts tokens and ignores their values and timing. A proof without timing
-  holds with timing, but a counterexample can be one that timing rules out.
-- **A new way of thinking.** Places, arcs, inhibitors and XOR outputs take time to learn if you have not used Petri
-  nets.
-- **Large nets need z3** installed on the machine and in CI.
+- **You write the flow as a graph.** Existing `async` code has to be rewritten as slots and steps. That is a bigger
+  change than adding a spec next to the code.
+- **The checker trusts each step.** It reads what a step says it reads and writes, not the code inside it. A function
+  that skips a write it promised is caught only by running it.
+- **Values and time are not checked.** The checker counts how many values each slot holds, not what they are, and
+  ignores timeouts. A proof still holds with timeouts, but a failing trace can be one that a timeout would stop.
+- **New terms to learn.** Places, transitions, and the kinds of inputs and outputs take time if you have not used
+  [Petri nets](/concepts/petri-nets).
+- **Big graphs need z3** on your machine and in CI.
 
 ## Links
 
-- Built by [Dennis Berger](https://www.linkedin.com/in/deb3rg/), a staff-level engineer at Otto, where it runs a
-  production commerce assistant. On GitHub since February 2026.
-- It also replaces the scheduling core of [n8n](https://n8n.io) and of Google ADK Java with a net (`n8n-libpetri`,
-  `adk-libpetri`), and ships a coding-agent skill for designing nets.
+- Built by [Dennis Berger](https://www.linkedin.com/in/deb3rg/), a staff-level engineer at Otto.
 - libpetri on GitHub: https://github.com/debe/libpetri
 - libpetri on npm: https://www.npmjs.com/package/libpetri
 - The specification: https://github.com/debe/libpetri/blob/main/spec/00-index.md
+
+Public repos that use libpetri. Both are the author's own opt-in add-ons that swap a host's scheduling loop for a net;
+neither n8n nor Google ships them. No other public repo was found that depends on libpetri (GitHub code search, the
+GitHub dependents page and the npm, crates.io and Maven registries, September 2026):
+
+- n8n-libpetri, n8n's workflow scheduler run as a net (two small patches; with nothing registered, n8n runs its own
+  loop): https://github.com/debe/n8n-libpetri
+- adk-libpetri, Google ADK Java's orchestration core as a net, with both demo nets proved deadlock-free on every
+  build: https://github.com/debe/adk-libpetri
 
 </Full>
