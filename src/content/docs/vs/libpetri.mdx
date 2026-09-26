@@ -152,9 +152,8 @@ a person are all paths the check explores, as things that may or may not happen,
 them. Neither knows how long anything takes, unless you add a clock to the TLA+ model. One thing a TLA+ model can
 cover and libpetri's check cannot is a crash and restart in the middle of a run.
 
-We checked this verdict on two real systems on this site, the
-[document workflow](/case-studies/config-document-workflow) and the [SQS clone](/case-studies/node-sqs). In both,
-the rules that matter are about values: which of two results is newer, how many times a message was received
+Two real systems on this site, the [document workflow](/case-studies/config-document-workflow) and the
+[SQS clone](/case-studies/node-sqs), show the same thing. In both, the rules that matter are about values: which of two results is newer, how many times a message was received
 against a limit that can change. libpetri's check does not see values. Both also have rules about what must
 eventually happen, which libpetri does not have. For both, TLA+ or Quint is the right tool. libpetri is not.
 
