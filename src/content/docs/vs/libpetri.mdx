@@ -154,10 +154,12 @@ cover and libpetri's check cannot is a crash and restart in the middle of a run.
 
 Two real systems on this site show where the line is. The
 [document workflow](/case-studies/config-document-workflow) has locks, a one-time AI call and an upload batch, all
-things libpetri can check. Its real bugs were different: an old result overwrote a newer one, and a workflow never
-finished. libpetri cannot see either. In the [SQS clone](/case-studies/node-sqs), almost every rule is about a
-number, such as how many times a message was received against its limit, and libpetri does not look at numbers.
-Both are modeled with TLA+ and Quint, and the pages show how.
+things libpetri can check. But its bugs were not lock bugs. Two file-processing runs overlapped and the older one
+saved its result last, so the user saw stale files. And the workflow waited for background work that nobody was
+going to finish, so it never ended. libpetri cannot check either: the first is about which result is newer, the
+second is about something that must eventually happen. In the [SQS clone](/case-studies/node-sqs), almost every
+rule is about a number, such as how many times a message was received against its limit, and libpetri does not look
+at numbers. Both are modeled with TLA+ and Quint, and the pages show how.
 
 ## Links
 
