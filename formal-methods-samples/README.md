@@ -16,6 +16,7 @@ Small, self-contained case studies used on [speccraft.io](https://speccraft.io).
 - [effect-machine-checkout](effect-machine-checkout): A checkout statechart where a late payment reply marks a changed cart paid. Checked with effect-machine.
 - [xstate-signup](xstate-signup): A signup where the terms can be unticked on the review page and still submitted. Checked with xstate/graph.
 - [libpetri-transfer](libpetri-transfer): Two opposite money transfers that each lock one account and wait for the other forever. Checked with libpetri, and with petri-ts for comparison.
+- [libpetri-retry](libpetri-retry): A checkout that retries the order API after a timeout while the first call is still running, so one checkout makes two orders. Checked with libpetri.
 
 Each one runs on its own:
 

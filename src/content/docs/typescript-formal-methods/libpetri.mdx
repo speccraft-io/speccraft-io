@@ -1,6 +1,6 @@
 ---
 title: libpetri
-description: libpetri replaces the code around async-mutex, p-limit and Promise.all with steps that declare what they take, and proves in a test that they never hang. This page shows it on two money transfers that lock each other.
+description: libpetri replaces the code around async-mutex, p-limit and Promise.all with steps that declare what they take, and proves in a test that they never hang. This page shows it on two money transfers that lock each other and on a checkout that retries after a timeout.
 tableOfContents: true
 adoption:
   github: debe/libpetri
@@ -127,6 +127,120 @@ const result = await SmtVerifier.forNet(net)
 For this net the check returns "proven". Written as two steps like the plain code, it returns the two steps to the
 hang. Both nets and the test are in
 [formal-methods-samples/libpetri-transfer](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/libpetri-transfer).
+
+</TabItem>
+<TabItem label="A retry that orders twice">
+
+A checkout gives the order API five seconds, then tries again:
+
+```ts
+// order.ts
+export async function placeOrder(api: Api, cart: string, timeoutMs = 5_000) {
+  try {
+    return await withTimeout(api.createOrder(cart), timeoutMs);
+  } catch {
+    return await api.createOrder(cart); // the first call may still finish: two orders
+  }
+}
+```
+
+The timeout gives up on the first call, but the API is still working on it. The retry makes a second order, and the
+first one lands a moment later. A test with a slow API shows it:
+
+```ts
+// order.double.test.ts
+it('one checkout, one order', async () => {
+  const { api, orders } = fakeApi(30);
+  await placeOrder(api, 'cart-1', 10);
+  await new Promise((r) => setTimeout(r, 50));
+  expect(orders).toHaveLength(1);
+});
+```
+
+```text
+ × one checkout, one order 99ms
+AssertionError: expected [ 'cart-1', 'cart-1' ] to have a length of 1 but got 2
+```
+
+Tests miss this when the API is fast, which is every test run but the one in production at 3 am.
+
+### In libpetri
+
+The checkout is three steps: send, retry after the timeout, and the API creating the order. The API call is its own
+step because the second order is made there.
+
+```ts
+// net.fixed.ts
+import { PetriNet, Transition, and, delayed, one, outPlace, place } from 'libpetri';
+import type { Api } from './api.js';
+
+export const requests = place<string>('requests');
+export const waiting = place<string>('waiting');
+export const pending = place<string>('pending');
+export const key = place<string>('key'); // the idempotency key, not used yet
+export const orders = place<string>('orders');
+export const ignored = place<string>('ignored');
+
+export function checkoutNet(api: Api, timeoutMs: number) {
+  const send = Transition.builder('send')
+    .inputs(one(requests))
+    .outputs(and(outPlace(waiting), outPlace(pending), outPlace(key)))
+    .action(async (ctx) => {
+      ctx.output(waiting, ctx.input(requests));
+      ctx.output(pending, ctx.input(requests));
+      ctx.output(key, ctx.input(requests));
+    })
+    .build();
+
+  const retry = Transition.builder('retry')
+    .inputs(one(waiting))
+    .outputs(outPlace(pending))
+    .timing(delayed(timeoutMs))
+    .action(async (ctx) => {
+      ctx.output(pending, ctx.input(waiting));
+    })
+    .build();
+
+  // Creating an order uses up the key.
+  const create = Transition.builder('create')
+    .inputs(one(pending), one(key))
+    .outputs(outPlace(orders))
+    .action(async (ctx) => {
+      ctx.output(orders, await api.createOrder(ctx.input(pending)));
+    })
+    .build();
+
+  // A call with a used key makes no order.
+  const duplicate = Transition.builder('duplicate')
+    .inputs(one(pending))
+    .inhibitor(key)
+    .outputs(outPlace(ignored))
+    .action(async (ctx) => {
+      ctx.output(ignored, ctx.input(pending));
+    })
+    .build();
+
+  return PetriNet.builder('checkout').transitions(send, retry, create, duplicate).build();
+}
+```
+
+The check: one checkout never makes more than one order.
+
+```ts
+// order.test.ts
+const result = await SmtVerifier.forNet(m.checkoutNet(fakeApi(0).api, 10))
+  .initialMarking((b) => b.tokens(m.requests, 1))
+  .property(placeBound(m.orders, 1))
+  .verify();
+```
+
+For this net the check returns "proven". Written without the key, as the plain code works, it returns the steps to
+the second order: `send, retry, create, create`. Running that net with a slow API makes two orders, as the plain
+code does.
+
+The point that is easy to miss: the fix is not in the checkout. It is the API making one order per key, and the
+check can prove it only because the API's side is in the net too. Both nets and the tests are in
+[formal-methods-samples/libpetri-retry](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/libpetri-retry).
 
 </TabItem>
 </Tabs>
