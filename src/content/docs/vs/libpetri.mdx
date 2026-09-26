@@ -153,12 +153,12 @@ them. Neither knows how long anything takes, unless you add a clock to the TLA+ 
 cover and libpetri's check cannot is a crash and restart in the middle of a run.
 
 We checked this on two real systems on this site. The
-[document workflow](/case-studies/config-document-workflow) needs two things proven: when two file-processing runs
-overlap, the newer result is the one that is saved, and the workflow always ends once the user is done. The first
-is a rule about which result is newer. The second is a rule about something that must eventually happen. libpetri
-checks neither. The [SQS clone](/case-studies/node-sqs) needs rules about numbers proven, for example that a
-message is never received more times than its limit. libpetri does not check numbers. For both systems libpetri is
-the wrong tool. TLA+ or Quint is the tool for both.
+[document workflow](/case-studies/config-document-workflow) runs on Temporal, so libpetri cannot be its runtime,
+and a libpetri model written on the side has no advantage over a TLA+ one. It would also miss the rule that when
+two file-processing runs overlap the newer result is the one saved, because libpetri's check ignores what a token
+carries. The [SQS clone](/case-studies/node-sqs) is already checked with TLC. Most of its rules compare a message's
+receive count with a limit that can change, and three say what must eventually happen under fairness. libpetri can
+encode the counts by hand and has no fairness rules. For both systems TLA+ or Quint is the tool. libpetri is not.
 
 ## Links
 
