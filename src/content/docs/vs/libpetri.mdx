@@ -152,13 +152,15 @@ a person are all paths the check explores, as things that may or may not happen,
 them. Neither knows how long anything takes, unless you add a clock to the TLA+ model. One thing a TLA+ model can
 cover and libpetri's check cannot is a crash and restart in the middle of a run.
 
-We checked this on two real systems on this site. The
-[document workflow](/case-studies/config-document-workflow) runs on Temporal, so libpetri cannot be its runtime,
-and a libpetri model written on the side has no advantage over a TLA+ one. It would also miss the rule that when
-two file-processing runs overlap the newer result is the one saved, because libpetri's check ignores what a token
-carries. The [SQS clone](/case-studies/node-sqs) is already checked with TLC. Most of its rules compare a message's
-receive count with a limit that can change, and three say what must eventually happen under fairness. libpetri can
-encode the counts by hand and has no fairness rules. For both systems TLA+ or Quint is the tool. libpetri is not.
+We checked this on two real systems on this site. In the
+[document workflow](/case-studies/config-document-workflow), the locks, the one-time AI call and the upload batches
+can be written as a net and checked. The rules that matter most cannot: when two file-processing runs overlap, the
+newer result is the one saved, and a workflow that is waiting for a step that may never come still ends. The first
+needs the check to look at what a token carries, and libpetri's check does not. The second needs a fairness rule,
+and libpetri has none. The [SQS clone](/case-studies/node-sqs) is already checked with TLC. Most of its rules
+compare a message's receive count with a limit that can change, and three say what must eventually happen under
+fairness. libpetri can encode the counts by hand and has no fairness rules. For both systems TLA+ or Quint is the
+tool. libpetri is not.
 
 ## Links
 
