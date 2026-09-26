@@ -30,6 +30,9 @@ Every tool page answers, in this order:
 
 Rules:
 
+- **The first sentence names what the reader already uses and what the tool replaces or adds to it** ("replaces
+  `async-mutex`, `p-limit` and the code around them"). Never open with what the tool is made of or how it works.
+  Every later paragraph passes the same test: does it start from the reader's code, or from the tool?
 - **Catch attention, guide, paint a picture.** Do not scare the reader off. No glossary, theory, arc types, proof
   output or API details up front: they have no chance to learn them on a first visit. Detail goes lower on the page,
   for those who stay.
@@ -37,6 +40,27 @@ Rules:
   in one line.
 - **Every "use it when" claim names the other tools for that job and says what this tool does that they do not.** If
   there is no such reason, drop the claim. "Pools, rate limits, budgets" alone is not a reason: many tools handle those.
+  Name only tools at the same layer: a tool that does a different job (a durable execution engine next to an
+  in-process library) is not an alternative and does not belong on the page.
+- **Every "not for" item says what to use instead,** with a link to that tool's page on the site.
+- **Every "best", "only" or "no other" names the set it was compared against, in the same sentence or the next.**
+  A true claim with a hidden qualifier ("best, checked on the code itself" while TLA+ is stronger on a model) reads as
+  a lie once the reader finds the qualifier.
+- **The recommendation is a verdict from our research:** is it the best tool for its job? Sometimes, and then when
+  exactly; or never, and then say so. A description of a good fit is not a verdict. "Spend an hour on it if..." and
+  "run this test on your code" are not either.
+- **Each point once.** Do not say the same thing under "good fit", "how it compares", "other tools", "strengths" and
+  "limits". Pick the one place.
+- **State only what is hard to infer.** The adoption box already shows the age, stars and author count; the text does
+  not repeat them. "Young, one author" is obvious; "runs a named company's production system" is not.
+- **The example:** the smallest case that fits the tool. Start with standard-looking plain TypeScript for the same
+  problem, then the product case and what is hard about it, then why tests miss it, then the tool's version, the
+  check with its real output, and the fix. Code is copied from `formal-methods-samples/<folder>` as is, never
+  "(shortened)"; if it is too long, make the sample smaller.
+- **Verify every fact against the source** (the repo, its README, npm) before it goes on the page. Do not trust a
+  brief or a previous page; "planned" features may already ship, and a claim like "the bug cannot be written" may be
+  contradicted by the sample itself.
+- **Before rewriting a page, ask questions, and keep them short.** Once Alex says go, go.
 - **Plain English,** on the site and in replies to Alex (he is not a native speaker):
   - Do NOT use fancy words on purpose for no reason.
   - Do NOT use archaic words.
@@ -44,6 +68,20 @@ Rules:
   - Do NOT use heavy jargon.
   - Do NOT coin new words, idioms or expressions.
   - Keep formal-methods and tool terms (invariant, model checker, counterexample), explained where first used.
+
+### Tool page shape
+
+1. What it is, in Node words, and the bug it is built against. One line: you do not need the theory.
+2. The problem in plain TypeScript (code first).
+3. The same thing with the tool: code, the check, its real output, the fix, then the one point that is hard to see.
+4. Where it fits and where it does not: what it replaces, what it alone adds, the recommendation test, "not for" with
+   what to use instead.
+5. Which tool instead: one rule per tool on the site.
+6. Costs, and what is easy to miss.
+7. Links.
+
+No Install, Project layout, CI or Making changes sections.
+
 ## Stack (decided — don't relitigate)
 
 - **Astro Starlight** (`@astrojs/starlight`), static output, build dir `dist/`.

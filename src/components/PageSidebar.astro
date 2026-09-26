@@ -5,7 +5,7 @@ import { similarTools } from '../tool-kinds';
 import HomeIntro from './HomeIntro.astro';
 import MarketIntro from './MarketIntro.astro';
 
-const { adoption, requires, useCases, trend, card } = Astro.locals.starlightRoute.entry.data;
+const { adoption, requires, useCases, specifics, trend, card } = Astro.locals.starlightRoute.entry.data;
 const similar = adoption ? similarTools(Astro.url.pathname) : undefined;
 const toggleLabel = card === 'home' ? 'About this site' : card ? 'About this page' : adoption ? 'Adoption, dependencies and similar tools' : useCases || trend ? 'Details' : 'Dependencies';
 
@@ -79,6 +79,19 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 					<img src={`/trends/${trend.google}.svg`} alt="Google search interest, last 12 months" />
 				</a>
 			)}
+		</div>
+	)
+}
+
+{
+	specifics && (
+		<div class="adoption similar">
+			<h2>What sets it apart</h2>
+			<ul>
+				{specifics.map((item) => (
+					<li>{item}</li>
+				))}
+			</ul>
 		</div>
 	)
 }

@@ -3,30 +3,32 @@ type Tool = { label: string; link: string };
 
 export const toolKinds: { kind: string; tools: Tool[] }[] = [
 	{
-		kind: 'Model checker as a library, run in-process',
+		kind: 'Model checker over a model written in TypeScript or JavaScript',
 		tools: [
 			{ label: 'pnueli', link: '/vs/pnueli' },
 			{ label: 'stifinder', link: '/vs/stifinder' },
 			{ label: 'Polygraph', link: '/vs/polygraph' },
-			{ label: 'libpetri', link: '/vs/libpetri' },
+			{ label: 'SpecCraft TS', link: '/vs/speccraft-ts' },
 		],
 	},
 	{
-		kind: 'TypeScript spec translated to TLA+, checked by TLC',
+		kind: 'Model in a spec language, checked by TLC or Apalache outside Node',
 		tools: [
 			{ label: 'tla-precheck', link: '/vs/tla-precheck' },
 			{ label: 'stateproof', link: '/vs/stateproof' },
+			{ label: 'TLA+', link: '/tools/tla-plus' },
+			{ label: 'Quint', link: '/tools/quint' },
 		],
 	},
 	{
-		kind: 'Explore statecharts',
+		kind: 'Walk every state of the statechart the app runs',
 		tools: [
 			{ label: 'effect-machine', link: '/vs/effect-machine' },
 			{ label: 'XState', link: '/vs/xstate' },
 		],
 	},
 	{
-		kind: 'Sample inputs and orders',
+		kind: 'Random inputs and action sequences, shrunk to the smallest failure',
 		tools: [
 			{ label: 'fast-check', link: '/vs/fast-check' },
 			{ label: 'Hegel', link: '/vs/hegel' },

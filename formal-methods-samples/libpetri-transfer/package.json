@@ -12,6 +12,7 @@
   "devDependencies": {
     "@types/node": "^24.19.0",
     "libpetri": "7.0.0",
+    "petri-ts": "^0.2.0",
     "typescript": "^5.9.3",
     "vitest": "^5.0.1"
   }
