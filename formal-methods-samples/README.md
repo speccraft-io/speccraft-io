@@ -17,6 +17,7 @@ Small, self-contained case studies used on [speccraft.io](https://speccraft.io).
 - [xstate-signup](xstate-signup): A signup where the terms can be unticked on the review page and still submitted. Checked with xstate/graph.
 - [libpetri-transfer](libpetri-transfer): Two opposite money transfers that each lock one account and wait for the other forever. Checked with libpetri, and with petri-ts for comparison.
 - [libpetri-retry](libpetri-retry): A checkout that retries the order API after a timeout while the first call is still running, so one checkout makes two orders. Checked with libpetri.
+- [libpetri-search](libpetri-search): A search box where a slow reply for an old query replaces the results for the new one. Written as a libpetri net to show that its checks cannot state the rule.
 
 Each one runs on its own:
 

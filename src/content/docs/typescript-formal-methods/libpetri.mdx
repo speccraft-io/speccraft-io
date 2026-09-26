@@ -1,6 +1,6 @@
 ---
 title: libpetri
-description: libpetri replaces the code around async-mutex, p-limit and Promise.all with steps that declare what they take, and proves in a test that they never hang. This page shows it on two money transfers that lock each other and on a checkout that retries after a timeout.
+description: libpetri replaces the code around async-mutex, p-limit and Promise.all with steps that declare what they take, and proves in a test that they never hang. This page shows it on two money transfers that lock each other and on a checkout that retries after a timeout, and shows where it stops on a search box with a late reply.
 tableOfContents: true
 adoption:
   github: debe/libpetri
@@ -241,6 +241,69 @@ code does.
 The point that is easy to miss: the fix is not in the checkout. It is the API making one order per key, and the
 check can prove it only because the API's side is in the net too. Both nets and the tests are in
 [formal-methods-samples/libpetri-retry](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/libpetri-retry).
+
+</TabItem>
+<TabItem label="Where it stops: search as you type">
+
+A search box sends a request on every keystroke and shows whatever comes back:
+
+```ts
+// search.ts
+export function createSearch(fetchResults: (query: string) => Promise<string[]>) {
+  const state = { query: '', results: [] as string[] };
+
+  async function onInput(query: string): Promise<void> {
+    state.query = query;
+    const results = await fetchResults(query);
+    state.results = results;
+  }
+
+  return { state, onInput };
+}
+```
+
+Type "rea", then "react". If the reply for "rea" is slower, it lands last. The box says "react", the list shows
+"rea":
+
+```ts
+// search.stale.test.ts
+it('the list matches the box', async () => {
+  const delay = { rea: 30, react: 10 }; // the reply for "rea" is slower
+  const search = createSearch(async (q) => {
+    await new Promise((r) => setTimeout(r, delay[q as keyof typeof delay]));
+    return [`results for ${q}`];
+  });
+  await Promise.all([search.onInput('rea'), search.onInput('react')]);
+  expect(search.state.results).toEqual([`results for ${search.state.query}`]);
+});
+```
+
+```text
+ × the list matches the box 35ms
+AssertionError: expected [ 'results for rea' ] to deeply equal [ 'results for react' ]
+```
+
+### In libpetri
+
+The net is two steps, send and reply, and it can be written in a minute. The check cannot. libpetri has eight
+checks, and every one counts tokens: nothing hangs, a place never holds more than N, two places never both hold
+one, a marking is never reached. This is what it can prove here:
+
+```ts
+// net.test.ts
+const result = await SmtVerifier.forNet(searchNet(async () => []))
+  .initialMarking((b) => b.tokens(typed, 2))
+  .property(placeBound(inFlight, 2))
+  .verify();
+```
+
+"Proven": never more than two requests in flight. True, and useless. The rule that matters, the list matches the
+box, compares what the reply carries with what the user typed last, and the check does not see what a token
+carries. There is no way to write it.
+
+[Quint](/formal-methods/quint) states the rule in one line and finds the order that breaks it. The plain code and
+the net are in
+[formal-methods-samples/libpetri-search](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/libpetri-search).
 
 </TabItem>
 </Tabs>
