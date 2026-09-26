@@ -306,7 +306,7 @@ What fails when:
 - **It skips states that are mirror copies.** Treating the nodes as interchangeable cut the check from 2,521 states to
   119 at four nodes.
 - **Plain TypeScript, no Java.** You write the model as state and actions and install only the npm package; unlike
-  [stateproof](/vs/stateproof) and [tla-precheck](/vs/tla-precheck), there is no translation step.
+  [stateproof](/typescript-formal-method-tools/stateproof) and [tla-precheck](/typescript-formal-method-tools/tla-precheck), there is no translation step.
 
 ## Limitations
 
@@ -314,7 +314,7 @@ What fails when:
   tool.
 - **The number of states must stay finite.** A counter that only goes up makes it endless, so you renumber such values
   by hand in the model.
-- **Fewer kinds of "eventually" rules.** [TLA+](/tools/tla-plus) covers more.
+- **Fewer kinds of "eventually" rules.** [TLA+](/formal-method-tools/tla-plus) covers more.
 
 ## Links
 

@@ -223,8 +223,8 @@ A new file goes into `LemmaScript-files.txt`, so CI proves it too.
 ## Limitations
 
 - **Pure functions only.** It does not cover the order of events, async jobs or I/O. For event order,
-  [TLA+](/tools/tla-plus), [Quint](/tools/quint) or [pnueli](/vs/pnueli) check every order in a model.
-- **Your code is translated first.** You install [Dafny](/tools/dafny) or [Lean](/tools/lean) and trust the translation,
+  [TLA+](/formal-method-tools/tla-plus), [Quint](/formal-method-tools/quint) or [pnueli](/typescript-formal-method-tools/pnueli) check every order in a model.
+- **Your code is translated first.** You install [Dafny](/formal-method-tools/dafny) or [Lean](/formal-method-tools/lean) and trust the translation,
   and numbers behave like exact math, not JavaScript floating point.
 - **Hard proofs need help.** You may need an AI agent to write them.
 - **Only part of TypeScript is supported.** No real `await`: an `async` function works only if it never awaits.
@@ -233,7 +233,7 @@ A new file goes into `LemmaScript-files.txt`, so CI proves it too.
   no `return` inside a loop. Everything else it supports is listed in its
   [supported subset](https://github.com/midspiral/LemmaScript/blob/main/SUBSET.md).
 - **It is an early preview.** Some gaps you may have to fix in LemmaScript itself. For production code today, writing
-  the function in Dafny and compiling it to JavaScript is the more stable path; see [Dafny](/tools/dafny).
+  the function in Dafny and compiling it to JavaScript is the more stable path; see [Dafny](/formal-method-tools/dafny).
 
 ## Links
 

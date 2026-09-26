@@ -185,7 +185,7 @@ Without a fixed seed, each run picks a new seed, so CI tries different orders on
 ## Limitations
 
 - **A clean run is not a proof.** It tries 100 random runs by default, so a bug that needs one rare order can be
-  missed. For every order, [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or [Quint](/tools/quint) check a model instead.
+  missed. For every order, [pnueli](/typescript-formal-method-tools/pnueli), [TLA+](/formal-method-tools/tla-plus) or [Quint](/formal-method-tools/quint) check a model instead.
 - **It only reorders the promises you wrap.** Any async dependency you do not wrap resolves on its own, so a race
   through it cannot be found.
 - **"Eventually" rules are not built in.** The separate [fast-check-ltl](https://www.npmjs.com/package/fast-check-ltl)

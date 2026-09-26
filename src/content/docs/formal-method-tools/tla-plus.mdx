@@ -35,7 +35,7 @@ language. The checking is done by separate tools, and there are two main ones:
 - **Apalache**, a symbolic checker built on the Z3 solver. It checks every run up to a set number of steps, and handles
   large ranges of values without listing each state. It needs type annotations.
 
-One `.tla` file works with both, which is why this is one page and not three. [Quint](/tools/quint) is a friendlier
+One `.tla` file works with both, which is why this is one page and not three. [Quint](/formal-method-tools/quint) is a friendlier
 language that compiles to TLA+ and runs these same two checkers underneath. This page uses TLA+ directly.
 
 TLA+ describes a system as state, steps and "must never happen" rules, checked in every order. It has its own
@@ -90,8 +90,8 @@ connect: two pools, and the first one is never closed. TLC tries every order.
 - The rule can be said as "this must never happen" (two connects at once) or "this must always happen in the end"
   (every request gets the connection). TLC checks both kinds.
 
-TLA+ is not the tool for proving one function's math right for every input. See the [Dafny](/tools/dafny) and
-[Lean](/tools/lean) pages for that.
+TLA+ is not the tool for proving one function's math right for every input. See the [Dafny](/formal-method-tools/dafny) and
+[Lean](/formal-method-tools/lean) pages for that.
 
 </Full>
 
@@ -692,7 +692,7 @@ Changing the flow (for example, the connection can drop and must reconnect):
 
 When the graph grows: walking every path works while the spec is small. Past a few thousand paths, replay a sample.
 TLC's `-simulate` mode writes random runs, and Apalache and Quint write traces as ITF JSON (see the
-[Quint page](/tools/quint) for a replay built on those).
+[Quint page](/formal-method-tools/quint) for a replay built on those).
 
 Reviewing a pull request: read the text spec diff. A new `await` in the code with no new step in the text means the
 spec no longer splits the code where it can interleave. That is the one mistake the replay cannot catch, because the
@@ -718,7 +718,7 @@ replay follows the spec's steps.
   spec hides the bug.
 - **Only what the spec models.** A connection that drops later, or more than one process, is not in this spec, so TLC
   says nothing about it.
-- **Unfamiliar syntax.** `/\`, `'`, `EXCEPT` and `<>` take a day to learn. [Quint](/tools/quint) runs the same
+- **Unfamiliar syntax.** `/\`, `'`, `EXCEPT` and `<>` take a day to learn. [Quint](/formal-method-tools/quint) runs the same
   checkers with a friendlier language.
 
 </Full>
@@ -742,7 +742,7 @@ replay follows the spec's steps.
 
 ## Related
 
-- [Quint for TypeScript developers](/tools/quint): a TLA+-based language with the same checkers underneath.
+- [Quint for TypeScript developers](/formal-method-tools/quint): a TLA+-based language with the same checkers underneath.
 - [The TLA+ home page](https://lamport.azurewebsites.net/tla/tla.html) and the TLA+ Video Course by Leslie Lamport.
 - [Learn TLA+](https://learntla.com), a practical guide by Hillel Wayne.
 - [TLA+ examples](https://github.com/tlaplus/Examples), a large set of real specs.

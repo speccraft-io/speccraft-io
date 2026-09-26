@@ -209,8 +209,8 @@ What fails when:
 
 - **A clean run is not a proof.** It tries a sample of random inputs (100 cases in the example), not every input.
 - **It does not control the order of async calls in TypeScript yet.** Every case ran one order of events, so other
-  orders of the reservations and their saves were never tried. [fast-check](/vs/fast-check) can try random orders of
-  promises, and [pnueli](/vs/pnueli), [TLA+](/tools/tla-plus) or [Quint](/tools/quint) check every order in a model.
+  orders of the reservations and their saves were never tried. [fast-check](/typescript-formal-method-tools/fast-check) can try random orders of
+  promises, and [pnueli](/typescript-formal-method-tools/pnueli), [TLA+](/formal-method-tools/tla-plus) or [Quint](/formal-method-tools/quint) check every order in a model.
 - **The TypeScript library is in beta.** The example uses version 0.4.6.
 
 ## Links

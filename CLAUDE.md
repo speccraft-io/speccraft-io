@@ -5,14 +5,14 @@
 ## What the site is (for now)
 
 Until the SpecCraft implementation has traction, the site is not a SpecCraft landing page. It covers concepts (state
-machines, Petri nets), TypeScript tools (`/ts-tools`, `/vs/*`), non-TypeScript tools used from TS (`/tools/*`),
+machines, Petri nets), TypeScript tools (`/ts-tools`, `/typescript-formal-method-tools/*`), non-TypeScript tools used from TS (`/formal-method-tools/*`),
 durable execution and the formal methods market.
 
-- **SpecCraft is one tool among others.** Its own page is `/vs/speccraft-ts`, written like every other tool page. Do
+- **SpecCraft is one tool among others.** Its own page is `/typescript-formal-method-tools/speccraft-ts`, written like every other tool page. Do
   not compare other tools against SpecCraft, add "vs SpecCraft" sections, or position pages around it.
 - Tool pages are titled with the tool's name and end with a neutral "Strengths and limits" section; comparisons, when
   useful, are with the other tools on the site.
-- The `/vs/` path is kept for existing URLs; it no longer means "versus SpecCraft".
+- Tool pages live under `/typescript-formal-method-tools/`; the old `/vs/` URLs redirect there.
 
 ## Who reads the site and how to write for them
 

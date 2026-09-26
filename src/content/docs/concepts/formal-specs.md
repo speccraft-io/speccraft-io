@@ -148,8 +148,8 @@ This is the version people read and argue about. Nothing checks it.
 
 ### TypeScript
 
-The same spec as a plain TypeScript object, in the shape that [SpecCraft TS](/vs/speccraft-ts) takes. Other
-TypeScript model checkers use a similar shape; in [pnueli](/vs/pnueli), a step returns a list of next states instead of
+The same spec as a plain TypeScript object, in the shape that [SpecCraft TS](/typescript-formal-method-tools/speccraft-ts) takes. Other
+TypeScript model checkers use a similar shape; in [pnueli](/typescript-formal-method-tools/pnueli), a step returns a list of next states instead of
 one.
 
 ```ts
@@ -191,7 +191,7 @@ checks invariants only for now.
 
 ### Quint
 
-The same spec in [Quint](/tools/quint). Each action lists the next value of every variable (`status'`), and anything
+The same spec in [Quint](/formal-method-tools/quint). Each action lists the next value of every variable (`status'`), and anything
 left out is an error. That is how TLA+ works too.
 
 ```
@@ -281,6 +281,6 @@ A message that reached the limit is back in the queue for a third delivery.
 
 - [State machines and FSMs](/concepts/state-machines): why a model checker's spec lists variables and steps, not
   states.
-- [TLA+ for TypeScript developers](/tools/tla-plus) and [Quint for TypeScript developers](/tools/quint): the spec
+- [TLA+ for TypeScript developers](/formal-method-tools/tla-plus) and [Quint for TypeScript developers](/formal-method-tools/quint): the spec
   languages, step by step.
 - Leslie Lamport, [Specifying Systems](https://lamport.azurewebsites.net/tla/book.html): the book on TLA+ specs.
