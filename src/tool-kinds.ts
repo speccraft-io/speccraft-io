@@ -5,42 +5,42 @@ export const toolKinds: { kind: string; tools: Tool[] }[] = [
 	{
 		kind: 'Model checker over a model written in TypeScript or JavaScript',
 		tools: [
-			{ label: 'pnueli', link: '/typescript-formal-method-tools/pnueli' },
-			{ label: 'stifinder', link: '/typescript-formal-method-tools/stifinder' },
-			{ label: 'Polygraph', link: '/typescript-formal-method-tools/polygraph' },
-			{ label: 'SpecCraft TS', link: '/typescript-formal-method-tools/speccraft-ts' },
+			{ label: 'pnueli', link: '/typescript-formal-methods/pnueli' },
+			{ label: 'stifinder', link: '/typescript-formal-methods/stifinder' },
+			{ label: 'Polygraph', link: '/typescript-formal-methods/polygraph' },
+			{ label: 'SpecCraft TS', link: '/typescript-formal-methods/speccraft-ts' },
 		],
 	},
 	{
 		kind: 'Model in a spec language, checked by TLC or Apalache outside Node',
 		tools: [
-			{ label: 'tla-precheck', link: '/typescript-formal-method-tools/tla-precheck' },
-			{ label: 'stateproof', link: '/typescript-formal-method-tools/stateproof' },
-			{ label: 'TLA+', link: '/formal-method-tools/tla-plus' },
-			{ label: 'Quint', link: '/formal-method-tools/quint' },
+			{ label: 'tla-precheck', link: '/typescript-formal-methods/tla-precheck' },
+			{ label: 'stateproof', link: '/typescript-formal-methods/stateproof' },
+			{ label: 'TLA+', link: '/formal-methods/tla-plus' },
+			{ label: 'Quint', link: '/formal-methods/quint' },
 		],
 	},
 	{
 		kind: 'Walk every state of the statechart the app runs',
 		tools: [
-			{ label: 'effect-machine', link: '/typescript-formal-method-tools/effect-machine' },
-			{ label: 'XState', link: '/typescript-formal-method-tools/xstate' },
+			{ label: 'effect-machine', link: '/typescript-formal-methods/effect-machine' },
+			{ label: 'XState', link: '/typescript-formal-methods/xstate' },
 		],
 	},
 	{
 		kind: 'Random inputs and action sequences, shrunk to the smallest failure',
 		tools: [
-			{ label: 'fast-check', link: '/typescript-formal-method-tools/fast-check' },
-			{ label: 'Hegel', link: '/typescript-formal-method-tools/hegel' },
-			{ label: 'Bombadil', link: '/typescript-formal-method-tools/bombadil' },
+			{ label: 'fast-check', link: '/typescript-formal-methods/fast-check' },
+			{ label: 'Hegel', link: '/typescript-formal-methods/hegel' },
+			{ label: 'Bombadil', link: '/typescript-formal-methods/bombadil' },
 		],
 	},
 	{
 		kind: 'Prove a function for every input',
 		tools: [
-			{ label: 'LemmaScript', link: '/typescript-formal-method-tools/lemmascript' },
-			{ label: 'Dafny', link: '/formal-method-tools/dafny' },
-			{ label: 'Lean', link: '/formal-method-tools/lean' },
+			{ label: 'LemmaScript', link: '/typescript-formal-methods/lemmascript' },
+			{ label: 'Dafny', link: '/formal-methods/dafny' },
+			{ label: 'Lean', link: '/formal-methods/lean' },
 		],
 	},
 ];

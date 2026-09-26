@@ -70,10 +70,10 @@ correctness check is soundness:
 - every step can fire in some run.
 
 That is the durable-execution correctness question under another name. Model checkers ask the same questions of
-workflow code written as steps, instead of drawn as a net. The [TLA+ page](/formal-method-tools/tla-plus) checks "every caller gets
+workflow code written as steps, instead of drawn as a net. The [TLA+ page](/formal-methods/tla-plus) checks "every caller gets
 the connection in the end", which is the first of them.
 
 ## Related
 
 - [State machines and FSMs](/concepts/state-machines)
-- [TLA+ for TypeScript developers](/formal-method-tools/tla-plus) and [Quint for TypeScript developers](/formal-method-tools/quint)
+- [TLA+ for TypeScript developers](/formal-methods/tla-plus) and [Quint for TypeScript developers](/formal-methods/quint)

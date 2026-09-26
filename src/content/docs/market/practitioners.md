@@ -19,18 +19,18 @@ firms and people who do this work, and the communities where the experts talk.
 | [Jonathan Nadal](https://github.com/jonnadal) ([Stateright](https://github.com/stateright/stateright)) | Embedded model checker as a Rust library | Model checker as a library, the Rust counterpart of the TS ones. |
 | [Jack Vanlightly](https://jack-vanlightly.com) | Public technical writing on distributed systems + formal verification | Builds credibility via writing rather than a direct consulting offer. |
 | [JP Kadarkarai](https://sessionize.com/jayaprabhakar-kadarkarai/) ([FizzBee](https://fizzbee.io)) | Open-source, more approachable alternative to TLA+ | Tool/OSS project, not an active paid practice. |
-| [Jean-Jacques Dubray](https://www.linkedin.com/in/jdubray/) ([Polygraph](/typescript-formal-method-tools/polygraph)) | An LLM writes a JavaScript spec in SAM, his State-Action-Model pattern, which is then checked against the code | Builds it as Cognitive Fab LLC; method from his July 2026 paper. |
-| [David R. MacIver](https://hegel.dev) ([Hegel](/typescript-formal-method-tools/hegel)) | Hypothesis-style property-based testing, including for TypeScript | Created Hypothesis. |
-| [Liam DeVoe](https://hegel.dev) ([Hegel](/typescript-formal-method-tools/hegel)) | Co-builds Hegel | Hypothesis maintainer at Antithesis. |
-| [Sandro Maglione](https://github.com/typeonce-dev) ([effect-machine](/typescript-formal-method-tools/effect-machine)) | Schema-first statecharts for Effect, with state exploration in tests | Writes and teaches about Effect, as Typeonce. |
-| [Nada Amin](https://github.com/midspiral/LemmaScript) ([LemmaScript](/typescript-formal-method-tools/lemmascript)) | Proves TypeScript functions correct with Dafny or Lean | Associate professor of computer science at Harvard; builds it with Midspiral. |
-| [Doniyor Botirov](https://github.com/BOTIROFF-D) ([pnueli](/typescript-formal-method-tools/pnueli)) | Explicit-state model checker in TypeScript | Founder of dbit.one; also builds unflake, bulwark and adya. |
-| [Anders Hessellund Jensen](https://github.com/andershessellund) ([stifinder](/typescript-formal-method-tools/stifinder)) | State-space explorer for JavaScript | Self-employed developer in Denmark; also `valsem` and `kilde`. |
-| [kingbootoshi](https://github.com/kingbootoshi) ([tla-precheck](/typescript-formal-method-tools/tla-precheck)) | Compiles a TypeScript DSL to TLA+ and proves both match | Solo project, no commits since early April 2026. |
+| [Jean-Jacques Dubray](https://www.linkedin.com/in/jdubray/) ([Polygraph](/typescript-formal-methods/polygraph)) | An LLM writes a JavaScript spec in SAM, his State-Action-Model pattern, which is then checked against the code | Builds it as Cognitive Fab LLC; method from his July 2026 paper. |
+| [David R. MacIver](https://hegel.dev) ([Hegel](/typescript-formal-methods/hegel)) | Hypothesis-style property-based testing, including for TypeScript | Created Hypothesis. |
+| [Liam DeVoe](https://hegel.dev) ([Hegel](/typescript-formal-methods/hegel)) | Co-builds Hegel | Hypothesis maintainer at Antithesis. |
+| [Sandro Maglione](https://github.com/typeonce-dev) ([effect-machine](/typescript-formal-methods/effect-machine)) | Schema-first statecharts for Effect, with state exploration in tests | Writes and teaches about Effect, as Typeonce. |
+| [Nada Amin](https://github.com/midspiral/LemmaScript) ([LemmaScript](/typescript-formal-methods/lemmascript)) | Proves TypeScript functions correct with Dafny or Lean | Associate professor of computer science at Harvard; builds it with Midspiral. |
+| [Doniyor Botirov](https://github.com/BOTIROFF-D) ([pnueli](/typescript-formal-methods/pnueli)) | Explicit-state model checker in TypeScript | Founder of dbit.one; also builds unflake, bulwark and adya. |
+| [Anders Hessellund Jensen](https://github.com/andershessellund) ([stifinder](/typescript-formal-methods/stifinder)) | State-space explorer for JavaScript | Self-employed developer in Denmark; also `valsem` and `kilde`. |
+| [kingbootoshi](https://github.com/kingbootoshi) ([tla-precheck](/typescript-formal-methods/tla-precheck)) | Compiles a TypeScript DSL to TLA+ and proves both match | Solo project, no commits since early April 2026. |
 | [Dennis Berger](https://www.linkedin.com/in/deb3rg/) ([libpetri](https://github.com/debe/libpetri)) | Runs async code written as a graph of steps (a Petri net), and checks it for leaks and waits that never end; TypeScript, Java and Rust | Staff engineer at Otto; it runs their production commerce assistant. Also builds opt-in add-ons that run n8n and Google ADK workflows on a net. |
-| [Oleksandr Zalizniak](https://zalizniak.com) ([SpecCraft TS](/typescript-formal-method-tools/speccraft-ts)) | Model checker as a TypeScript library | Author of this site; started September 2026. |
-| [Leslie Lamport](https://lamport.azurewebsites.net/tla/tla.html) ([TLA+](/formal-method-tools/tla-plus)) | Created TLA+ | Also teaches it in the TLA+ Video Course. |
-| [K. Rustan M. Leino](https://mitpress.mit.edu/9780262546232/program-proofs/) ([Dafny](/formal-method-tools/dafny)) | Created Dafny | Wrote the book *Program Proofs*. |
+| [Oleksandr Zalizniak](https://zalizniak.com) ([SpecCraft TS](/typescript-formal-methods/speccraft-ts)) | Model checker as a TypeScript library | Author of this site; started September 2026. |
+| [Leslie Lamport](https://lamport.azurewebsites.net/tla/tla.html) ([TLA+](/formal-methods/tla-plus)) | Created TLA+ | Also teaches it in the TLA+ Video Course. |
+| [K. Rustan M. Leino](https://mitpress.mit.edu/9780262546232/program-proofs/) ([Dafny](/formal-methods/dafny)) | Created Dafny | Wrote the book *Program Proofs*. |
 
 ## Communities
 
@@ -67,5 +67,5 @@ firms and people who do this work, and the communities where the experts talk.
 | [Galois](https://galois.com) | Formal methods R&D for defense/government | DARPA, NASA, NIST, US DoD, AWS. |
 | [Axiomise](https://www.axiomise.com) | Hardware/RISC-V formal verification training | Solo-founder-grown-into-firm path. |
 | [Informal Systems](https://informal.systems) | Builds and stewards Quint (TLA+'s executable-spec successor) | Fintech/crypto product focus. |
-| [Stately](https://stately.ai/) | Builds XState and its graph tools ([XState](/typescript-formal-method-tools/xstate)) | The company of David Khourshid. |
-| [Midspiral](https://midspiral.com) | Builds LemmaScript, which proves TypeScript functions with Dafny or Lean ([LemmaScript](/typescript-formal-method-tools/lemmascript)) | Almost all commits by Nada Amin. |
+| [Stately](https://stately.ai/) | Builds XState and its graph tools ([XState](/typescript-formal-methods/xstate)) | The company of David Khourshid. |
+| [Midspiral](https://midspiral.com) | Builds LemmaScript, which proves TypeScript functions with Dafny or Lean ([LemmaScript](/typescript-formal-methods/lemmascript)) | Almost all commits by Nada Amin. |

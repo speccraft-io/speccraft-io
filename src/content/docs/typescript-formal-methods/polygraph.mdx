@@ -26,7 +26,7 @@ plugin. It is experimental: its own README calls it a consistency check, not a p
 
 ## The idea
 
-It is the same kind of check as [TLA+](/formal-method-tools/tla-plus): try every action in every state, and check your rules in each
+It is the same kind of check as [TLA+](/formal-methods/tla-plus): try every action in every state, and check your rules in each
 state. The difference: you do not write the model. An LLM copies your code into a JavaScript state machine, called the
 **spec**. It works in three steps:
 
@@ -70,7 +70,7 @@ acceptors: {
 Polygraph adds strict rules: every state field is declared, every rejection has a name, and each action lists the data
 values to try (`domain`). That tells the model checker exactly what to try, and tells replay why the spec said no.
 
-SAM is not widely used; most JavaScript code uses Redux, Zustand or [XState](/typescript-formal-method-tools/xstate). Your own code does not have
+SAM is not widely used; most JavaScript code uses Redux, Zustand or [XState](/typescript-formal-methods/xstate). Your own code does not have
 to use it. Think of SAM as the file format of Polygraph's specs.
 
 <Short>Polygraph checks a spec against recorded calls, then checks every state it can reach. Here: a cart that keeps a coupon it should lose.</Short>
@@ -322,7 +322,7 @@ A new action or state field goes into `contract.json` first, then into the recor
 
 ## Compared with other tools
 
-- **[TLA+](/formal-method-tools/tla-plus) and [Quint](/formal-method-tools/quint):** the same kind of check, but you write the model yourself, in
+- **[TLA+](/formal-methods/tla-plus) and [Quint](/formal-methods/quint):** the same kind of check, but you write the model yourself, in
   another language. Much older and much more used. All three find a wrong state that some order of actions can reach,
   with the shortest list of steps to it. TLA+ and Quint also cover:
   - **Concurrency:** several processes, messages, crashes and retries, in every order. Polygraph checks one machine
@@ -331,10 +331,10 @@ A new action or state field goes into `contract.json` first, then into the recor
   - **Designs before code:** Polygraph needs code to copy.
 
   Polygraph has one thing they do not: replay checks that the model matches your real code.
-- **[XState](/typescript-formal-method-tools/xstate), [tla-precheck](/typescript-formal-method-tools/tla-precheck), [stateproof](/typescript-formal-method-tools/stateproof):** your code is the machine,
+- **[XState](/typescript-formal-methods/xstate), [tla-precheck](/typescript-formal-methods/tla-precheck), [stateproof](/typescript-formal-methods/stateproof):** your code is the machine,
   so there is no copy to keep in step. But you must write the code their way first. Polygraph is for code that is
   already written.
-- **[fast-check](/typescript-formal-method-tools/fast-check):** runs your real code with random lists of actions. It tries many orders, not all,
+- **[fast-check](/typescript-formal-methods/fast-check):** runs your real code with random lists of actions. It tries many orders, not all,
   but it tests the code itself, not a copy.
 - **[Specula](https://github.com/specula-org/Specula):** a research project with the same three steps, but in TLA+.
   Its August 2026 paper reports 249 bugs in 48 real projects (MongoDB, etcd and others); maintainers confirmed 68 of

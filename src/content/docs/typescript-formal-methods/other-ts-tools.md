@@ -46,7 +46,7 @@ different question from "can these events happen in an order that breaks somethi
 | [Thales](https://github.com/jessealama/thales) | Compiles a strict subset of TypeScript (no mutation, classes or async) to Lean 4 for proofs | 66 stars, started April 2026 | Like LemmaScript, proof for pure functions; says nothing about the order of async events |
 | [pabst](https://github.com/jessealama/pabst) (npm `pabst-checker`) | Properties written as JSDoc `@ensures` comments on functions, checked by fast-check | New, July 2026 | Contracts as comments, sampled; the same author's Thales is the proof side |
 
-[LemmaScript](/typescript-formal-method-tools/lemmascript) has its own page, and [Dafny](/formal-method-tools/dafny) and [Lean](/formal-method-tools/lean) show proof
+[LemmaScript](/typescript-formal-methods/lemmascript) has its own page, and [Dafny](/formal-methods/dafny) and [Lean](/formal-methods/lean) show proof
 from a TypeScript project.
 
 ## Niche engines and older libraries

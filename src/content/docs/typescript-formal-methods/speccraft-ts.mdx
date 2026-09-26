@@ -15,8 +15,8 @@ requires:
 
 [SpecCraft TS](https://github.com/speccraft-io/speccraft-ts) is the TypeScript engine of SpecCraft. It is a **model checker as a library**: the
 spec is ordinary TypeScript data and functions, and the library explores every reachable state, checks invariants, and
-returns the shortest trace to a state that breaks one. Other tools of this kind are [pnueli](/typescript-formal-method-tools/pnueli),
-[stifinder](/typescript-formal-method-tools/stifinder) and [Polygraph](/typescript-formal-method-tools/polygraph).
+returns the shortest trace to a state that breaks one. Other tools of this kind are [pnueli](/typescript-formal-methods/pnueli),
+[stifinder](/typescript-formal-methods/stifinder) and [Polygraph](/typescript-formal-methods/polygraph).
 
 :::caution[Status]
 Very early work in progress: research and a proof of concept, not ready to use. The API will change. Version
@@ -136,13 +136,13 @@ SpecCraft TS was also run on the examples from the other tool pages:
 
 | Example | Result |
 |---|---|
-| [Webhook double charge](/typescript-formal-method-tools/fast-check) | All 20 reachable states, a 4-step trace to the double charge; the fixed spec holds in all 12 |
-| [Stock reservation](/typescript-formal-method-tools/hegel) | All 25 reachable states, the shortest trace to negative stock; the fixed spec holds in 13, and the real class matches it in all 13. It missed the quantity-0 bug Hegel found, because the spec only tries quantities 1 and 2 |
-| [Distributed lock](/typescript-formal-method-tools/pnueli) | The same five-step trace after 566 states; the fenced store holds in 37, 283 and 2,521 states. Conformance on a real lock client finds the one step where plain storage accepts a write the spec rejects. It cannot find the lock-out pnueli's liveness check finds |
-| [Checkout](/typescript-formal-method-tools/effect-machine) | All 26 reachable states and a five-step trace; the fixed spec has 8 |
-| [Transactional outbox](/typescript-formal-method-tools/stifinder) | Four-step traces for the lost event (27 states) and the duplicate (71 states); the fixed relay holds in 39, within the bounds in the spec |
-| [Autosave](/typescript-formal-method-tools/other-ts-tools) | A stale save in 6 steps, where three fake-timer tests pass on the buggy code |
-| [Job lease](/typescript-formal-method-tools/other-ts-tools#complements) | The late renewal in 29 states, where the Effect cancel tests pass on the buggy code |
+| [Webhook double charge](/typescript-formal-methods/fast-check) | All 20 reachable states, a 4-step trace to the double charge; the fixed spec holds in all 12 |
+| [Stock reservation](/typescript-formal-methods/hegel) | All 25 reachable states, the shortest trace to negative stock; the fixed spec holds in 13, and the real class matches it in all 13. It missed the quantity-0 bug Hegel found, because the spec only tries quantities 1 and 2 |
+| [Distributed lock](/typescript-formal-methods/pnueli) | The same five-step trace after 566 states; the fenced store holds in 37, 283 and 2,521 states. Conformance on a real lock client finds the one step where plain storage accepts a write the spec rejects. It cannot find the lock-out pnueli's liveness check finds |
+| [Checkout](/typescript-formal-methods/effect-machine) | All 26 reachable states and a five-step trace; the fixed spec has 8 |
+| [Transactional outbox](/typescript-formal-methods/stifinder) | Four-step traces for the lost event (27 states) and the duplicate (71 states); the fixed relay holds in 39, within the bounds in the spec |
+| [Autosave](/typescript-formal-methods/other-ts-tools) | A stale save in 6 steps, where three fake-timer tests pass on the buggy code |
+| [Job lease](/typescript-formal-methods/other-ts-tools#complements) | The late renewal in 29 states, where the Effect cancel tests pass on the buggy code |
 
 ## Strengths
 

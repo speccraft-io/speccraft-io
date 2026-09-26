@@ -307,7 +307,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 	function loadMonaco(): Promise<any> {
 		monaco ??= new Promise((resolve, reject) => {
 			const script = document.createElement('script');
-			script.src = `${monacoBase}/typescript-formal-method-tools/loader.js`;
+			script.src = `${monacoBase}/typescript-formal-methods/loader.js`;
 			script.onload = () => {
 				const amd = (window as any).require;
 				amd.config({ paths: { vs: `${monacoBase}/vs` } });
