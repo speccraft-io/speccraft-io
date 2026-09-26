@@ -1,0 +1,13 @@
+{
+  "name": "polygraph-discount",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec specs/cart-sam.js --contract contract.json --invariants invariants.mjs",
+    "negative": "node --test cart.negative.test.ts",
+    "test": "node test.ts"
+  },
+  "devDependencies": {
+    "@cognitive-fab/polygraph": "8.3.0"
+  }
+}

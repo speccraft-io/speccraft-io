@@ -1,95 +1,48 @@
 ---
 title: Polygraph
-description: Polygraph has an LLM write a JavaScript spec from your code, checks the spec against recorded calls, then checks every state it can reach. This page uses it on a cart reducer with a coupon bug, and lists its strengths and limits.
+description: Polygraph adds a check to the reducers you already have. An LLM writes a copy of your reducer as a state machine, and a model checker tries every action in every state against rules you write. This page shows it on a cart that keeps a coupon it should lose, and shows where it stops on a discount that goes negative at a value it never tries.
 tableOfContents: true
 adoption:
   github: cognitive-fab/polygraph
   npm: '@cognitive-fab/polygraph'
   created: 2026-07-07
-views: true
-useCases:
-  - 'Existing state code, like Redux reducers: an LLM writes the spec'
-requires:
-  - 'LLM (Anthropic key)'
-  - 'Claude Code (optional)'
-  - 'TLC (--tla only)'
+specifics:
+  - 'For state code you already have: reducers, workflows'
+  - 'An LLM writes the model from your code'
+  - 'You write only the rules'
+  - 'Replay checks the model against real calls'
+  - 'Tries only the values you list'
+  - 'One machine, one action at a time'
+  - 'fast-check finds the same bugs on the real code'
 ---
-import CodeFix from '../../../components/CodeFix.astro';
-import before from '../../../fixes/polygraph/before.ts.txt?raw';
-import after from '../../../fixes/polygraph/after.ts.txt?raw';
-import Short from '../../../components/Short.astro';
-import Full from '../../../components/Full.astro';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-[Polygraph](https://github.com/cognitive-fab/polygraph) finds bugs in code that keeps state, like workflows,
-checkout flows and reducers (a function `(state, action) => newState`, as in Redux). It is a CLI and a Claude Code
-plugin. It is experimental: its own README calls it a consistency check, not a proof.
+[Polygraph](https://github.com/cognitive-fab/polygraph) adds a check to the reducers you already have: Redux, Zustand,
+a `switch` on `action.type` inside a checkout or a workflow. You keep the code as it is. An LLM reads it and writes a
+copy as a JavaScript state machine, and a model checker tries every action in every state the copy can reach, and
+reports the first state that breaks a rule you wrote, with the shortest list of actions that gets there.
 
-## The idea
+In return you get what your tests cannot give: the orders of actions you did not think of, all of them, over the
+actions and values you list. You write nothing but the rules. It is a CLI and a Claude Code plugin.
 
-It is the same kind of check as [TLA+](/formal-methods/tla-plus): try every action in every state, and check your rules in each
-state. The difference: you do not write the model. An LLM copies your code into a JavaScript state machine, called the
-**spec**. It works in three steps:
+The catch: the copy is a copy. It has the same bugs as your code, so only your rules catch them, and the checker tries
+only the values that were listed for it. Below: the coupon bug it finds, the discount bug it misses, and whether it
+beats [fast-check](/typescript-formal-methods/fast-check), which checks the same rules on the real code with no copy.
 
-1. **The LLM writes the spec** from your code.
-2. **Replay:** your real code runs a few scripted sessions, and every call is recorded. The spec must give the same
-   result for each call. This tells you if you can trust the spec.
-3. **Model check:** starting from the first state, Polygraph tries every action with every data value you list, in
-   every state it can reach, and checks your rules in each state.
+[TLA+](/formal-methods/tla-plus), [Quint](/formal-methods/quint), [pnueli](/typescript-formal-methods/pnueli) and
+[stifinder](/typescript-formal-methods/stifinder) run the same kind of check on a model you write yourself.
+[XState](/typescript-formal-methods/xstate) and [effect-machine](/typescript-formal-methods/effect-machine) walk a
+machine that is the code. Polygraph is the only tool on this site where the model is written for you.
 
-Replay alone cannot find a bug: the spec copies the code, bug included, so the two agree. Only the model check finds
-it, and only against rules you write. That is why the rules come from you.
+## Case studies
 
-Polygraph has its own model checker, written in JavaScript. It does not use TLA+. As an option, `--tla` turns the spec
-into TLA+ and checks it with TLC, the TLA+ model checker.
+<Tabs>
+<TabItem label="A coupon that stays after the cart shrinks">
 
-### What SAM is
-
-The spec must be written in SAM (State-Action-Model), a pattern Polygraph's author, Jean-Jacques Dubray, published in
-2016. It is close to a Redux reducer, split in two: an **action** turns an event into a proposed change, and an
-**acceptor** accepts it and sets the next state, or rejects it with a name.
-
-```js
-// cart.ts, a reducer: one function computes and decides
-case 'APPLY_COUPON':
-  if (action.code !== 'SAVE5') return state;
-  if (state.items * PRICE < MIN_SPEND) return state;
-  return { ...state, coupon: 'SAVE5' };
-
-// specs/cart-sam.js, SAM: the action proposes, the acceptor decides
-actions: { APPLY_COUPON: { action: (data = {}) => ({ ...data }) /* ... */ } },
-acceptors: {
-  APPLY_COUPON: (model) => (proposal, { reject, next, unchanged }) => {
-    if (proposal.code !== 'SAVE5') return reject('unknown-code');
-    if (model.items * 1000 < 2000) return reject('below-minimum');
-    next.coupon = 'SAVE5';
-    unchanged('items');
-  },
-},
-```
-
-Polygraph adds strict rules: every state field is declared, every rejection has a name, and each action lists the data
-values to try (`domain`). That tells the model checker exactly what to try, and tells replay why the spec said no.
-
-SAM is not widely used; most JavaScript code uses Redux, Zustand or [XState](/typescript-formal-methods/xstate). Your own code does not have
-to use it. Think of SAM as the file format of Polygraph's specs.
-
-<Short>Polygraph checks a spec against recorded calls, then checks every state it can reach. Here: a cart that keeps a coupon it should lose.</Short>
-
-## Using Polygraph
-
-The code below is in
-[formal-methods-samples/polygraph-coupon](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/polygraph-coupon).
-We ran it with Polygraph 8.3.0 on Node 24. Normally an LLM writes the spec, which needs an Anthropic API key. We wrote
-the spec by hand instead, in the format the LLM writes. All output below is from our run.
-
-### The problem
-
-<Short>The minimum spend is checked when the coupon is applied, not when an item is removed.</Short>
-
-A shop's cart is a reducer: it takes the cart and an action, and returns the new cart. Every item costs 10.00. The `SAVE5` coupon needs a total of at least 20.00:
+A shop's cart is a reducer. Every item costs 10.00, and the `SAVE5` coupon needs a total of at least 20.00:
 
 ```ts
-// cart.ts (shortened)
+// cart.ts
 export function cart(state: Cart, action: CartAction): Cart {
   switch (action.type) {
     case 'ADD_ITEM':
@@ -106,99 +59,35 @@ export function cart(state: Cart, action: CartAction): Cart {
 }
 ```
 
-The bug: the minimum is checked only when the coupon is applied. Add two items, apply the coupon, remove one item,
-and the coupon stays on a 10.00 cart.
-
-### Install and set up
-
-```sh
-npm install -D @cognitive-fab/polygraph
-```
-
-Or as a Claude Code plugin:
-
-```text
-/plugin marketplace add cognitive-fab/polygraph
-/plugin install polygraph@polygraph
-```
-
-Needs Node 20+. The LLM steps need an Anthropic API key.
-
-To check the spec with TLC, run `verify.mjs --tla`. That needs Java and `tla2tools.jar`. This example does not use it.
-
-### The four files
-
-<Short>Four files: a contract, recorded calls, a spec, and your rules. The LLM writes the spec; you write the rules.</Short>
-
-Who writes what:
-
-- **Contract:** you, or Claude writes a draft for you to check.
-- **Recorded calls:** in Claude Code, the agent records them. With the CLI, you wrap your reducer once.
-- **Spec:** the LLM. You do not write it.
-- **Rules:** you. Polygraph can suggest rules, but only you know what the code should do.
-
-**1. The contract** (`contract.json`) describes the state and the actions. It also names special cases in the code.
-Here they are the four cases where an action does nothing, like `below-minimum`:
-
-```json
-// contract.json (shortened)
-{
-  "stateKeys": [
-    { "name": "items", "type": "number (0 to 3, each item costs 10.00)" },
-    { "name": "coupon", "type": "'SAVE5' | null" }
-  ],
-  "initState": { "items": 0, "coupon": null },
-  "actions": {
-    "ADD_ITEM": { "dataFields": {} },
-    "REMOVE_ITEM": { "dataFields": {} },
-    "APPLY_COUPON": { "dataFields": { "code": "string" } }
-  },
-  "specialRules": [
-    { "name": "below-minimum", "note": "APPLY_COUPON under a 20.00 subtotal leaves the cart unchanged.", "whenAction": "APPLY_COUPON" }
-    // cart-full, cart-empty and unknown-code look the same
-  ]
-}
-```
-
-**2. The recorded calls** (traces). `tapReducer` wraps your reducer. Every call to the wrapped reducer is saved as one
-line in `traces/sessions.ndjson`. The sample runs a few lists of cart actions through it.
-Wrap a copy of your code, not the real one: the wrapper writes to a file on every call, so it must not reach production.
+The minimum is checked when the coupon is applied, and never again. Add two items, apply the coupon, remove one item:
+the coupon stays on a 10.00 cart. A test with those four actions shows it:
 
 ```ts
-// record-traces.ts (shortened)
-const traced = tapReducer(cart, (s: Cart) => s, 'traces/sessions.ndjson');
-for (const session of sessions) session.reduce(traced, emptyCart);
+// cart.coupon.test.ts
+test('the coupon goes when the cart drops under the minimum', () => {
+  const actions: CartAction[] = [
+    { type: 'ADD_ITEM' },
+    { type: 'ADD_ITEM' },
+    { type: 'APPLY_COUPON', code: 'SAVE5' },
+    { type: 'REMOVE_ITEM' },
+  ];
+  const state = actions.reduce(cart, emptyCart);
+  assert.equal(state.coupon, null);
+});
 ```
-
-Each line has the cart before the call (`pre`), the action and its data, and the cart after (`post`):
 
 ```text
-{"pre":{"items":1,"coupon":null},"action":"APPLY_COUPON","data":{"code":"SAVE5"},"post":{"items":1,"coupon":null}}
+✖ the coupon goes when the cart drops under the minimum
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+'SAVE5' !== null
 ```
 
-Here the coupon is applied to one item, and the cart does not change, because 10.00 is below the minimum.
+To write that test you have to think of those four actions in that order. With twenty actions and ten fields, nobody
+does.
 
-**3. The spec** (`specs/cart-sam.js`) is the cart logic again, written by the LLM in SAM. In this example we wrote it by hand, because we ran without an API key. It copies
-the code as it is, bug included. For each action, `domain` lists the data to try, and the acceptor computes the next
-state or rejects the action with a name from the contract:
+### In Polygraph
 
-```js
-// specs/cart-sam.js (shortened)
-actions: {
-  REMOVE_ITEM: { action: (data = {}) => ({ ...data }), schema: {}, domain: [{}] },
-  APPLY_COUPON: { /* ... */ domain: [{ code: 'SAVE5' }, { code: 'SAVE10' }] },
-},
-acceptors: {
-  REMOVE_ITEM: (model) => (proposal, { reject, next, unchanged }) => {
-    if (model.items === 0) return reject('cart-empty');
-    next.items = model.items - 1;
-    unchanged('coupon');
-  },
-},
-```
-
-**4. The rules** (`invariants.mjs`) must be true in every state. You write these yourself. The spec is copied from the
-code, so it can only say what the code does, not what it should do.
+You write one file, the rules. Each rule is a function of the state that must always be true:
 
 ```js
 // invariants.mjs
@@ -207,25 +96,9 @@ export const stateInvariants = [
 ];
 ```
 
-### Running it
-
-<Short>Replay passes. The model check finds the bug in 4 steps.</Short>
-
-First, replay the recorded calls through the spec:
-
-```sh
-node node_modules/@cognitive-fab/polygraph/scripts/verify.mjs --contract contract.json --traces traces \
-  --specs specs --out out
-```
-
-```text
-15/15 windows consistent across 1 spec(s).
-findings: 0 spec-error, 0 code-finding/contract, 0 unscoreable-all
-```
-
-All 15 recorded calls match, so the spec does what the code does. But none of the recorded calls hit the bug.
-
-Then run the model check. In every state it can reach, it tries every action with every value in `domain`:
+The model comes from the LLM: it reads `cart.ts` and writes it again as a state machine, one function per action.
+That step needs an Anthropic API key and, the README says, Opus 5 or better; we wrote the file by hand in the same
+format. A small `contract.json`, yours, names the state fields, the actions and the values to try. Then the check:
 
 ```sh
 node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec specs/cart-sam.js --contract contract.json \
@@ -246,134 +119,124 @@ rejections explored: below-minimum ×4, cart-empty ×2, cart-full ×2, unknown-c
       REMOVE_ITEM({}) -> {"items":1,"coupon":"SAVE5"}
 ```
 
-It found the bug: the shortest list of actions that breaks the rule. You can run the same actions on the real
-reducer to see the bug.
+The same four actions, found from the rule alone. The fix is in `REMOVE_ITEM`: drop the coupon when the total falls
+under the minimum. On the fixed code the check explores 6 states and reports "no invariant violations reachable".
 
-### Fixing the bug
+The point that is easy to miss: the LLM's copy has the bug too. Polygraph's other check, replay, runs your real
+reducer through a few recorded sessions and compares every call with the copy. Here all 15 calls match, on the buggy
+code and on the fixed code. Replay tells you the copy is faithful to the code. It cannot tell you the code is right;
+only your rule does. The code, the spec and the tests are in
+[formal-methods-samples/polygraph-coupon](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/polygraph-coupon).
 
-<Short>Remove the coupon when the total drops below the minimum: no rule broken. Replay alone could not see the difference.</Short>
+</TabItem>
+<TabItem label="Where it stops: a discount that goes negative">
 
-When an item is removed and the total drops below the minimum, the coupon is removed too:
+The same cart, now with a percentage discount. Two coupons used together can add up to more than 100 percent:
 
-<CodeFix before={before} after={after} title="cart.ts" />
+```ts
+// cart.ts
+export function cart(state: Cart, action: CartAction): Cart {
+  switch (action.type) {
+    case 'ADD_ITEM':
+      if (state.items === MAX_ITEMS) return state;
+      return { ...state, items: state.items + 1 };
+    case 'APPLY_DISCOUNT':
+      return { ...state, percent: action.percent }; // two coupons together can pass 100
+  }
+}
 
-After recording the calls and writing the spec again from the fixed code, the model check passes:
+export const total = (c: Cart) => Math.round((c.items * PRICE * (100 - c.percent)) / 100);
+```
+
+```ts
+// cart.negative.test.ts
+test('the total is never negative', () => {
+  const state = cart(cart(emptyCart, { type: 'ADD_ITEM' }), { type: 'APPLY_DISCOUNT', percent: 150 });
+  assert.ok(total(state) >= 0, `total is ${total(state)}`);
+});
+```
 
 ```text
-states explored: 6
-rejections explored: below-minimum ×2, cart-empty ×1, cart-full ×2, unknown-code ×6
+✖ the total is never negative
+AssertionError [ERR_ASSERTION]: total is -500
+```
+
+### In Polygraph
+
+The rule is one line, `total-never-negative`. The checker tries every action in every state, but "every action" means
+every action with every value on its list. The list comes from the contract, so you pick it; here it is 10 and 50:
+
+```js
+// specs/cart-sam.js
+APPLY_DISCOUNT: {
+  action: (data = {}) => ({ ...data }),
+  schema: { percent: { type: 'number' } },
+  // The values the model checker tries, copied from the contract.
+  domain: [{ percent: 10 }, { percent: 50 }],
+},
+```
+
+```text
+states explored: 12
+rejections explored: cart-full ×3
 no invariant violations reachable ✓
 ```
 
-Replay alone could not tell the two versions apart. The old spec also matches all 15 calls recorded from the fixed
-code, because no recorded list of actions removed an item at the minimum. Only the model check found the bug.
+Passed, and the total still goes negative at 150. Put 150 on the list and the check finds it in one step. But the bug
+is at the value nobody listed, and Polygraph's README says so itself: no check measures the gap between the listed
+values and real data. A rule about a number needs a tool that proves it for every number: [Lean](/formal-methods/lean)
+does exactly this case, and [Dafny](/formal-methods/dafny) and [LemmaScript](/typescript-formal-methods/lemmascript)
+do the same for functions written in a TypeScript shape. The code and the spec are in
+[formal-methods-samples/polygraph-discount](https://github.com/speccraft-io/speccraft-io/tree/main/formal-methods-samples/polygraph-discount).
 
-## Project layout and CI
+</TabItem>
+</Tabs>
 
-<Short>Commit the contract, the spec and your rules. CI records new traces, replays them and runs the model check. No API key.</Short>
+## Conclusion
 
-```text
-./
-├── .github/workflows/ci.yml
-├── src/cart.ts                    the reducer
-└── polygraph/
-    ├── contract.json              state and actions
-    ├── invariants.mjs             your rules
-    ├── specs/cart-sam.js              written by the LLM, committed
-    └── record-traces.ts           runs sessions through tapReducer
-```
+How Polygraph compares with the other tools for the same job: the idea is good, but today it is not the tool to pick,
+for three reasons.
 
-`traces/` and `out/` are not committed: CI makes them from the current code. Replay and the model check need no API
-key, so CI runs them on every push:
+1. fast-check does the job on the real code. We gave it the same rule and random lists of the same three actions on
+   the real reducer, no copy, no LLM, no key. At its default of 100 runs it found the same four-step counterexample
+   in 18 of 20 tries, in about 2 ms each. What Polygraph adds is "every reachable state, not a random sample". That
+   matters for a big reducer, and for a big reducer the values you can list matter more, as the second case shows.
+2. The copy is the weak spot. It costs an API call to a strong model on every change to the code, and it inherits the
+   code's bugs. Replay checks the copy against the code, not the code against what you meant.
+3. TLA+ and Quint cover what it cannot: several processes, messages, crashes and retries in every order, and rules
+   about what must eventually happen. Polygraph checks one machine, one action at a time, with rules on one state or
+   one step. Its own README sends you to Specula for deep bugs in large concurrent or distributed systems.
 
-<details>
-<summary>The CI workflow: <code>.github/workflows/ci.yml</code> (7 lines)</summary>
+Comparison with the other tools:
 
-```yaml
-# .github/workflows/ci.yml (steps)
-- run: npm ci
-- run: node polygraph/record-traces.ts
-- run: npx polygraph --contract polygraph/contract.json --traces traces --specs polygraph/specs --out out
-# Replay exits 0 even when calls do not match, so check its report.
-- run: node -e "const s = require('./out/findings.json').summary; if (s.consistent !== s.windows) process.exit(1)"
-- run: node node_modules/@cognitive-fab/polygraph/scripts/check.mjs --spec polygraph/specs/cart-sam.js --contract polygraph/contract.json --invariants polygraph/invariants.mjs
-```
+Both Polygraph and fast-check handle:
 
-</details>
+- A rule that holds when it is set and breaks after a later action, like the coupon.
+- A field that is reset by one action and forgotten by another.
+- A step allowed in a state where nobody expected it, like a refund after a cancel.
 
-What fails when:
+Only TLA+, Quint, pnueli and stifinder handle:
 
-- **The code changes and the spec does not:** the report step. The new traces no longer match the spec.
-- **A change breaks a rule:** `check.mjs`, with the shortest list of actions to the bug.
+- Two workers on the same order, and what each one sees.
+- A crash in the middle of a step, and what the restart sees.
+- "Every order is eventually paid or refunded", not only "never charged twice".
 
-## Making changes
+Only Lean, Dafny and LemmaScript handle:
 
-<Short>Change the code, record, have the LLM write the spec again, run both checks, commit.</Short>
+- A rule about a number that must hold for every number, like the discount.
 
-1. Change the reducer.
-2. Record the traces again, and run replay. Calls that no longer match show where the spec is out of date.
-3. Have the LLM write the spec again. This step needs the API key.
-4. Run the model check. If the change adds a rule, add it to `invariants.mjs` first.
-5. Commit the code, the spec and the rules together.
-
-A new action or state field goes into `contract.json` first, then into the recording script, so the traces cover it.
-
-<Full>
-
-## Compared with other tools
-
-- **[TLA+](/formal-methods/tla-plus) and [Quint](/formal-methods/quint):** the same kind of check, but you write the model yourself, in
-  another language. Much older and much more used. All three find a wrong state that some order of actions can reach,
-  with the shortest list of steps to it. TLA+ and Quint also cover:
-  - **Concurrency:** several processes, messages, crashes and retries, in every order. Polygraph checks one machine
-    taking one action at a time. For deep bugs in concurrent or distributed systems, its README says to use Specula.
-  - **Liveness:** "every order is eventually paid or refunded". Polygraph checks rules on one state or one step only.
-  - **Designs before code:** Polygraph needs code to copy.
-
-  Polygraph has one thing they do not: replay checks that the model matches your real code.
-- **[XState](/typescript-formal-methods/xstate), [tla-precheck](/typescript-formal-methods/tla-precheck), [stateproof](/typescript-formal-methods/stateproof):** your code is the machine,
-  so there is no copy to keep in step. But you must write the code their way first. Polygraph is for code that is
-  already written.
-- **[fast-check](/typescript-formal-methods/fast-check):** runs your real code with random lists of actions. It tries many orders, not all,
-  but it tests the code itself, not a copy.
-- **[Specula](https://github.com/specula-org/Specula):** a research project with the same three steps, but in TLA+.
-  Its August 2026 paper reports 249 bugs in 48 real projects (MongoDB, etcd and others); maintainers confirmed 68 of
-  them. Polygraph's own README calls it the closest project, and ahead on evidence.
-
-## Strengths
-
-- **Starts from your code.** An LLM writes the spec from code you already have.
-- **Checks every state it can reach.** Not only the calls you recorded. Here replay missed the bug and the model
-  check found it.
-- **Checks the spec against your real code.** Replay shows if the spec does something your code does not.
-- **Gives the steps to the bug.** You get the shortest list of actions that breaks a rule.
-
-## Limitations
-
-- **You write the rules.** The spec is copied from your code, so it has the same bugs. Only your rules catch them.
-- **It checks the spec, not your code.** Replay compares them only on the calls you recorded. Timing and async code
-  are covered only if the spec includes them.
-- **Only the values you list.** Numbers, amounts and strings are checked only at the values in `domain`. A bug at
-  another value is not found.
-- **Code must run on its own.** Code that needs a database or a network needs test doubles first. In Claude Code, the
-  agent can build them.
-- **Experimental, and needs an LLM.** Its README says it is not a proof and not peer-reviewed. Writing the spec needs
-  an Anthropic API key and a strong model; the README recommends Opus 5 or better.
-- **Young.** The GitHub repo started in July 2026 and the npm package in September 2026. Almost all commits come from
-  one account. One production bug is confirmed outside the project, and the paper behind it is the author's own
-  preprint.
+The idea has a future, and the proof is not Polygraph. Specula, a research project that does the same three steps in
+TLA+ (an LLM writes the model, a model checker checks it, real traces validate it), reports 249 bugs in 48 projects
+such as MongoDB and etcd, 68 of them confirmed by the maintainers. Polygraph's own README calls Specula the closest
+project and ahead on evidence. What Polygraph has that Specula does not is JavaScript: the model is a JavaScript file
+and the checker runs in Node, and as a Claude Code plugin it records the calls and builds the test doubles for you. Whether one person carries that to something teams use is open. For a reducer you have today, fast-check;
+for concurrency and "eventually", TLA+ or Quint; for a rule about numbers, Lean, Dafny or LemmaScript. Polygraph is
+worth a look for the idea, not yet for the job.
 
 ## Links
 
-- Built by Cognitive Fab LLC. The GitHub repo started in July 2026; the npm package was first published in September
-  2026. The method comes from Jean-Jacques Dubray's July 2026 paper "Can
-  Code Specify a System Precisely Enough to Formally Verify It?" (arXiv:2607.05076).
-- Jean-Jacques Dubray on LinkedIn: https://www.linkedin.com/in/jdubray/
 - Polygraph on GitHub: https://github.com/cognitive-fab/polygraph
 - Polygraph on npm: https://www.npmjs.com/package/@cognitive-fab/polygraph
-- The paper: https://arxiv.org/abs/2607.05076
-- The SAM pattern: https://sam.js.org
+- The method, in Jean-Jacques Dubray's paper "Can Code Specify a System Precisely Enough to Formally Verify It?": https://arxiv.org/abs/2607.05076
+- The SAM pattern, the format of the spec: https://sam.js.org
 - Specula on GitHub: https://github.com/specula-org/Specula
-- Cognitive Fab: https://cognitivefab.com
-
-</Full>
