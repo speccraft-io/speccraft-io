@@ -159,7 +159,8 @@ saved its result last, so the user saw stale files. And the workflow waited for 
 going to finish, so it never ended. libpetri cannot check either: the first is about which result is newer, the
 second is about something that must eventually happen. In the [SQS clone](/case-studies/node-sqs), almost every
 rule is about a number, such as how many times a message was received against its limit, and libpetri does not look
-at numbers. Both are modeled with TLA+ and Quint, and the pages show how.
+at numbers. For both systems libpetri is the wrong tool: it would check the easy part and miss the bugs that
+happened. TLA+ or Quint is the tool for both.
 
 ## Links
 
