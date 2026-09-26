@@ -152,13 +152,13 @@ a person are all paths the check explores, as things that may or may not happen,
 them. Neither knows how long anything takes, unless you add a clock to the TLA+ model. One thing a TLA+ model can
 cover and libpetri's check cannot is a crash and restart in the middle of a run.
 
-Two real systems on this site show where the line is. The
+We checked this on two real systems on this site. The
 [document workflow](/case-studies/config-document-workflow) needs two things proven: when two file-processing runs
-overlap, the newer result wins, and the workflow always ends once the user is done. The first is about which
-result is newer, the second is about something that must eventually happen. libpetri checks neither; its locks, the
-one-time AI call and the upload batch are the part that was never in doubt. The [SQS clone](/case-studies/node-sqs)
-needs rules about numbers proven, such as a message never being received more times than its limit, and libpetri
-does not look at numbers. For both systems libpetri is the wrong tool. TLA+ or Quint is the tool for both.
+overlap, the newer result is the one that is saved, and the workflow always ends once the user is done. The first
+is a rule about which result is newer. The second is a rule about something that must eventually happen. libpetri
+checks neither. The [SQS clone](/case-studies/node-sqs) needs rules about numbers proven, for example that a
+message is never received more times than its limit. libpetri does not check numbers. For both systems libpetri is
+the wrong tool. TLA+ or Quint is the tool for both.
 
 ## Links
 
