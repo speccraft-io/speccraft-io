@@ -22,7 +22,7 @@ export const collections = {
 				useCases: z.array(z.string()).optional(),
 				// What a tool needs beyond Node and npm, shown in the right sidebar.
 				requires: z.array(z.string()).optional(),
-				// What is specific to this tool against the others on the site, shown in the right sidebar as "What sets it apart".
+				// What is specific to this tool against the others on the site, shown in the right sidebar as "TL;DR".
 				specifics: z.array(z.string()).optional(),
 				// Shown in the right sidebar of a tool comparison page (see src/components/PageSidebar.astro).
 				adoption: z
