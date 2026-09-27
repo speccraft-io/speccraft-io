@@ -5,3 +5,51 @@ adoption:
   npm: '@cognitive-fab/polygraph'
   created: 2026-07-07
 ---
+
+[Polygraph](https://github.com/cognitive-fab/polygraph) is a Claude Code plugin. You open Claude Code in your
+project, type one command, and give it one rule that must always hold, for example "after three wrong passwords the
+account is locked". It reads your login code, tries every sequence of events that code can get, and comes back with
+the shortest sequence that breaks the rule: wrong, wrong, forgot my password, wrong, wrong, forgot my password. The
+account never locks, because the reset clears the counter. Nobody wrote that test. Nobody imagined it.
+
+## How a run goes
+
+It starts with a question you cannot answer from the tests, or from an intermittent bug. Somewhere there is a
+sequence of events that gets around the lock, and you cannot see it by reading. You could keep staring, or you could
+ask Polygraph.
+
+You install the plugin, open Claude Code in the project and ask the question: `/polygraph:polygraph can an account
+ever stay open after three wrong passwords?`
+
+Claude reads the login code and shows you what it will watch: the fields of the account, the events, the values each
+event can carry. You correct it and confirm it. Then it runs your existing tests through the code and records every
+step, the account before and after each event. Then it asks you the one question that matters: what must never be
+true? You answer in a sentence, and it becomes a JavaScript function.
+
+Now an AI reads the login code and writes its own version of it as a state machine, several times over. This is the
+one step that needs an Anthropic API key. The recorded runs are replayed against each version, and the version that
+matches the real code is run through every sequence of events against your rule. That last step is a local script,
+no AI. It prints the shortest sequence that breaks the rule:
+
+```text
+wrong, wrong, forgot my password, wrong, wrong, forgot my password
+```
+
+You open the code, see that the reset clears the counter, fix it, and run it again. It reports no broken rule.
+
+## Other ways to use it
+
+The audit above is for code you already have. The plugin has other entry points for other goals:
+
+- **New code** (`/polygraph:polygen`). You describe a feature in one sentence. It writes the state machine, the rules
+  and the tests, checks its own output, and repairs it until the check passes. You wire the result into your handler.
+- **No rules yet** (`/polygraph:polynv`). When nobody can say what the code must never do, it mines candidate
+  rules from the code and the runs, pre-checks them, and interviews you to confirm them.
+- **A change to running code** (`/polygraph:polyvers`). Before you release a new version of the machine, it checks
+  the change against saved states from production and scaffolds the migration.
+- **In production** (`polyrun`). Runs a verified machine durably, with state, effects and timers, and keeps checking
+  the rules on live data.
+- **Without Claude Code.** Every step except writing the copy runs as a plain Node script with no API key: replay,
+  the search, the rule mining, the version check.
+- **An existing codebase.** A read-only prompt in the repo surveys your project and ranks what is worth checking
+  first, so you know what to point the audit at.
