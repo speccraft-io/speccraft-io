@@ -8,7 +8,6 @@ export const toolKinds: { kind: string; tools: Tool[] }[] = [
 			{ label: 'pnueli', link: '/typescript-formal-methods/pnueli' },
 			{ label: 'stifinder', link: '/typescript-formal-methods/stifinder' },
 			{ label: 'Polygraph', link: '/typescript-formal-methods/polygraph' },
-			{ label: 'SpecCraft TS', link: '/typescript-formal-methods/speccraft-ts' },
 		],
 	},
 	{
