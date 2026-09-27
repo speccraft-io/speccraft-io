@@ -189,7 +189,6 @@ export default defineConfig({
 						{ label: 'Percentage discount with a cap', link: '/use-cases/discount-cap' },
 						{ label: 'Bill split', link: '/use-cases/bill-split' },
 						{ label: 'Binary search over sorted ids', link: '/use-cases/binary-search' },
-						{ label: 'Cart reducer with a coupon', link: '/use-cases/cart-coupon' },
 					],
 				},
 				{

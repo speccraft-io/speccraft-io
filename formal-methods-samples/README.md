@@ -8,8 +8,6 @@ Small, self-contained case studies used on [speccraft.io](https://speccraft.io).
 - [effect-job-lease](effect-job-lease): A job worker whose lease renewal lands after a cancel and revives the lease. Checked with Effect.
 - [pnueli-distributed-lock](pnueli-distributed-lock): A distributed lock with lease expiry: two writers without fencing tokens. Checked with pnueli.
 - [stifinder-outbox](stifinder-outbox): A transactional outbox relay that loses or duplicates events after a crash or retry. Checked with stifinder.
-- [polygraph-coupon](polygraph-coupon): A cart reducer that keeps a minimum-spend coupon after an item is removed. Checked with Polygraph.
-- [polygraph-discount](polygraph-discount): A cart with a percentage discount that goes negative at a value Polygraph's model check never tries. Checked with Polygraph.
 - [tla-precheck-tickets](tla-precheck-tickets): A ticket shop where a customer can buy a seat and then hold a second one. Checked with tla-precheck.
 - [lemmascript-split-bill](lemmascript-split-bill): A bill split where rounding every share up can leave the last person paying a negative amount. Checked with LemmaScript and Dafny.
 - [stateproof-subscription](stateproof-subscription): A subscription where a renewal reactivates a plan the customer canceled. Checked with stateproof.
