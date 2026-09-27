@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import react from '@astrojs/react';
 import rehypeExternalLinks from 'rehype-external-links';
 import rehypeImageAttrs from './src/plugins/rehype-image-attrs.mjs';
 import sitemap from '@astrojs/sitemap';
@@ -49,6 +50,8 @@ export default defineConfig({
 		rehypePlugins: [[rehypeExternalLinks, { target: '_blank', rel: ['noopener', 'noreferrer'] }], rehypeImageAttrs],
 	},
 	integrations: [
+		// React is used only by the Excalidraw canvas on /canvas.
+		react(),
 		// Added here (Starlight then skips its own copy) so every URL gets a <lastmod> date.
 		sitemap({
 			serialize(item) {
@@ -211,6 +214,7 @@ export default defineConfig({
 						{ label: 'Public projects', link: '/market/public-repos' },
 					],
 				},
+				{ label: 'Canvas', link: '/canvas' },
 			],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },

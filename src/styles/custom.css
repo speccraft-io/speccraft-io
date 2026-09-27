@@ -243,3 +243,18 @@ h1,
 .sl-markdown-content .platforms > p:has(> strong:first-child):not(:first-child) {
 	margin-top: 2rem;
 }
+
+/* /canvas: the Excalidraw board fills everything under the header, edge to edge, like a whiteboard app. */
+.canvas-frame {
+	position: fixed;
+	inset: var(--sl-nav-height) 0 0 0;
+	z-index: 1;
+}
+/* Read-only board: no menu, no help button, no hint text. The zoom buttons stay. */
+.canvas-frame .main-menu-trigger,
+.canvas-frame .help-icon,
+.canvas-frame .layer-ui__wrapper__footer-right,
+.canvas-frame .disable-zen-mode,
+.canvas-frame .HintViewer {
+	display: none !important;
+}

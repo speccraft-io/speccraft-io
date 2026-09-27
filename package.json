@@ -10,11 +10,17 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/react": "^7.0.0",
     "@astrojs/sitemap": "^3.7.4",
     "@astrojs/starlight": "^0.39.3",
+    "@excalidraw/excalidraw": "^0.18.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "astro": "^6.3.1",
     "diff": "^9.0.0",
     "mergely": "^5.4.7",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "rehype-external-links": "^3.0.0",
     "remark-gfm": "^4.0.1",
     "sharp": "^0.34.5"
