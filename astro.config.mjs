@@ -134,7 +134,14 @@ export default defineConfig({
 				{
 					tag: 'script',
 					content:
-						"window.addEventListener('load',function(){setTimeout(function(){" +
+						"window.addEventListener('load',function(){" +
+						"if(['localhost','127.0.0.1'].includes(location.hostname))return;" +
+						// Visit any page with ?notrack once to turn GTM off in this browser, ?track to turn it back on.
+						"try{var q=new URLSearchParams(location.search);" +
+						"if(q.has('notrack'))localStorage.setItem('notrack','1');" +
+						"if(q.has('track'))localStorage.removeItem('notrack');" +
+						"if(localStorage.getItem('notrack'))return;}catch(e){}" +
+						"setTimeout(function(){" +
 						"(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':" +
 						"new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0]," +
 						"j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=" +
