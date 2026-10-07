@@ -258,3 +258,11 @@ h1,
 .canvas-frame .HintViewer {
 	display: none !important;
 }
+
+/* Section headings a step smaller than the Starlight defaults. */
+.sl-markdown-content h2 {
+	font-size: var(--sl-text-xl);
+}
+.sl-markdown-content h3 {
+	font-size: var(--sl-text-lg);
+}
