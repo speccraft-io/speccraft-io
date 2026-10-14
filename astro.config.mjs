@@ -223,11 +223,6 @@ export default defineConfig({
 				},
 				{ label: 'Canvas', link: '/canvas' },
 			],
-			social: [
-				{ icon: 'github', label: 'GitHub', href: 'https://github.com/orgs/speccraft-io/repositories' },
-				{ icon: 'linkedin', label: 'LinkedIn', href: 'https://www.linkedin.com/company/speccraft-io/' },
-				{ icon: 'blueSky', label: 'Bluesky', href: 'https://bsky.app/profile/speccraft.bsky.social' },
-			],
 			lastUpdated: true,
 			// No right-hand "On this page" table of contents on any page.
 			tableOfContents: false,

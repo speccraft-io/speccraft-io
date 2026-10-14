@@ -1,53 +1,36 @@
 ---
-// Override of Starlight's SocialIcons: same markup, but every header link opens in a new tab.
-import config from 'virtual:starlight/user-config';
-import { Icon } from '@astrojs/starlight/components';
-
-const links = config.social || [];
+// Override of Starlight's SocialIcons: the header shows contact links as text, not icons.
 ---
 
-{
-	links.length > 0 && (
-		<>
-			{links.map(({ label, href, icon }) => (
-				<a {href} target="_blank" rel="me noopener noreferrer" class="sl-flex">
-					<span class="sr-only">{label}</span>
-					<Icon name={icon} />
-				</a>
-			))}
-			{/* zalizniak.com: the site's "OZ" favicon redrawn as a one-color icon, like LinkedIn's "in" square. */}
-			<a href="https://zalizniak.com/" target="_blank" rel="me noopener noreferrer" class="sl-flex">
-				<span class="sr-only">zalizniak.com</span>
-				<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-					<mask id="oz-cutout">
-						<rect x="1.5" y="1.5" width="21" height="21" rx="3" fill="#fff" />
-						<g fill="none" stroke="#000" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-							<ellipse cx="8" cy="12" rx="3.6" ry="4.4" />
-							<path d="M14 7.6h5.2L14 16.4h5.2" />
-						</g>
-					</mask>
-					<rect x="1.5" y="1.5" width="21" height="21" rx="3" fill="currentColor" mask="url(#oz-cutout)" />
-				</svg>
-			</a>
-		</>
-	)
-}
+<a class="contact-pill" href="mailto:alex@zalizniak.com">
+	<span class="name">Oleksandr Zalizniak </span>&lt;alex@zalizniak.com&gt;
+</a>
+<a class="contact-pill" href="https://www.linkedin.com/in/ozalizniak/" target="_blank" rel="noopener noreferrer">
+	LinkedIn
+</a>
 
 <style>
 	@layer starlight.core {
-		/* Neutral icons: pink is kept for links in text and for problems (see /design). */
-		a {
+		/* Neutral links: pink is kept for links in text and for problems (see /design). */
+		.contact-pill {
 			color: var(--sc-muted);
-			padding: 0.5em;
-			margin: -0.5em;
+			border: 1px solid var(--sc-border);
+			border-radius: 999px;
+			padding: 0.25em 0.75em;
+			font-size: var(--sl-text-xs);
+			line-height: 1.6;
+			white-space: nowrap;
+			text-decoration: none;
 		}
-		a:hover {
+		.contact-pill:hover {
 			color: var(--sc-text);
+			border-color: var(--sc-muted);
 		}
-		/* Match the built-in social SVG icons' rendered size. */
-		svg {
-			width: 1em;
-			height: 1em;
+		/* The name does not fit next to the sidebar toggle on a phone. */
+		@media (max-width: 50rem) {
+			.name {
+				display: none;
+			}
 		}
 	}
 </style>
