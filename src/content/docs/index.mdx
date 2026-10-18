@@ -1,26 +1,30 @@
 ---
 title: SpecCraft
+hideTitle: true
 description: Spec-driven development with AI - human requirements, AI spec, AI tests, AI code, with a gate between them.
 head:
   # Homepage title === site title, so Starlight's "title | siteTitle" format
   # duplicates it. Pin a single title for this page.
   - tag: title
     content: SpecCraft
+  # Smaller section headings on this page: with the H1 hidden, full-size H2s look like page titles.
+  - tag: style
+    content: ".sl-markdown-content h2 { font-size: var(--sl-text-h3); }"
 ---
 
-SpecCraft is a tool, framework and method for spec-driven development with AI:
+SpecCraft is a tool, framework and method for spec-driven development.
 
-    human requirements -> AI spec -> AI tests -> AI code
+You write the requirements. AI writes the spec, then the tests, then the code. A gate checks each step against the
+one before. Specs live next to the code and go through the same pull requests.
 
-You write high-level requirements and pain points. AI writes the spec and keeps it complete and consistent, with
-every open question and the call made to close it written down. Tests are generated from the spec. Code is written
-only to make a failing test pass. Specs live next to the code and go through the same pull requests.
+**Pre-release.** The editor (edits specs in a GitHub repo, from a laptop or a phone) and the Claude Code plugin
+(the method, the agents, the gate) are coming soon, both open source.
 
-**SpecCraft is pre-release.** The editor and the plugin are coming soon, and both will be open source.
-
-- **The editor** reads and edits requirements and specs straight from a GitHub repo, from a laptop or a phone.
-- **The Claude Code plugin** holds the method, the spec-writer and spec-auditor agents, and the gate that checks
-  requirements, specs, test cases and tests against each other.
+<div class="sc-phone">
+  <div class="sc-phone-screen">
+    <img src="/app/SpecCraft-app-preview.png" alt="The SpecCraft editor on a phone, showing the feature list with gate status and assumption counts" width="934" height="1600" />
+  </div>
+</div>
 
 ## Formal methods
 
