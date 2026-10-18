@@ -120,7 +120,7 @@ export default defineConfig({
 				ThemeSelect: './src/components/ThemeSelect.astro',
 				// Show a date on every page, falling back to the file's modified time before its first commit.
 				LastUpdated: './src/components/LastUpdated.astro',
-				// The header shows a link to app.speccraft.io; contact is at the bottom of the root page.
+				// The header shows a pre-release badge; contact is at the bottom of the root page.
 				SocialIcons: './src/components/SocialIcons.astro',
 				// On tool comparison pages, an adoption box replaces the right-hand table of contents.
 				PageSidebar: './src/components/PageSidebar.astro',

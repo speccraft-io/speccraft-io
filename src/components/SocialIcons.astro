@@ -1,11 +1,10 @@
 ---
-// Override of Starlight's SocialIcons: the header shows one link to the editor as text, not an icon.
+// Override of Starlight's SocialIcons: the header shows a pre-release badge as text, not an icon.
+// The link to the editor returns here once it is released.
 // Contact links are in the "Let's Connect" section at the bottom of the root page and on /contact.
 ---
 
-<a class="contact-pill" href="https://app.speccraft.io/" target="_blank" rel="noopener noreferrer">
-	app.speccraft.io
-</a>
+<span class="contact-pill">Pre-release · coming soon</span>
 
 <style>
 	@layer starlight.core {
@@ -19,10 +18,6 @@
 			line-height: 1.6;
 			white-space: nowrap;
 			text-decoration: none;
-		}
-		.contact-pill:hover {
-			color: var(--sc-text);
-			border-color: var(--sc-muted);
 		}
 	}
 </style>
