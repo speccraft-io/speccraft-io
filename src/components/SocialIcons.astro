@@ -1,17 +1,15 @@
 ---
-// Override of Starlight's SocialIcons: the header shows contact links as text, not icons.
+// Override of Starlight's SocialIcons: the header shows one link to the editor as text, not an icon.
+// Contact links are in the "Let's Connect" section at the bottom of the root page and on /contact.
 ---
 
-<a class="contact-pill" href="mailto:alex@zalizniak.com">
-	<span class="name">Oleksandr Zalizniak </span>&lt;alex@zalizniak.com&gt;
-</a>
-<a class="contact-pill" href="https://www.linkedin.com/in/ozalizniak/" target="_blank" rel="noopener noreferrer">
-	LinkedIn
+<a class="contact-pill" href="https://app.speccraft.io/" target="_blank" rel="noopener noreferrer">
+	app.speccraft.io
 </a>
 
 <style>
 	@layer starlight.core {
-		/* Neutral links: pink is kept for links in text and for problems (see /design). */
+		/* Neutral link: pink is kept for links in text and for problems (see /design). */
 		.contact-pill {
 			color: var(--sc-muted);
 			border: 1px solid var(--sc-border);
@@ -25,12 +23,6 @@
 		.contact-pill:hover {
 			color: var(--sc-text);
 			border-color: var(--sc-muted);
-		}
-		/* The name does not fit next to the sidebar toggle on a phone. */
-		@media (max-width: 50rem) {
-			.name {
-				display: none;
-			}
 		}
 	}
 </style>

@@ -1,9 +1,6 @@
 ---
 title: SpecCraft
-description: Formal methods for TypeScript - the concepts, the tools that exist, and how to use them from a TypeScript project.
-hideTitle: true
-tableOfContents: true
-card: home
+description: Spec-driven development with AI - human requirements, AI spec, AI tests, AI code, with a gate between them.
 head:
   # Homepage title === site title, so Starlight's "title | siteTitle" format
   # duplicates it. Pin a single title for this page.
@@ -11,51 +8,27 @@ head:
     content: SpecCraft
 ---
 
-import CodeFix from '../../components/CodeFix.astro';
-import quintBefore from '../../fixes/quint-ts/before.txt?raw';
-import quintAfter from '../../fixes/quint-ts/after.txt?raw';
-import tlaBefore from '../../fixes/tla-fix-ts/before.txt?raw';
-import tlaAfter from '../../fixes/tla-fix-ts/after.txt?raw';
-import leanBefore from '../../fixes/lean-ts/before.txt?raw';
-import leanAfter from '../../fixes/lean-ts/after.txt?raw';
-import dafnyBefore from '../../fixes/dafny-ts/before.txt?raw';
-import dafnyAfter from '../../fixes/dafny-ts/after.txt?raw';
+SpecCraft is a tool, framework and method for spec-driven development with AI:
 
-<p class="home-lead">SpecCraft is about formal methods in TypeScript projects. Below are some situations we run into from time to time. See if any of them look familiar, and learn how formal methods (and other modern tools) can help.</p>
+    human requirements -> AI spec -> AI tests -> AI code
 
-## Connect on first use
+You write high-level requirements and pain points. AI writes the spec and keeps it complete and consistent, with
+every open question and the call made to close it written down. Tests are generated from the spec. Code is written
+only to make a failing test pass. Specs live next to the code and go through the same pull requests.
 
-Connect to the database on first use, then reuse the connection. Two requests at startup both see no connection yet,
-and both connect.
+- **The editor** at [app.speccraft.io](https://app.speccraft.io) reads and edits requirements and specs straight from
+  a GitHub repo, from a laptop or a phone.
+- **The Claude Code plugin** holds the method, the spec-writer and spec-auditor agents, and the gate that checks
+  requirements, specs, test cases and tests against each other.
 
-<CodeFix before={tlaBefore} after={tlaAfter} title="src/lazy-connect.ts" />
+## Formal methods
 
-See how [TLA+](/formal-methods/tla-plus) finds it.
+Specs in SpecCraft lean on formal methods where they can. The
+[formal methods](/formal-methods/) section is a neutral guide to the concepts, the tools that exist,
+and how to use them from a TypeScript project.
 
-## Search as you type
+## Let's Connect
 
-A search-as-you-type box sends a request on every keystroke and shows whatever comes back. Type "rea", then "react",
-and two requests are waiting for a reply. If the one for "rea" is slower, it arrives last and replaces the results:
-the box says "react", the list shows results for "rea".
+SpecCraft is early and builds itself with its own method. Get in touch if you want to try it.
 
-<CodeFix before={quintBefore} after={quintAfter} title="src/search.ts" />
-
-See how [Quint](/formal-methods/quint) finds it.
-
-## Binary search over sorted ids
-
-Finding an id in a sorted list. Tests for a found id and a missing id both pass, but `indexOfId([10, 20, 30], 10)`
-returns `-1`: when the search narrows down to one last element, the loop stops before looking at it.
-
-<CodeFix before={dafnyBefore} after={dafnyAfter} title="src/ids.ts" />
-
-See how [Dafny](/formal-methods/dafny) finds it.
-
-## A percentage discount
-
-A price with a percentage discount and a cap. Nothing stops `percent` from being over 100, and the discount is then
-bigger than the price, unless the cap happens to catch it.
-
-<CodeFix before={leanBefore} after={leanAfter} title="src/pricing.ts" />
-
-See how [Lean](/formal-methods/lean) finds it.
+[alex@zalizniak.com](mailto:alex@zalizniak.com) · [LinkedIn](https://www.linkedin.com/in/ozalizniak/)

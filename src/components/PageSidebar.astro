@@ -3,11 +3,10 @@
 // in their frontmatter, or with an intro `card` on pages that declare one. Other pages keep Starlight's table of contents off (see astro.config.mjs).
 import { similarTools } from '../tool-kinds';
 import HomeIntro from './HomeIntro.astro';
-import MarketIntro from './MarketIntro.astro';
 
 const { adoption, requires, useCases, specifics, trend, card } = Astro.locals.starlightRoute.entry.data;
 const similar = adoption ? similarTools(Astro.url.pathname) : undefined;
-const toggleLabel = card === 'home' ? 'About this site' : card ? 'About this page' : adoption ? 'Adoption, dependencies and similar tools' : useCases || trend ? 'Details' : 'Dependencies';
+const toggleLabel = card === 'home' ? 'About this section' : card ? 'About this page' : adoption ? 'Adoption, dependencies and similar tools' : useCases || trend ? 'Details' : 'Dependencies';
 
 const shield = (path: string, label: string) =>
 	`https://img.shields.io/${path}?style=flat&label=${encodeURIComponent(label)}`;
@@ -38,12 +37,6 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 	)
 }
 {
-	card === 'market' && (
-		<MarketIntro />
-	)
-}
-
-{
 	adoption && (
 		<div class="adoption">
 			<h2>Adoption</h2>
@@ -70,7 +63,7 @@ const since = adoption?.created.toLocaleDateString('en-US', { month: 'short', ye
 		<div class="adoption similar trend">
 			<h2>Trend</h2>
 			<p>
-				<a href="/market/jobs">{trend.jobs === 1 ? '1 job posting' : `${trend.jobs} job postings`}</a> naming it
+				{trend.jobs === 1 ? '1 job posting' : `${trend.jobs} job postings`} naming it
 				{trend.salary && <br />}
 				{trend.salary && `Pay: ${trend.salary}`}
 			</p>

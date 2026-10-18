@@ -1,17 +1,19 @@
 ---
 // Override of Starlight's Footer: renders the default footer, then appends the
-// comments section on content pages. The home page gets the banner instead.
+// comments section on content pages. The root page gets nothing, the formal-methods index gets the banner instead.
 import Default from '@astrojs/starlight/components/Footer.astro';
 import Comments from './Comments.astro';
 import Lightbox from './Lightbox.astro';
 
-const isHome = Astro.url.pathname === '/';
+const path = Astro.url.pathname;
+const isRoot = path === '/';
+const isFormalMethodsIndex = path === '/formal-methods/' || path === '/formal-methods';
 ---
 
 <Default><slot /></Default>
 <Lightbox />
 {
-	isHome ? (
+	isRoot ? null : isFormalMethodsIndex ? (
 		<img
 			class="home-banner"
 			src="/assets/site-banner.webp"

@@ -1,20 +1,27 @@
 # CLAUDE.md
 
-> **Repo scope:** source for **speccraft.io** — for now, a neutral guide to **formal methods applied to TypeScript**: the concepts, the tools that exist, and how to use them from a TypeScript project. Built with **Astro Starlight**, static output, deployed to the `dist/` directory.
+> **Repo scope:** source for **speccraft.io**, the site of **SpecCraft**: a tool, framework and method for spec-driven
+> development with AI (human requirements, AI spec, AI tests, AI code). The site also keeps a neutral guide to
+> **formal methods applied to TypeScript** as one section. Built with **Astro Starlight**, static output, deployed to
+> the `dist/` directory.
 
-## What the site is (for now)
+## What the site is
 
-Until the SpecCraft implementation has traction, the site is not a SpecCraft landing page. It covers concepts (state
-machines, Petri nets), TypeScript tools (`/ts-tools`, `/typescript-formal-methods/*`), non-TypeScript tools used from TS (`/formal-methods/*`),
-durable execution and the formal methods market.
+- **The root page** (`src/content/docs/index.mdx`) is the SpecCraft page: the pipeline, the editor at
+  app.speccraft.io, the Claude Code plugin. The implementation lives in a private repo
+  (`/Users/alex/work/speccraft/speccraft`); its `-req/idea.md` is the vision and the source of truth for what SpecCraft
+  is. Do not link to that repo from the site.
+- **The formal-methods section** has its index at `/formal-methods/` (`src/content/docs/formal-methods/index.mdx`,
+  the former home page). It covers concepts (state machines, Petri nets), TypeScript tools
+  (`/typescript-formal-methods/*`), and non-TypeScript tools used from TS (`/formal-methods/*`). The section is neutral: SpecCraft is not the frame of the tool pages.
+  - **speccraft-ts is one tool among others** there. Its page is `/typescript-formal-methods/speccraft-ts`, written
+    like every other tool page. Do not compare other tools against it or add "vs SpecCraft" sections.
+  - Tool pages are titled with the tool's name and end with a neutral "Strengths and limits" section; comparisons,
+    when useful, are with the other tools on the site.
+  - Tool pages live under `/typescript-formal-methods/`; the old `/vs/` URLs redirect there.
+- The market pages, the use cases, the case studies and the canvas were removed in October 2026; their old URLs redirect to `/formal-methods/`.
 
-- **SpecCraft is one tool among others.** Its own page is `/typescript-formal-methods/speccraft-ts`, written like every other tool page. Do
-  not compare other tools against SpecCraft, add "vs SpecCraft" sections, or position pages around it.
-- Tool pages are titled with the tool's name and end with a neutral "Strengths and limits" section; comparisons, when
-  useful, are with the other tools on the site.
-- Tool pages live under `/typescript-formal-methods/`; the old `/vs/` URLs redirect there.
-
-## Who reads the site and how to write for them
+## Who reads the formal-methods section and how to write for them
 
 **The reader is a Node.js developer who is looking around.** They do not have a specific task, and often do not know
 they have the problem. They are not here to learn a tool or a theory. They want to see what exists, how it compares
@@ -85,7 +92,8 @@ No Install, Project layout, CI or Making changes sections.
 ## Stack (decided — don't relitigate)
 
 - **Astro Starlight** (`@astrojs/starlight`), static output, build dir `dist/`.
-- The home page is `src/content/docs/index.mdx` (`Card`/`CardGrid`); the sidebar groups are in `astro.config.mjs`.
+- The root page is `src/content/docs/index.mdx`; the formal-methods index is `src/content/docs/formal-methods/index.mdx`.
+  The sidebar groups are in `astro.config.mjs`: a link to the root, then one group "Formal methods" for the section.
 - **Logo & favicons** live in `public/` (the "SC" monogram); the header logo is `src/assets/speccraft-logo.png`. Wired in `astro.config.mjs`.
 - **Analytics:** Google Tag Manager (`GTM-N2BNSMZ6`) injected via the Starlight `head` config — same container as the rest of the SpecCraft properties.
 - **Site styling tweaks** go in `src/styles/custom.css` (referenced via `customCss`).

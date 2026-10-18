@@ -1,9 +1,9 @@
 ---
 import SideCard from './SideCard.astro';
 
-// The home page intro, shown as a card in the right sidebar (`card: home`).
+// The formal-methods index intro, shown as a card in the right sidebar (`card: home`).
 // Neutral structure; pink and green only where they mean something (see /design).
-// One tile per example on the home page, linking to its section. The pink dot marks a problem.
+// One tile per example on the index page, linking to its section. The pink dot marks a problem.
 const examples = [
 	['TLA+', 'double connect', '#connect-on-first-use'],
 	['Quint', 'late reply', '#search-as-you-type'],
@@ -13,7 +13,7 @@ const examples = [
 ---
 
 <SideCard>
-	<p class="eyebrow">Formal methods for TypeScript</p>
+	<p class="eyebrow">Formal methods</p>
 	<p class="story"><strong>A small part of a TS codebase may become unmanageable.</strong> We usually are comfortable with 95% of a project's code, but one or two small pieces are getting out of hand: scary to change, impossible to describe, and painful to test.</p>
 	<p class="story"><strong>Formal methods first of all bring thinking/comprehension tools.</strong> They make some systems easier to understand and the ability to change them without even having to fully understand. Correctness is a result.</p>
 	<p class="story"><strong>The TS ecosystem falls short, but the industry has a lot to offer.</strong> TLA+, Quint, Dafny, Lean and more. Here we will try to bridge the gap and show how to use a wide selection of tools in a TypeScript project.</p>

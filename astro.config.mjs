@@ -1,7 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import react from '@astrojs/react';
 import rehypeExternalLinks from 'rehype-external-links';
 import rehypeImageAttrs from './src/plugins/rehype-image-attrs.mjs';
 import sitemap from '@astrojs/sitemap';
@@ -13,15 +12,33 @@ import { quietDark, quietLight } from './src/code-theme/quiet.mjs';
 export default defineConfig({
 	site: 'https://speccraft.io',
 	redirects: {
-		'/state-of-formal-methods-market': '/market/tools',
-		'/market': '/market/tools',
+		'/state-of-formal-methods-market': '/formal-methods/',
+		'/market': '/formal-methods/',
+		'/canvas': '/formal-methods/',
 		'/vs/fake-timers': '/typescript-formal-methods/other-ts-tools',
 		'/vs/effect': '/typescript-formal-methods/other-ts-tools',
 		'/how-speccraft-compares': '/',
 		'/tools/speccraft-vs-non-ts-tools': '/',
 		'/ts-tools': '/',
 		'/tools/non-ts-tools': '/',
-		'/case-study-config-document-workflow': '/case-studies/config-document-workflow',
+		'/case-study-config-document-workflow': '/formal-methods/',
+		'/case-studies/config-document-workflow': '/formal-methods/',
+		'/case-studies/node-sqs': '/formal-methods/',
+		'/use-cases/bill-split': '/formal-methods/',
+		'/use-cases/binary-search': '/formal-methods/',
+		'/use-cases/checkout-back-button': '/formal-methods/',
+		'/use-cases/checkout-double-click': '/formal-methods/',
+		'/use-cases/connect-on-first-use': '/formal-methods/',
+		'/use-cases/crosswalk-lights': '/formal-methods/',
+		'/use-cases/discount-cap': '/formal-methods/',
+		'/use-cases/lock-with-lease': '/formal-methods/',
+		'/use-cases/search-as-you-type': '/formal-methods/',
+		'/use-cases/signup-terms': '/formal-methods/',
+		'/use-cases/stock-reservation': '/formal-methods/',
+		'/use-cases/subscription-renewal': '/formal-methods/',
+		'/use-cases/ticket-limit': '/formal-methods/',
+		'/use-cases/transactional-outbox': '/formal-methods/',
+		'/use-cases/webhook-double-charge': '/formal-methods/',
 		'/tools/tla-plus': '/formal-methods/tla-plus',
 		'/tools/quint': '/formal-methods/quint',
 		'/tools/dafny': '/formal-methods/dafny',
@@ -50,8 +67,6 @@ export default defineConfig({
 		rehypePlugins: [[rehypeExternalLinks, { target: '_blank', rel: ['noopener', 'noreferrer'] }], rehypeImageAttrs],
 	},
 	integrations: [
-		// React is used only by the Excalidraw canvas on /canvas.
-		react(),
 		// Added here (Starlight then skips its own copy) so every URL gets a <lastmod> date.
 		sitemap({
 			serialize(item) {
@@ -92,8 +107,8 @@ export default defineConfig({
 			},
 			title: 'SpecCraft',
 			description:
-				'Formal methods for TypeScript: the concepts, the tools that exist, and how to use them from a TypeScript project.',
-			tagline: 'Formal methods for TypeScript.',
+				'Spec-driven development with AI: human requirements, AI spec, AI tests, AI code.',
+			tagline: 'Spec-driven development with AI.',
 			logo: { src: './src/assets/speccraft-logo.png', alt: 'SpecCraft' },
 			customCss: ['./src/styles/custom.css'],
 			components: {
@@ -105,7 +120,7 @@ export default defineConfig({
 				ThemeSelect: './src/components/ThemeSelect.astro',
 				// Show a date on every page, falling back to the file's modified time before its first commit.
 				LastUpdated: './src/components/LastUpdated.astro',
-				// Header GitHub / npm / LinkedIn links open in a new tab.
+				// The header shows a link to app.speccraft.io; contact is at the bottom of the root page.
 				SocialIcons: './src/components/SocialIcons.astro',
 				// On tool comparison pages, an adoption box replaces the right-hand table of contents.
 				PageSidebar: './src/components/PageSidebar.astro',
@@ -152,76 +167,41 @@ export default defineConfig({
 			],
 			pagination: false,
 			sidebar: [
-				{ label: 'Home', link: '/' },
+				{ label: 'SpecCraft', link: '/' },
 				{
-					label: 'Non-TypeScript tools',
-					items: [
-						{ label: 'TLA+', link: '/formal-methods/tla-plus' },
-						{ label: 'Quint', link: '/formal-methods/quint' },
-						{ label: 'Dafny', link: '/formal-methods/dafny' },
-						{ label: 'Lean', link: '/formal-methods/lean' },
-					],
-				},
-				{
-					label: 'TypeScript tools',
-					items: [
-						{ label: 'fast-check', link: '/typescript-formal-methods/fast-check' },
-						{ label: 'Bombadil', link: '/typescript-formal-methods/bombadil' },
-						{ label: 'effect-machine', link: '/typescript-formal-methods/effect-machine' },
-						{ label: 'XState', link: '/typescript-formal-methods/xstate' },
-						{ label: 'Hegel', link: '/typescript-formal-methods/hegel' },
-						{ label: 'LemmaScript', link: '/typescript-formal-methods/lemmascript' },
-						{ label: 'tla-precheck', link: '/typescript-formal-methods/tla-precheck' },
-						{ label: 'libpetri', link: '/typescript-formal-methods/libpetri' },
-						{ label: 'Polygraph', link: '/typescript-formal-methods/polygraph' },
-						{ label: 'stifinder', link: '/typescript-formal-methods/stifinder' },
-						{ label: 'pnueli', link: '/typescript-formal-methods/pnueli' },
-						{ label: 'stateproof', link: '/typescript-formal-methods/stateproof' },
-						{ label: 'Some more TS Tools', link: '/typescript-formal-methods/other-ts-tools' },
-					],
-				},
-				{
-					label: 'Use cases',
+					label: 'Formal methods',
 					collapsed: true,
 					items: [
-						{ label: 'Search as you type', link: '/use-cases/search-as-you-type' },
-						{ label: 'Connect on first use', link: '/use-cases/connect-on-first-use' },
-						{ label: 'Webhook handled twice', link: '/use-cases/webhook-double-charge' },
-						{ label: 'Stock reservation', link: '/use-cases/stock-reservation' },
-						{ label: 'Checkout button clicked twice', link: '/use-cases/checkout-double-click' },
-						{ label: 'Canceled plan renewed', link: '/use-cases/subscription-renewal' },
-						{ label: 'Checkout with Back', link: '/use-cases/checkout-back-button' },
-						{ label: 'Transactional outbox', link: '/use-cases/transactional-outbox' },
-						{ label: 'Lock with a lease', link: '/use-cases/lock-with-lease' },
-						{ label: 'Crosswalk lights', link: '/use-cases/crosswalk-lights' },
-						{ label: 'Ticket shop limit', link: '/use-cases/ticket-limit' },
-						{ label: 'Terms unticked on the review page', link: '/use-cases/signup-terms' },
-						{ label: 'Percentage discount with a cap', link: '/use-cases/discount-cap' },
-						{ label: 'Bill split', link: '/use-cases/bill-split' },
-						{ label: 'Binary search over sorted ids', link: '/use-cases/binary-search' },
+						{ label: 'Overview', link: '/formal-methods/' },
+						{
+							label: 'Non-TypeScript tools',
+							items: [
+								{ label: 'TLA+', link: '/formal-methods/tla-plus' },
+								{ label: 'Quint', link: '/formal-methods/quint' },
+								{ label: 'Dafny', link: '/formal-methods/dafny' },
+								{ label: 'Lean', link: '/formal-methods/lean' },
+							],
+						},
+						{
+							label: 'TypeScript tools',
+							items: [
+								{ label: 'fast-check', link: '/typescript-formal-methods/fast-check' },
+								{ label: 'Bombadil', link: '/typescript-formal-methods/bombadil' },
+								{ label: 'effect-machine', link: '/typescript-formal-methods/effect-machine' },
+								{ label: 'XState', link: '/typescript-formal-methods/xstate' },
+								{ label: 'Hegel', link: '/typescript-formal-methods/hegel' },
+								{ label: 'LemmaScript', link: '/typescript-formal-methods/lemmascript' },
+								{ label: 'tla-precheck', link: '/typescript-formal-methods/tla-precheck' },
+								{ label: 'libpetri', link: '/typescript-formal-methods/libpetri' },
+								{ label: 'Polygraph', link: '/typescript-formal-methods/polygraph' },
+								{ label: 'stifinder', link: '/typescript-formal-methods/stifinder' },
+								{ label: 'pnueli', link: '/typescript-formal-methods/pnueli' },
+								{ label: 'stateproof', link: '/typescript-formal-methods/stateproof' },
+								{ label: 'Some more TS Tools', link: '/typescript-formal-methods/other-ts-tools' },
+							],
+						},
 					],
 				},
-				{
-					label: 'Case studies',
-					collapsed: true,
-					items: [
-						{ label: 'Config document workflow', link: '/case-studies/config-document-workflow' },
-						{ label: 'A small SQS clone', link: '/case-studies/node-sqs' },
-					],
-				},
-				{
-					label: 'Adoption',
-					collapsed: true,
-					items: [
-						{ label: 'Job market', link: '/market/jobs' },
-						{ label: 'Freelance market', link: '/market/marketplaces' },
-						{ label: 'Practitioners', link: '/market/practitioners' },
-						{ label: 'Industries', link: '/market/industries' },
-						{ label: 'Tools', link: '/market/tools' },
-						{ label: 'Public projects', link: '/market/public-repos' },
-					],
-				},
-				{ label: 'Canvas', link: '/canvas' },
 			],
 			lastUpdated: true,
 			// No right-hand "On this page" table of contents on any page.
