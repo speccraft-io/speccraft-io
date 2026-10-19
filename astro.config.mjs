@@ -52,7 +52,16 @@ export default defineConfig({
 		'/vs/other-ts-tools': '/typescript-formal-methods/other-ts-tools',
 		'/vs/pnueli': '/typescript-formal-methods/pnueli',
 		'/vs/polygraph': '/typescript-formal-methods/polygraph',
-		'/vs/speccraft-ts': '/typescript-formal-methods/speccraft-ts',
+		'/vs/speccraft-ts': '/formal-methods/',
+		'/typescript-formal-methods/speccraft-ts': '/formal-methods/',
+		'/concepts/state-machines': '/formal-methods/',
+		'/concepts/petri-nets': '/formal-methods/',
+		'/concepts/formal-specs': '/formal-methods/',
+		'/approaches-to-correctness': '/formal-methods/',
+		'/durable-execution-problems': '/formal-methods/',
+		'/durable-workflow-correctness-tooling-research': '/formal-methods/',
+		'/design': '/',
+		'/contact': '/',
 		'/vs/stateproof': '/typescript-formal-methods/stateproof',
 		'/vs/stifinder': '/typescript-formal-methods/stifinder',
 		'/vs/tla-precheck': '/typescript-formal-methods/tla-precheck',
@@ -77,7 +86,7 @@ export default defineConfig({
 		starlight({
 			// No site search: hides the header search bar and skips the Pagefind index.
 			pagefind: false,
-			// Code blocks: the quiet code theme, flat frames, and diff lines in the palette's pink and green (see /design).
+			// Code blocks: the quiet code theme, flat frames, and diff lines in the palette's pink and green.
 			expressiveCode: {
 				themes: [quietDark, quietLight],
 				styleOverrides: {
@@ -135,7 +144,7 @@ export default defineConfig({
 				{ tag: 'link', attrs: { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96x96.png' } },
 				{ tag: 'link', attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' } },
 				{ tag: 'link', attrs: { rel: 'manifest', href: '/site.webmanifest' } },
-				// IBM Plex Sans for text, headings and the name; JetBrains Mono for code (see /design).
+				// IBM Plex Sans for text, headings and the name; JetBrains Mono for code.
 				{ tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
 				{ tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: true } },
 				{
@@ -167,7 +176,12 @@ export default defineConfig({
 			],
 			pagination: false,
 			sidebar: [
-				{ label: 'SpecCraft', link: '/' },
+				{ label: 'Home', link: '/' },
+				{
+					label: 'Spec-driven',
+					collapsed: true,
+					items: [{ label: 'Overview', link: '/spec-driven/' }],
+				},
 				{
 					label: 'Formal methods',
 					collapsed: true,

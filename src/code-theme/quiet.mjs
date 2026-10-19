@@ -1,4 +1,4 @@
-// The quiet code theme from the SpecCraft design board (see /design): code in the text color, keywords in bold,
+// The quiet code theme: code in the text color, keywords in bold,
 // comments in italic and punctuation in the muted color. No other syntax colors, so pink and green stay for diffs.
 const palette = {
 	light: { surface: '#ffffff', text: '#16131d', muted: '#5c5866' },

@@ -12,14 +12,16 @@
   (`/Users/alex/work/speccraft/speccraft`); its `-req/idea.md` is the vision and the source of truth for what SpecCraft
   is. Do not link to that repo from the site.
 - **The formal-methods section** has its index at `/formal-methods/` (`src/content/docs/formal-methods/index.mdx`,
-  the former home page). It covers concepts (state machines, Petri nets), TypeScript tools
+  the former home page). It covers TypeScript tools
   (`/typescript-formal-methods/*`), and non-TypeScript tools used from TS (`/formal-methods/*`). The section is neutral: SpecCraft is not the frame of the tool pages.
-  - **speccraft-ts is one tool among others** there. Its page is `/typescript-formal-methods/speccraft-ts`, written
-    like every other tool page. Do not compare other tools against it or add "vs SpecCraft" sections.
   - Tool pages are titled with the tool's name and end with a neutral "Strengths and limits" section; comparisons,
     when useful, are with the other tools on the site.
   - Tool pages live under `/typescript-formal-methods/`; the old `/vs/` URLs redirect there.
+- **The spec-driven section** is one page for now, `/spec-driven/` (`src/content/docs/spec-driven/index.mdx`): a
+  neutral survey of spec-driven tools for AI agents (Spec Kit, Kiro, OpenSpec, BMAD, ...). SpecCraft is one entry.
 - The market pages, the use cases, the case studies and the canvas were removed in October 2026; their old URLs redirect to `/formal-methods/`.
+- The concept pages, the design and contact pages and the speccraft-ts page were removed in October 2026; their old
+  URLs redirect to `/formal-methods/` (`/design` and `/contact` to `/`).
 
 ## Who reads the formal-methods section and how to write for them
 
@@ -93,7 +95,7 @@ No Install, Project layout, CI or Making changes sections.
 
 - **Astro Starlight** (`@astrojs/starlight`), static output, build dir `dist/`.
 - The root page is `src/content/docs/index.mdx`; the formal-methods index is `src/content/docs/formal-methods/index.mdx`.
-  The sidebar groups are in `astro.config.mjs`: a link to the root, then one group "Formal methods" for the section.
+  The sidebar is in `astro.config.mjs`: "Home" (the root), then the groups "Spec-driven" and "Formal methods".
 - **Logo & favicons** live in `public/` (the "SC" monogram); the header logo is `src/assets/speccraft-logo.png`. Wired in `astro.config.mjs`.
 - **Analytics:** Google Tag Manager (`GTM-N2BNSMZ6`) injected via the Starlight `head` config — same container as the rest of the SpecCraft properties.
 - **Site styling tweaks** go in `src/styles/custom.css` (referenced via `customCss`).

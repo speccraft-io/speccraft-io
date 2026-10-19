@@ -1,0 +1,144 @@
+---
+title: Spec-driven development
+description: Spec-driven development with AI coding agents - what it is, the main tools (Spec Kit, Kiro, OpenSpec, BMAD, Superpowers and others), how they differ, and which to pick.
+tableOfContents: true
+---
+
+<p class="home-lead">You already ask Claude Code, Cursor or Copilot to plan before it writes code. Spec-driven tools keep
+that plan as files in the repo: requirements, a design, a task list. The agent then writes code from those files, and
+you review the files instead of a long chat.</p>
+
+Plan modes in Claude Code, Cursor, Codex and Copilot stop at a plan for one task. The tools below add a file layout,
+commands to fill it, and in some cases checks on it.
+
+## Three levels
+
+Birgitta Böckeler's [article on Martin Fowler's site](https://www.martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html)
+names three levels, and Spec Kit's own docs use them:
+
+- **Spec-first.** A spec is written before the AI starts a task. After the task it may go stale.
+- **Spec-anchored.** The spec stays after the task, and you change the feature later by changing the spec first.
+- **Spec-as-source.** You edit only the spec, and the code is generated from it.
+
+Most tools are spec-first. Few help you keep the spec current, and none of the tools below is spec-as-source today.
+
+## What tells the tools apart
+
+- **Who writes the requirements.** In almost all of them the AI writes the requirements file from your prompt, and
+  you edit its text. BMAD's agents interview you first.
+- **What happens with an open question.** Spec Kit marks up to three questions and waits for your answers. Others
+  ask as they go. A few write down a guess and keep going.
+- **Whether the spec stays current.** OpenSpec is built around it. Most others leave it to you.
+- **Whether the checks are code or prompts.** Many "checks" are an AI pass over the files. Some tools have checks
+  that run as code and fail the same way every time.
+- **Formal logic.** Kiro is the only tool here that checks requirements with a solver.
+
+## The tools
+
+### GitHub Spec Kit
+
+The [Spec Kit](https://github.com/github/spec-kit) CLI (`specify`) adds commands to your agent: `/speckit-specify`,
+`-plan`, `-tasks`, `-implement`, and optional `-clarify`, `-analyze` and `-checklist`. Files go in
+`specs/<feature>/`. It has the most GitHub stars of the tools built only for spec-driven work. Its docs describe three
+ways to keep specs and pick none as the default; `analyze` reports mismatches and changes nothing.
+
+### Kiro
+
+[Kiro](https://kiro.dev/docs/specs/) is AWS's agent: an IDE, a CLI, a web app and an iOS app, closed source. Specs go
+in `.kiro/specs/<name>/` as `requirements.md`, `design.md` and `tasks.md`, with requirements in EARS form ("When X,
+the system shall Y"). Two things no other tool here has:
+
+- An optional [deep analysis](https://kiro.dev/blog/deep-spec-analysis/): an LLM turns the requirements into solver
+  input, a solver (SMT, a program that checks logic) finds contradictions and cases no rule covers, and each finding
+  becomes a keep-or-change question. Then an LLM rewrites the requirements it affects.
+- [Property-based tests](https://kiro.dev/docs/specs/correctness/) taken from the requirements, each linked back to
+  its requirement. IDE only.
+
+A "Sync Files" button updates tasks from changed requirements. Nothing updates the spec from the code.
+
+### OpenSpec
+
+[OpenSpec](https://github.com/Fission-AI/OpenSpec) (npm `@fission-ai/openspec`) keeps the current specs in
+`openspec/specs/` and puts each change in its own folder, with requirements marked ADDED, MODIFIED, REMOVED or
+RENAMED. Archiving a change merges it into the specs, so the specs stay current. `openspec validate` checks the
+structure (headers, a scenario per requirement), not the meaning. The AI writes all of it; you review.
+
+### BMAD Method
+
+[BMAD](https://github.com/bmad-code-org/BMAD-METHOD) gives the agent many roles: analyst, product manager, product
+owner, architect, UX designer, developer. The agents draft the PRD and the requirements by interviewing you. It is the
+heaviest process here, close to a small team's.
+
+### Superpowers
+
+[Superpowers](https://github.com/obra/superpowers) is a plugin for Claude Code, Codex, Cursor and about a dozen other
+agents. It runs brainstorm, plan, build with subagents, review. Its test-first rule is strict: code written before its
+test is deleted. It writes a design doc per topic but has no requirement ids and does not keep specs current. It has
+more stars than any tool on this page, as a general method rather than a spec tool.
+
+### cc-sdd
+
+[cc-sdd](https://github.com/gotalab/cc-sdd) brings Kiro's file layout and flow to Claude Code, Codex and other agents,
+and reads existing Kiro specs. It adds a test-first build loop per task with a separate reviewer.
+
+### Requirement ids checked in code: spec-kitty, GSD, AI-DLC
+
+Three tools give each requirement an id and check that every id maps to planned work:
+
+- [spec-kitty](https://github.com/spec-kitty/spec-kitty) is the strictest: finishing fails in code if a requirement
+  has no work package.
+- [GSD Core](https://github.com/open-gsd/gsd-core) maps each requirement to one phase and flags ids no plan names,
+  partly in code and partly in prompts.
+- [AWS AI-DLC](https://github.com/awslabs/aidlc-workflows) checks a `traceability.json` file with a check you can
+  turn off.
+
+All three are heavy, and the AI writes the requirements.
+
+### Intent
+
+[Intent](https://www.augmentcode.com/blog/intent-a-workspace-for-agent-orchestration) is a macOS app (public beta)
+that runs Claude Code, Codex and other agents. A coordinator agent drafts a "living spec" note, you approve it,
+agents update it, and a verifier agent checks the work against it. The spec is a note in the app's workspace, not a
+plain file you review in pull requests.
+
+### Tessl
+
+Tessl was the one "spec-as-source" attempt in 2025. Its docs now cover only agent skills, and what is left of the
+spec work is a [registry plugin](https://tessl.io/registry/tessl-labs/spec-driven-development) that makes the agent
+write specs before code. It is no longer a reason to pick Tessl.
+
+### Quint LLM Kit
+
+[Quint LLM Kit](https://github.com/quint-co/quint-llm-kit) is from the team behind [Quint](/formal-methods/quint).
+Its skills turn plain-English requirements, code or TLA+ into a Quint model (a small program that describes the states
+and steps, checked by a model checker), then write code guided by it. Its README says it was built for internal use
+and is not well tested.
+
+### SpecCraft
+
+[SpecCraft](/) is pre-release. You write the requirements, and the AI writes the spec, the tests and the code. The
+AI's choices on open questions go into the spec as assumptions instead of questions that wait for you. The spec quotes
+your requirements, and a gate marks a spec as behind when a requirement it quotes changes. Test cases come from a
+Quint model and carry ids the tests use.
+
+## Which to pick
+
+- **To try the idea in the agent you use now:** Spec Kit or OpenSpec. Pick OpenSpec if the same features change
+  often: it is the only one here whose specs stay current by design. Pick Spec Kit for new features and the largest
+  community.
+- **To have requirements checked for contradictions and gaps:** Kiro. No other tool here runs a solver on them.
+- **When an auditor needs every requirement traced to work:** spec-kitty, then GSD or AI-DLC.
+- **When you want a strict test-first process more than spec files:** Superpowers. It can run next to any of the
+  others for the code step.
+- **When you already use Kiro's layout but not Kiro:** cc-sdd.
+- **For a small formal model per feature:** Quint LLM Kit, with care; see [formal methods](/formal-methods/) for the
+  tools behind it.
+
+For a team new to all of this, start with Spec Kit or OpenSpec on one feature. The heavier tools (BMAD, spec-kitty,
+GSD, AI-DLC) pay off only once you know which part of the process you want enforced.
+
+## Links
+
+- [Understanding Spec-Driven Development: Kiro, spec-kit, and Tessl](https://www.martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html), Birgitta Böckeler, October 2025
+- [Spec Kit](https://github.com/github/spec-kit) · [Kiro specs](https://kiro.dev/docs/specs/) · [OpenSpec](https://github.com/Fission-AI/OpenSpec) · [BMAD](https://github.com/bmad-code-org/BMAD-METHOD) · [Superpowers](https://github.com/obra/superpowers) · [cc-sdd](https://github.com/gotalab/cc-sdd)
+- [spec-kitty](https://github.com/spec-kitty/spec-kitty) · [GSD Core](https://github.com/open-gsd/gsd-core) · [AWS AI-DLC](https://github.com/awslabs/aidlc-workflows) · [Intent](https://www.augmentcode.com/blog/intent-a-workspace-for-agent-orchestration) · [Quint LLM Kit](https://github.com/quint-co/quint-llm-kit)

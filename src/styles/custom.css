@@ -1,4 +1,4 @@
-/* SpecCraft palette (see /design). Pink means the problem, green means fine or fixed; everything else is neutral.
+/* SpecCraft palette. Pink means the problem, green means fine or fixed; everything else is neutral.
    Starlight's own color variables are mapped onto the palette below, so its components follow it too. */
 :root {
 	--sc-pink: #c8327f;
@@ -70,7 +70,7 @@ h1,
 	font-family: var(--sc-font-heading);
 }
 
-/* Code (quiet code theme, see /design): no ligatures, file names in the code face, and removed diff lines in pink
+/* Code (quiet code theme): no ligatures, file names in the code face, and removed diff lines in pink
    with a strikethrough, added ones in green. */
 .expressive-code pre,
 .code-fix pre,
@@ -202,15 +202,6 @@ h1,
 	font-size: var(--sl-text-lg);
 	line-height: 1.6;
 	color: var(--sc-muted);
-}
-
-/* The banner at the top of the Design notes page. */
-.design-board {
-	display: block;
-	width: 100%;
-	height: auto;
-	border: 1px solid var(--sc-border);
-	border-radius: 0.75rem;
 }
 
 /* Full / Code only views (src/components/PageTitle.astro). In "Code only", prose is hidden and only headings,

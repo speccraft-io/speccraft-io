@@ -117,7 +117,7 @@ for (const [left, right] of rows) {
 }
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-// The quiet code theme for the two diff styles rendered here (see /design): keywords bold, comments italic and
+// The quiet code theme for the two diff styles rendered here: keywords bold, comments italic and
 // muted, punctuation muted, everything else in the text color. Only for TypeScript; other languages stay plain.
 const KEYWORDS = new Set(
 	'export import from interface type async function const let await if else return new class throw try catch for of while'.split(' '),
@@ -255,7 +255,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 
 	let monaco: Promise<any> | undefined;
 
-	// Monaco needs literal colors, so its themes are read from the palette's CSS variables (see /design).
+	// Monaco needs literal colors, so its themes are read from the palette's CSS variables.
 	function defineThemes(m: any): void {
 		const probe = document.createElement('div');
 		document.body.appendChild(probe);
@@ -703,7 +703,7 @@ const height = `${Math.min(40, lines) * 19 + 16}px`;
 		--p-green-word: #1b4a31;
 	}
 
-	/* Mergely colors: pink for the old side, green for the new side, on the surface color (see /design). */
+	/* Mergely colors: pink for the old side, green for the new side, on the surface color. */
 	.code-fix-split .mergely-editor .CodeMirror {
 		background: var(--sc-surface);
 		color: var(--sl-color-white);
