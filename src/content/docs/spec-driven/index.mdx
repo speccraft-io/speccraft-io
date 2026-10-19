@@ -115,29 +115,6 @@ the ones you disagree with in one pass; the medium and hard depths ask instead. 
 X". An optional interview step keeps your raw idea word for word in `docs/idea-brief.md`. Of the tools here, it
 handles open questions closest to "guess, write it down, keep going".
 
-### cc-sdd
-
-[cc-sdd](https://github.com/gotalab/cc-sdd) brings Kiro's file layout and flow to Claude Code, Codex and other agents,
-and reads existing Kiro specs. It adds a test-first build loop per task with a separate reviewer.
-
-### Tessl
-
-Tessl was the one "spec-as-source" attempt in 2025. Its docs now cover only agent skills, and what is left of the
-spec work is a [registry plugin](https://tessl.io/registry/tessl-labs/spec-driven-development) that makes the agent
-write specs before code. It is no longer a reason to pick Tessl.
-
-### Quint LLM Kit
-
-[Quint LLM Kit](https://github.com/quint-co/quint-llm-kit) is from the team behind [Quint](/formal-methods/quint).
-Its skills turn plain-English requirements, code or TLA+ into a Quint model (a small program that describes the states
-and steps, checked by a model checker), then write code guided by it. Its README says it was built for internal use
-and is not well tested.
-
-### Not a spec tool: Superpowers
-
-[Superpowers](https://github.com/obra/superpowers) is a test-first coding workflow (brainstorm, plan, build), not a
-spec tool: it has no requirement ids and does not keep specs. It can run next to any tool here for the code step.
-
 ### SpecCraft
 
 [SpecCraft](/) is pre-release. You write the requirements, and the AI writes the spec, the tests and the code. The
@@ -154,10 +131,7 @@ the requirements and specs in GitHub.
 - **When you want a living spec and agents run side by side, and do not need the spec in git:** Intent.
 - **To have requirements checked for contradictions and gaps:** Kiro. No other tool here runs a solver on them.
 - **When an auditor needs every requirement traced to work:** spec-kitty, then GSD or AI-DLC.
-- **When you already use Kiro's layout but not Kiro:** cc-sdd.
 - **When you want the AI to write its guesses down instead of asking:** genkovich/sdd in its easy depth.
-- **For a small formal model per feature:** Quint LLM Kit, with care; see [formal methods](/formal-methods/) for the
-  tools behind it.
 
 For a team new to all of this, start with Spec Kit or OpenSpec on one feature. The heavier tools (BMAD, spec-kitty,
 GSD, AI-DLC) pay off only once you know which part of the process you want enforced.
