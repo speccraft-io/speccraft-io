@@ -1,6 +1,6 @@
 ---
 title: Spec-driven development
-description: Spec-driven development with AI coding agents - what it is, the main tools (Spec Kit, Kiro, OpenSpec, BMAD, Intent, Superpowers and others), how they differ, and which to pick.
+description: Spec-driven development with AI coding agents - what it is, the main tools (Spec Kit, Kiro, OpenSpec, BMAD, Intent, genkovich/sdd and others), how they differ, and which to pick.
 tableOfContents: true
 ---
 
@@ -39,15 +39,6 @@ Most tools are spec-first. Few help you keep the spec current, and none of the t
 
 ## The tools
 
-### GitHub Spec Kit
-
-The [Spec Kit](https://github.com/github/spec-kit) CLI (`specify`) adds commands to your agent: `/speckit-specify`,
-`-plan`, `-tasks`, `-implement`, and optional `-clarify`, `-analyze` and `-checklist`. Files go in
-`specs/<feature>/`. It has the most GitHub stars of the tools built only for spec-driven work. The AI makes informed
-guesses and lists them in an Assumptions section, but still asks up to three questions in `specify` and up to five
-more in `clarify`, which rewrites the spec in place. Its docs describe three ways to keep specs and pick none as the
-default; `analyze` reports mismatches and changes nothing.
-
 ### Kiro
 
 [Kiro](https://kiro.dev/docs/specs/) is AWS's agent: an IDE, a CLI, a web app and an iOS app, closed source. Specs go
@@ -76,32 +67,30 @@ RENAMED. Archiving a change merges it into the specs, so the specs stay current.
 structure (headers, a scenario per requirement), not the meaning. The AI writes all of it and you review; your
 request is not saved. It asks about big gaps and makes "a reasonable assumption and record[s] it" for small details.
 
+### Intent
+
+[Intent](https://intentapp.dev/docs) is a desktop app that runs Claude Code, Codex, OpenCode and other agents. It
+started as "Intent by Augment" and is now a free, Apache 2.0 project of its own. A coordinator agent drafts a "living
+spec" note, you approve it, agents update it as the code changes, and a verifier agent checks the work against it.
+The spec writer asks one to four questions first and may mark assumptions "(confirm?)". The spec is a note in a local
+SQLite database, not a file in git you review in pull requests. The iOS app reads spec notes and changes only task
+status, and needs your computer running.
+
+### GitHub Spec Kit
+
+The [Spec Kit](https://github.com/github/spec-kit) CLI (`specify`) adds commands to your agent: `/speckit-specify`,
+`-plan`, `-tasks`, `-implement`, and optional `-clarify`, `-analyze` and `-checklist`. Files go in
+`specs/<feature>/`. It has the most GitHub stars of the tools built only for spec-driven work. The AI makes informed
+guesses and lists them in an Assumptions section, but still asks up to three questions in `specify` and up to five
+more in `clarify`, which rewrites the spec in place. Its docs describe three ways to keep specs and pick none as the
+default; `analyze` reports mismatches and changes nothing.
+
 ### BMAD Method
 
 [BMAD](https://github.com/bmad-code-org/BMAD-METHOD) gives the agent many roles: analyst, product manager, product
 owner, architect, UX designer, developer. The agents draft the brief, the PRD and the requirements, and a hand edit
 "is overwritten on the next run". The fast path drafts with `[ASSUMPTION]` tags; the coaching path walks through each
 section with you. It is the heaviest process here, close to a small team's.
-
-### Superpowers
-
-[Superpowers](https://github.com/obra/superpowers) is a plugin for Claude Code, Codex, Cursor and about a dozen other
-agents. It runs brainstorm, plan, build with subagents, review. Its test-first rule is strict: code written before its
-test is deleted. It writes a design doc once, as input for the plan, but has no requirement ids and does not keep
-specs current. It has more stars than any tool on this page, as a general method rather than a spec tool.
-
-### cc-sdd
-
-[cc-sdd](https://github.com/gotalab/cc-sdd) brings Kiro's file layout and flow to Claude Code, Codex and other agents,
-and reads existing Kiro specs. It adds a test-first build loop per task with a separate reviewer.
-
-### genkovich/sdd
-
-[genkovich/sdd](https://github.com/genkovich/sdd) is a Claude Code plugin that writes one folder per feature in
-`docs/features/<slug>/`. Its "easy" depth writes each open point as "Assumed: X = Y, because ..." and you strike out
-the ones you disagree with in one pass; the medium and hard depths ask instead. A question put off gets "Default now:
-X". An optional interview step keeps your raw idea word for word in `docs/idea-brief.md`. Of the tools here, it
-handles open questions closest to "guess, write it down, keep going".
 
 ### Requirement ids checked in code: spec-kitty, GSD, AI-DLC
 
@@ -118,14 +107,18 @@ Three tools give each requirement an id and check that every id maps to planned 
 
 All three are heavy, and the AI writes the requirements.
 
-### Intent
+### genkovich/sdd
 
-[Intent](https://intentapp.dev/docs) is a desktop app that runs Claude Code, Codex, OpenCode and other agents. It
-started as "Intent by Augment" and is now a free, Apache 2.0 project of its own. A coordinator agent drafts a "living
-spec" note, you approve it, agents update it as the code changes, and a verifier agent checks the work against it.
-The spec writer asks one to four questions first and may mark assumptions "(confirm?)". The spec is a note in a local
-SQLite database, not a file in git you review in pull requests. The iOS app reads spec notes and changes only task
-status, and needs your computer running.
+[genkovich/sdd](https://github.com/genkovich/sdd) is a Claude Code plugin that writes one folder per feature in
+`docs/features/<slug>/`. Its "easy" depth writes each open point as "Assumed: X = Y, because ..." and you strike out
+the ones you disagree with in one pass; the medium and hard depths ask instead. A question put off gets "Default now:
+X". An optional interview step keeps your raw idea word for word in `docs/idea-brief.md`. Of the tools here, it
+handles open questions closest to "guess, write it down, keep going".
+
+### cc-sdd
+
+[cc-sdd](https://github.com/gotalab/cc-sdd) brings Kiro's file layout and flow to Claude Code, Codex and other agents,
+and reads existing Kiro specs. It adds a test-first build loop per task with a separate reviewer.
 
 ### Tessl
 
@@ -139,6 +132,11 @@ write specs before code. It is no longer a reason to pick Tessl.
 Its skills turn plain-English requirements, code or TLA+ into a Quint model (a small program that describes the states
 and steps, checked by a model checker), then write code guided by it. Its README says it was built for internal use
 and is not well tested.
+
+### Not a spec tool: Superpowers
+
+[Superpowers](https://github.com/obra/superpowers) is a test-first coding workflow (brainstorm, plan, build), not a
+spec tool: it has no requirement ids and does not keep specs. It can run next to any tool here for the code step.
 
 ### SpecCraft
 
@@ -156,8 +154,6 @@ the requirements and specs in GitHub.
 - **When you want a living spec and agents run side by side, and do not need the spec in git:** Intent.
 - **To have requirements checked for contradictions and gaps:** Kiro. No other tool here runs a solver on them.
 - **When an auditor needs every requirement traced to work:** spec-kitty, then GSD or AI-DLC.
-- **When you want a strict test-first process more than spec files:** Superpowers. It can run next to any of the
-  others for the code step.
 - **When you already use Kiro's layout but not Kiro:** cc-sdd.
 - **When you want the AI to write its guesses down instead of asking:** genkovich/sdd in its easy depth.
 - **For a small formal model per feature:** Quint LLM Kit, with care; see [formal methods](/formal-methods/) for the
@@ -165,9 +161,3 @@ the requirements and specs in GitHub.
 
 For a team new to all of this, start with Spec Kit or OpenSpec on one feature. The heavier tools (BMAD, spec-kitty,
 GSD, AI-DLC) pay off only once you know which part of the process you want enforced.
-
-## Links
-
-- [Understanding Spec-Driven Development: Kiro, spec-kit, and Tessl](https://www.martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html), Birgitta Böckeler, October 2025
-- [Spec Kit](https://github.com/github/spec-kit) · [Kiro specs](https://kiro.dev/docs/specs/) · [OpenSpec](https://github.com/Fission-AI/OpenSpec) · [BMAD](https://github.com/bmad-code-org/BMAD-METHOD) · [Superpowers](https://github.com/obra/superpowers) · [cc-sdd](https://github.com/gotalab/cc-sdd) · [genkovich/sdd](https://github.com/genkovich/sdd)
-- [spec-kitty](https://github.com/spec-kitty/spec-kitty) · [GSD Core](https://github.com/open-gsd/gsd-core) · [AWS AI-DLC](https://github.com/awslabs/aidlc-workflows) · [Intent](https://intentapp.dev/docs) · [Kiro pricing](https://kiro.dev/pricing/) · [Quint LLM Kit](https://github.com/quint-co/quint-llm-kit)
