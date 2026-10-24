@@ -54,9 +54,9 @@ export default defineConfig({
 		'/vs/polygraph': '/typescript-formal-methods/polygraph',
 		'/vs/speccraft-ts': '/formal-methods/',
 		'/typescript-formal-methods/speccraft-ts': '/formal-methods/',
-		'/concepts/state-machines': '/formal-methods/',
-		'/concepts/petri-nets': '/formal-methods/',
-		'/concepts/formal-specs': '/formal-methods/',
+		'/concepts/state-machines': '/formal-methods/concepts/state-machines',
+		'/concepts/petri-nets': '/formal-methods/concepts/petri-nets',
+		'/concepts/formal-specs': '/formal-methods/concepts/formal-specs',
 		'/approaches-to-correctness': '/formal-methods/',
 		'/durable-execution-problems': '/formal-methods/',
 		'/durable-workflow-correctness-tooling-research': '/formal-methods/',
@@ -129,8 +129,6 @@ export default defineConfig({
 				ThemeSelect: './src/components/ThemeSelect.astro',
 				// Show a date on every page, falling back to the file's modified time before its first commit.
 				LastUpdated: './src/components/LastUpdated.astro',
-				// The header shows a pre-release badge; contact is at the bottom of the root page.
-				SocialIcons: './src/components/SocialIcons.astro',
 				// On tool comparison pages, an adoption box replaces the right-hand table of contents.
 				PageSidebar: './src/components/PageSidebar.astro',
 				// "Spec" in white or near-black, "Craft" in the logo's green.
@@ -185,6 +183,14 @@ export default defineConfig({
 					label: 'Formal methods',
 					items: [
 						{ label: 'Overview', link: '/formal-methods/' },
+						{
+							label: 'Concepts',
+							items: [
+								{ label: 'State machines and FSMs', link: '/formal-methods/concepts/state-machines' },
+								{ label: 'Petri nets', link: '/formal-methods/concepts/petri-nets' },
+								{ label: 'Formal specs', link: '/formal-methods/concepts/formal-specs' },
+							],
+						},
 						{
 							label: 'Non-TypeScript tools',
 							items: [
