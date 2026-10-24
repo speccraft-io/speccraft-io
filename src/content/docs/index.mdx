@@ -49,6 +49,22 @@ gaps, no CI), each with a definition of done, 90 minutes.
 
 The task is small. The shape is the same at 7,000 workflows.
 
+What level 3 takes today, for a task like this, with no fleet product:
+
+- **A coding agent with a workflow mode and subagents.** Claude Code's dynamic workflows run a script: the
+  survey, the workers in parallel, the integrator; `/workflows` shows where it is.
+- **Hooks** for the two rules that must hold: the proof test is read-only for the worker, and no files outside
+  its item.
+- **Cloud machines from a snapshot**, one per worker, started by a script that copies the tree, runs the suite
+  there and brings the patch back. On Morph Cloud an 8 CPU machine is about $0.40 an hour; six for two hours is
+  under $5.
+- **The phone app** as the escalation channel: the worker's question reaches you, and a written default fires
+  if you do not answer.
+- **A spec file per item**, the definition of done, and **one commit per item**.
+
+Not on the list: fleet frameworks (Gas City is an SDK, not a product), durable runtimes (Temporal is the layer
+under a controller, not a controller), and the side-by-side terminal apps (a view on one laptop).
+
 ## Checking without reading
 
 What holds the factory back is checking agent output well enough that nobody has to read it. The
