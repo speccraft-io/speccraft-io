@@ -38,10 +38,16 @@ git worktree) and tell you which one needs you.
   workspace with a branch, terminal and dev server; diff review, inline feedback, open and merge PRs. Apache-2.0.
   The README says the project is being sunset. It was bloop's pivot away from COBOL modernisation.
 
+All four run the agents on your machine. Five agents in five worktrees share one laptop, so a full test suite or
+an e2e run after each change is five full suites on the same CPU. In practice the slow check runs less often, and
+the diff is approved on the unit tests alone.
+
 ## Where it stops
 
 - **You are the bottleneck.** Five agents make five diffs, and you read all of them. Anthropic's own data says
-  people accept 93 percent of permission prompts, which is approving, not reviewing.
+  people accept 93 percent of permission prompts, which is approving, not reviewing. On a bounded task this shows
+  within the hour: a repo with five independent issues and a 90 minute limit ends with two issues fixed well and
+  the rest as notes, because finding the issues and reading each diff is where the time goes.
 - **Nothing remembers.** The plan lives in the chat. A second agent, or the same one tomorrow, does not know what
   was decided.
 - **The check is you.** Passing tests is taken as proof, and it is not: agents write the tests they then pass.

@@ -33,6 +33,22 @@ decisions that matter. Nobody has it today, and buyers are already paying for it
 [software factory](/software-factory/) section is a survey of who claims it, what nobody does yet, and what is
 known about one person supervising a fleet.
 
+## One task, three ways
+
+A repo you have never seen, five independent issues (passwords stored wrong, N+1 queries, no error taxonomy, test
+gaps, no CI), each with a definition of done, 90 minutes.
+
+- **Level 1.** One agent, one issue at a time. The time goes to reading the code to find the issues and then
+  reading each diff. Two issues get done well, the rest become notes.
+- **Level 2.** The first ten minutes produce a file: the list of issues, and for each one the test that proves it,
+  the constraint that must hold and the write-up to produce. You read that file, not the code. The proof test comes
+  before the fix.
+- **Level 3.** One machine and one agent per issue. Each agent writes the failing test, fixes, runs the full suite on
+  its own machine and sends back a report and a patch. You read five reports, apply five patches, make five
+  commits. The write-up is the file from level 2 plus the reports.
+
+The task is small. The shape is the same at 7,000 workflows.
+
 ## Checking without reading
 
 What holds the factory back is checking agent output well enough that nobody has to read it. The

@@ -127,12 +127,44 @@ No installable tool is documented past a few dozen agents: Gas Town says 20 to 3
 recommend 3 to 5, and Cursor's posts about hundreds of agents on one codebase describe an internal system with no
 cost or correctness numbers.
 
+## What works today, in small
+
+No product does the factory, but one person with today's tools can run its shape on one project. One small
+project we know runs this way, with one maintainer and no team:
+
+- **The person writes the requirements, the agent writes the rest.** Spec, model, tests and code come from one agent
+  run per feature. A gate, run as code, fails when a spec is behind its requirement. The tests are end-to-end
+  against real services, never stubs. The repo's own instructions say the maintainer does not read the
+  implementation, and he does not.
+- **Decisions are settled in writing before the run.** Where the requirements do not settle a point, the agent
+  writes the question and its assumption into the spec and goes on. The person reads the spec later, if at all, and
+  changes the requirement if the assumption was wrong. No question waits for an answer.
+- **One machine per task, one agent per machine.** A script starts cloud machines from a snapshot with the tools,
+  the test images and warm caches already on it, copies the working tree over, runs a job in the background and
+  brings the result back as a patch. The main session starts one subagent per task, gives each a machine, and
+  reads reports, not diffs: what ran, how many runs passed and failed, the cause, the fix, the patch. It applies
+  the patch, runs the changed tests, commits, stops the machine.
+- **The rules are in the script, not the prompt.** A machine never commits, never pushes and holds no secrets. An
+  agent works only through the script and only on its machine; if it needs another, it asks. Machines stop
+  themselves after an hour. The same lesson as the production data losses above: a rule the tool enforces holds, a
+  rule in a prompt does not.
+
+What it gave: ten flaky end-to-end tests, each needing 20 to 50 reruns under full-suite load to find the cause,
+fixed in one day, while the same person shipped two features. Before the machines, one such test took the day,
+because the reruns held the laptop.
+
+What it is not: eight machines, not hundreds; one project the person knows, not a legacy system nobody understands.
+But it has every part the research above asks for: a planner that writes no code, workers that take one task and
+leave one note, decisions removed in writing, and a check that runs without the person reading.
+
 ## Where this leaves you
 
 - If you are rebuilding a mainframe or COBOL system, there are products to try today (Mechanical Orchard, AWS
   Transform, Google's pipeline, Devin for batch). All of them keep your engineers reading.
 - If your system is an ERP, old Java, PHP or .NET, the field is Legacyleap, Veylo and consultancies, and the
   buyers who are furthest along built the process themselves.
+- If your task splits into independent pieces with a definition of done each, you can run the small version above
+  today with a coding agent, a few cloud machines and a script.
 - The open problems are the same for everyone: finding out what the old system is for, checking agent output
   without reading it, and getting the decision stream down to what one person can actually decide. The second one
   is where [formal methods](/formal-methods/) and independent tests come in.
