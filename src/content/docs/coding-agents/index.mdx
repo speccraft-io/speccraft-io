@@ -1,0 +1,50 @@
+---
+title: Coding agents
+description: Coding agents in the terminal (Claude Code, Codex CLI, Gemini CLI, Copilot CLI) and the apps that run several of them side by side (cmux, Conductor, Superset, Vibe Kanban) - what they are, what they add, and where they stop.
+tableOfContents: true
+---
+
+<p class="home-lead">You open a terminal, start Claude Code, Codex or Gemini CLI, give it a task, read the diff and
+approve. That is where most teams are in 2026. The tools below are that, plus a layer for running several agents at
+once.</p>
+
+This is the first of [three levels](/#1-coding-agents). It works well, and it ends where your reading
+ends: every change still goes through you.
+
+## The agents
+
+- **Claude Code** (Anthropic). Terminal agent, also in VS Code, JetBrains, a desktop app and the web. Permission
+  modes from approve-every-step to full auto. Agent teams of 3 to 5 sub-agents are the recommended ceiling.
+- **Codex CLI** (OpenAI), **Gemini CLI** (Google), **Copilot CLI** (GitHub), **Cursor agent**. Same shape: a task
+  in, a diff out, you approve.
+
+All of them stop at one task. A plan mode writes a plan for that task and the plan is gone when the task is done.
+Keeping the plan as files in the repo is what the [spec-driven](/spec-driven/) tools add.
+
+## Running several at once
+
+Once one agent works, the next thing people do is open five. These apps give each agent its own workspace (usually a
+git worktree) and tell you which one needs you.
+
+- **cmux.** Open source macOS terminal built on Ghostty, with vertical tabs, split panes and a sidebar that shows
+  each workspace's branch, PR status and latest notification. A terminal first: it runs whatever you type.
+  GPL-3.0; the server parts are BSL 1.1.
+- **Conductor.** Mac app that runs Claude Code, Codex and Cursor agents in parallel, each in its own workspace, and
+  lets you review and merge. Closed source, paid plans.
+- **Superset.** Mac app (Linux experimental) that runs Claude Code, Codex and OpenCode in isolated worktrees, with a
+  CLI, a TypeScript SDK, an MCP server and an iPhone app for checking in. Source-available (Elastic License 2.0),
+  free tier.
+- **Vibe Kanban.** A kanban board where each card is a task for Claude Code, Codex, Gemini CLI or Amp, run in its own
+  workspace with a branch, terminal and dev server; diff review, inline feedback, open and merge PRs. Apache-2.0.
+  The README says the project is being sunset. It was bloop's pivot away from COBOL modernisation.
+
+## Where it stops
+
+- **You are the bottleneck.** Five agents make five diffs, and you read all of them. Anthropic's own data says
+  people accept 93 percent of permission prompts, which is approving, not reviewing.
+- **Nothing remembers.** The plan lives in the chat. A second agent, or the same one tomorrow, does not know what
+  was decided.
+- **The check is you.** Passing tests is taken as proof, and it is not: agents write the tests they then pass.
+
+Each of these is what the next two levels try to fix: [spec-driven](/spec-driven/) tools keep the plan as files
+and check them; the [software factory](/software-factory/) tries to take the person out of the reading loop.

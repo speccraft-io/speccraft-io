@@ -1,0 +1,138 @@
+---
+title: Software factory
+description: AI software factories and modernisation at scale - many agents rebuild a large system while one person steers. Who claims it today (Mechanical Orchard, Blitzy, Legacyleap, Veylo, AWS Transform, Google), what nobody does yet, who is buying, and what the research says about one person supervising a fleet.
+tableOfContents: true
+---
+
+<p class="home-lead">You already run one coding agent in a terminal, and maybe a spec-driven tool that turns files in
+the repo into code. A software factory is the next step: many agents run on their own on a large system, and one
+person steers. They do not read the code, and not every spec. They see the few decisions that matter and say yes or
+no.</p>
+
+Nobody has it today. Buyers are already paying for it. This page is a survey of who claims what, what nobody does
+yet, and what is known about the hard part: one person supervising a fleet. Vendor claims are claims; the sources
+were read in October 2026.
+
+## Three levels
+
+- **Coding agents.** Claude Code, Cursor, Codex, Copilot. You give a task, read the diff, approve. Most
+  teams are here.
+- **Spec-driven.** Requirements, a design and a task list live as files in the repo. The agent builds from them and
+  you review the files, not the chat. See the [spec-driven](/spec-driven/) section.
+- **Software factory.** Hundreds of agents and days or weeks of unattended work. Agents find out what the old system
+  does, propose a plan, build, test and cut over. The person sets the goal and the rules, and decides the cases the
+  rules do not cover.
+
+The factory is mostly talked about for one job: rebuilding a legacy system (mainframe, COBOL, old Java or .NET, an
+ERP), because that is where the work is too big for people to read. The names used for it are "agentic
+modernisation" (Kyndryl, Microsoft, TCS) and "software dark factory" (Mechanical Orchard). Gartner has a 2026
+quadrant called "AI Augmented Code Modernization Tools".
+
+## Who claims it today
+
+None of these claims the whole thing. Each keeps an engineer reading code or specs somewhere.
+
+- **Mechanical Orchard (Imogen).** $84M+ raised. Rewrites mainframe systems with the old one still running, and
+  checks the new one against the old one's observed behaviour instead of human code review. Its July 2026 "software
+  dark factory" doctrine is the clearest statement of the idea: people only at the start (the seed) and the end
+  (accept), "no human gates in the middle". Mainframe only.
+- **Blitzy.** $200M Series A. You submit a spec, thousands of agents run for days or weeks, you get tested code and
+  a list of what is left for your team. Not built for legacy systems in particular.
+- **Legacyleap.** The only one that sells a plan with a timeline and an estimate up front, from a free assessment,
+  before agents convert the code. VB6, PHP, Perl, old .NET. A person stays on the business logic.
+- **Veylo (formerly BlueGenAI).** Discovery to deployment from a validated blueprint. .NET, COBOL, Delphi, AS/400,
+  government. Experts stay in control at every step.
+- **Hypercubic.** YC F25. Same thesis that the requirements are outside the code: it interviews retiring experts to
+  capture what they know. Mainframe only.
+- **CoreStory.** $32M Series A. Calls itself spec-driven development for legacy, but it is the understanding layer:
+  it explains what the code does and writes nothing.
+- **Cognition (Devin).** Runs COBOL batch migrations at Fortune 500 companies with hundreds of Devins at once, and
+  says itself that transactional systems are still out of reach.
+- **AWS Transform.** The broadest big-vendor product: extract rules, generate code, test, with a coding agent for
+  the new side. Pitched at narrow paths (Java upgrades, COBOL to Java, .NET). The biggest named application is
+  250K lines, and people review every change.
+- **Google Cloud Mainframe Modernization with Gemini.** The most complete published pipeline: business rules to
+  target spec to architecture to backlog to coding plan, with an optional human gate at every step, and Dual Run
+  replaying live traffic for the cutover. Mainframe only.
+- **Moderne and Microsoft's Copilot modernization agent.** Deterministic rewrite rules plus an LLM. A person
+  reviews each change.
+
+Dead or pivoted: Second (YC W23), bloop (now Vibe Kanban), Grit.
+
+## What nobody does yet
+
+Across about 130 sources (startups, big vendors, open source, job ads, talks), nobody found:
+
+- **Learns the requirements from where they really are.** Tickets, support email, meeting notes, production
+  metrics. Hypercubic interviews people. Mechanical Orchard records production data flows. Nobody reads Jira and
+  Zendesk to find out what a workflow is for.
+- **Proposes the strategy, cost and ETA on its own.** Legacyleap gives an estimate, made by people from an
+  assessment. No agent researches the market and comes back with a plan.
+- **Lets a non-reader supervise.** Every job ad for an "agent-supervising engineer" (Deloitte, Bosch, EY, and the
+  agency ads for a German ERP vendor) makes reviewing agent output the core duty. None says the person will not read
+  code.
+- **Replaces an ERP.** The one study of coding agents on an ERP got a 70 percent behaviour match on average and 47
+  percent on the hard features. Startups wrap ERPs (CoreOps AI, Minicor) or implement them (superglue, Trope);
+  nobody rebuilds one with agents.
+
+The Hacker News view of the gap is that the "why" of a business rule is not recoverable from the code at all, so
+the first item cannot be done. The vendors above are betting it can.
+
+## Who is buying
+
+The buyers are not waiting for a product. They are building the operating model in-house with a small team plus
+agents and tools.
+
+- **PNC** advertised "a full rewrite of the legacy commercial real estate loan servicing platform" by a small
+  forward-deployed team of AI engineers and agents, the first of several 2 to 3 year pilots.
+- **State Street** describes an agentic SDLC for a COBOL and PowerBuilder portfolio and names Devin and Blitzy as
+  tools under evaluation.
+- A **German manufacturing ERP vendor**, through a Berlin agency, hires contractors to rebuild a 15M line, 6,000 to
+  7,000 process ERP with Claude Code writing the code, parallel run and reconciliation for the cutover, and one
+  person making 100 to 150 business decisions a day next to the CPO. Its ad says "the approach is proven and is now
+  being scaled".
+
+Consultancies (Deloitte, EY, Kyndryl, Slalom, Thoughtworks) and the hyperscalers hire builders and field architects
+for it, mostly scoped to mainframe or AS/400 and with "human oversight" and "validate functional equivalence" in the
+text.
+
+## The hard part: one person, many agents
+
+No published number says how many agents one person can supervise, or how many decisions a day they can make
+well. What the research does say points the same way.
+
+- **The person's attention is the scarce resource.** Anthropic reports that people accept 93 percent of permission
+  prompts, and that experienced users move from approving each step to watching and stepping in. A simulation study
+  (Turan, 2026) finds that escalating more can be less safe, because a flooded reviewer approves everything; the
+  safest rate in the model was about two thirds, not 100 percent.
+- **Written rules do not stop an agent.** Every public case where an agent destroyed production data (Replit 2025,
+  Amazon Kiro 2025, PocketOS 2026) had a written rule telling it not to. Scoped credentials and delete protection
+  would have worked.
+- **Decisions are removed, not made faster.** The working designs settle whole classes of decisions in writing
+  (reversible work is auto-allowed, a classifier or watchdog takes the next layer, severity tiers with deadlines),
+  and route only the irreversible or unclear ones to the person. 150 raw decisions a day in an 8 hour day is 3 to 5
+  minutes each.
+- **Under load people drift to the default.** The popular "decision fatigue" story failed its replications, but
+  this part holds: a tired reviewer picks the status quo or "no". So the default must be the safe answer.
+- **Checking the output is the weak point everywhere.** About half of agent pull requests that pass their tests
+  would not be merged by the maintainers. Agents cheat on tests. Nobody has studied tests written by a separate
+  agent from the spec. Until output can be checked without reading it, the factory needs a reader.
+- **For a legacy system, usage data decides keep or drop.** SAP says 40 to 60 percent of custom code never runs in
+  production and ships a tool that records what runs under which process. That is the only hard precedent for
+  choosing which of 7,000 workflows to keep.
+- **Cutover is where ERP projects die.** The readable failures (Nike, Haribo) were about seasonal timing and thin
+  testing of real volumes. Shadow runs are only safe for reads; writes need dual writes and reconciliation.
+
+No installable tool is documented past a few dozen agents: Gas Town says 20 to 30, Claude Code agent teams
+recommend 3 to 5, and Cursor's posts about hundreds of agents on one codebase describe an internal system with no
+cost or correctness numbers.
+
+## Where this leaves you
+
+- If you are rebuilding a mainframe or COBOL system, there are products to try today (Mechanical Orchard, AWS
+  Transform, Google's pipeline, Devin for batch). All of them keep your engineers reading.
+- If your system is an ERP, old Java, PHP or .NET, the field is Legacyleap, Veylo and consultancies, and the
+  buyers who are furthest along built the process themselves.
+- The open problems are the same for everyone: finding out what the old system is for, checking agent output
+  without reading it, and getting the decision stream down to what one person can actually decide. The second one
+  is where [formal methods](/formal-methods/) and independent tests come in.

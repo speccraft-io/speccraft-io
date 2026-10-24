@@ -176,8 +176,16 @@ export default defineConfig({
 			sidebar: [
 				{ label: 'Home', link: '/' },
 				{
+					label: 'Coding agents',
+					items: [{ label: 'Overview', link: '/coding-agents/' }],
+				},
+				{
 					label: 'Spec-driven',
 					items: [{ label: 'Overview', link: '/spec-driven/' }],
+				},
+				{
+					label: 'Software factory',
+					items: [{ label: 'Overview', link: '/software-factory/' }],
 				},
 				{
 					label: 'Formal methods',

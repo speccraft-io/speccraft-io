@@ -1,7 +1,7 @@
 ---
 title: SpecCraft
 hideTitle: true
-description: Spec-driven development with AI - human requirements, AI spec, AI tests, AI code, with a gate between them.
+description: AI coding in three steps - coding agents, spec-driven development, the software factory - and the formal methods that check the output.
 head:
   # Homepage title === site title, so Starlight's "title | siteTitle" format
   # duplicates it. Pin a single title for this page.
@@ -12,15 +12,31 @@ head:
     content: ".sl-markdown-content h2 { font-size: var(--sl-text-h3); }"
 ---
 
-## Spec-driven development
+AI coding is moving in three steps. Most teams are on the first one.
 
-The [spec-driven](/spec-driven/) section is a survey of spec-driven tools for AI coding agents (Spec Kit,
-Kiro, OpenSpec, BMAD and others): how they differ, and which to pick.
+## 1. Coding agents
 
-## Formal methods
+Claude Code, Cursor, Codex, Copilot, and apps like cmux and Conductor that run several of them side by side. You
+give a task, read the diff, approve. It works, and it does not scale past what one person can read. The
+[coding agents](/coding-agents/) section is a short map of the tools.
 
-The [formal methods](/formal-methods/) section is a guide to the concepts, the tools that exist,
-and how to use them from a TypeScript project.
+## 2. Spec-driven development
+
+Requirements, a design and a task list live as files in the repo. The agent builds from them, and you review the
+files instead of the chat. The [spec-driven](/spec-driven/) section is a survey of the tools (Spec Kit, Kiro,
+OpenSpec, BMAD and others): how they differ, and which to pick.
+
+## 3. Software factory
+
+Many agents run on their own on a large system, and one person steers. They do not read the code; they see the few
+decisions that matter. Nobody has it today, and buyers are already paying for it. The
+[software factory](/software-factory/) section is a survey of who claims it, what nobody does yet, and what is
+known about one person supervising a fleet.
+
+## Checking without reading
+
+What holds the factory back is checking agent output well enough that nobody has to read it. The
+[formal methods](/formal-methods/) section is a guide to the concepts and the tools that exist.
 
 ## Let's Connect
 
