@@ -179,12 +179,10 @@ export default defineConfig({
 				{ label: 'Home', link: '/' },
 				{
 					label: 'Spec-driven',
-					collapsed: true,
 					items: [{ label: 'Overview', link: '/spec-driven/' }],
 				},
 				{
 					label: 'Formal methods',
-					collapsed: true,
 					items: [
 						{ label: 'Overview', link: '/formal-methods/' },
 						{

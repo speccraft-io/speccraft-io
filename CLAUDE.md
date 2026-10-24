@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Repo scope:** source for **speccraft.io**, the site of **SpecCraft**: a tool, framework and method for spec-driven
+> **Repo scope:** source for **speccraft.io**, the site of **SpecCraft**: an information site about formal methods and spec-driven
 > development with AI (human requirements, AI spec, AI tests, AI code). The site also keeps a neutral guide to
 > **formal methods applied to TypeScript** as one section. Built with **Astro Starlight**, static output, deployed to
 > the `dist/` directory.
